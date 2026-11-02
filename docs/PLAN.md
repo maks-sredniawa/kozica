@@ -234,7 +234,7 @@ either. Moved here from phase 5 with the owner on 2026-10-25. Planned with the o
 
 The Regions' signed cycling routes in the tiles, Touring and MTB, drawn in their marking colours with
 bicycle symbols along the line, and one switch, Hiking or Cycling, that the map, search and later
-planning and recording follow, the other kind faded beneath; a sub-filter for All, Touring or MTB; a
+planning and recording follow, the other kind faded; a sub-filter for All, Touring or MTB; a
 Bike route tapped and seen whole, with its MTB difficulty; the mark with a bike drawn into its rock,
 read at launcher size (44 dp) first. A Bike route with no marking colour, as the Czech KČT numbered
 routes and any relation without `colour`, gets a style decided in this phase, and CLAUDE.md's colour
