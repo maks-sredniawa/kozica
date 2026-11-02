@@ -319,7 +319,7 @@ becomes 2,496 Trails, 88.2 % titled by tags, which is still verdict 1.
   than twice as long, as where a loop hangs off the Trail beyond a short stub, it takes that one.
   With fewer than two ends, it is the longest such walk from the one end, or else from the start of
   the edge holding the first way. The rest is treated as an `alternative`. Where the edges hold a
-  loop every such walk is searched; past 60 edges or 200,000 steps of search, the walk is the path
+  loop every such walk is searched; past 60 runs of its edges (phase 7a § 2) or 200,000 steps of search, the walk is the path
   between the two ends farthest apart, as the build logs. A Trail whose every way
   has one of those roles is walked over all of them, so that every Trail has a walk. The build logs
   how many Trails took each shape.

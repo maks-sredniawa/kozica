@@ -163,6 +163,27 @@ of the renders.
   pair in town is two-way on the sheet; those ways still draw chevrons. A one-way route's walk starts where its direction leaves: a line
   is turned when 6c's walk runs against it, and a loop goes round the way it is ridden rather than
   the way its first way runs.
+- **A Bike route's `backward` member** is off its walk only where it is the other strand of a
+  `forward` one: joined with the `backward` members it shares a node with, it touches one `forward`
+  strand, joined the same way, at two nodes or more, and no point of it is further than 150 m from
+  that strand. The widest pair at B's pin is 109 m apart, and a ring of one `forward` and one
+  `backward` strand is wider, so it goes round whole. Every other `backward` member is a stretch drawn against the
+  ride, in sequence with the rest and on the walk; the sense its way carries already says it is
+  ridden against its nodes, so along the ride it runs with the `forward` ones. A pair's `forward`
+  strand counts towards Ridden one way as any directed way does, which leaves Rapický okruh one-way.
+  6c's rule, every `backward` off the walk once a relation holds a `forward`, stays the Trails', and
+  at B's pin it reaches none of them: 5 Trails hold a `forward`, 1 a `backward`, none both.
+- **A walk is decided over its own kind's ways**, not the network's edges: the Trails' walks over
+  the edges the Trails' ways alone make, the Bike routes' over theirs, then laid onto the network's,
+  which cut those further. So a Bike route's arrival changes no Trail's length, direction or start,
+  and a Trail's none of a Bike route's. Joining each route's own chains of edges for every decision
+  was measured first and is not enough: a line's direction comes from where the edge holding its
+  first way lies, and with one edge there is nothing to tell, so 752 Trails turned against a
+  Trails-only build. The one thing the network can refuse is a loop's start, where 6c split a closed
+  chain and the network, cut elsewhere, did not: that loop starts at the start of the edge holding
+  it and goes the same way round. The longest-path search does join them, for the size of the search alone: 6c's limit
+  counts a route's runs, its edges joined through every vertex where only two of them meet and no
+  walk starts or ends, so a real network is past it and a long route with one junction is not.
 - **The network**: `trails.network` goes to format version 2. The Bike routes' ways join
   `build-network.py` beside the Trails', and four bytes join each edge: `sets` (1 Trail, 2 Bike
   route, 3 both), `ride` (the rider's direction from `oneway:bicycle`, else `oneway` on any highway,
@@ -294,6 +315,15 @@ merges.
   ascent and descent downhill, and its row `one_way`; so does one 80 % directed past an untagged
   connector; a stretch against the rest keeps a route two-way at any share; a Touring loop with one
   one-way street is two-way. Fails towards a sheet describing the climb a rider never makes.
+- **`backward` members**, in the build: the far strand of a close pair is off the walk, a stretch
+  drawn against the ride between two others is on it and ridden with them, a ring of one `forward`
+  and one `backward` strand goes round whole, and a Trail keeps 6c's rule. Fails towards a sheet
+  giving a fraction of a route's length.
+- **A walk's own ways**, in the build: a Bike route's cut neither turns a Trail nor moves its loop, a
+  Trail's cut does not turn a Bike route, a gap stays before its stretch, and a loop starting inside
+  a network edge starts at that edge's start and goes round once. In the search, 73 edges with two
+  junctions are walked round the long side, and a ladder of 31 rungs is still past the limit. Fails
+  towards a Trail's sheet changing because a bike line arrived.
 - **Hiking keeps to Trails**, in `RouterTest`: a fixture where a bike-only edge is the shorter way
   plans the Route over the Trail, and a point beside the bike-only edge snaps to the Trail. Fails
   towards a walker sent along a downhill bike line.
@@ -319,6 +349,14 @@ merges.
   gone from the map until a mapper corrects the tag and a later pin brings it back.
 - **A Bike route's direction is OSM's.** A trail-centre line mapped with none of the four tags is
   drawn and given as two-way. Fixing it is an OSM edit, reaching the app with the next pin.
+- **A one-way route's ring can be walked against the ride.** Either way round is the same length, so
+  the search's tie picks, and one stretch against the rest makes the route two-way on the sheet:
+  Hejnický hřeben r3047918, every way `forward`, at B's pin. 14 Bike routes are at least 75 % directed
+  with a stretch against the rest, though not all for this reason.
+- **A route with no ends starts where its first edge does**, as 6c's Trails do, so a ring with a
+  chord leaves a run out when that is no junction. Żółta Bielawa r12909385 walks 17.9 of its 21.2 km,
+  all of it along the ride. Starting at the junctions too would walk it whole with 8.8 km against the
+  ride, so two-way, and would lengthen 14 Bike routes and 4 Trails.
 - **Difficulty is thin.** 14 % of MTB-route ways and 1.5 % of Touring ones carry `mtb:scale`; most
   sheets will have no difficulty line, and that is said by its absence rather than guessed.
 - **Release users see faded Bike routes they cannot select** from C until 7c. Harmless, and the
@@ -335,7 +373,7 @@ build with the Regions hand-pushed.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | The archives' and base files' growth, per Region and in total, on B's branch before it merges | `build-map-data.py` over B's pin; `ls -l map-data/archives/` against the v0.14.4 release's attachments | 2026-11-02, pin `poland 4956`, `slovakia 4956`, `czech-republic 4957`: the nine Regions 354,023,014 → 371,743,028 bytes, +5.0 %: Beskid Niski 45.1 → 46.1 MB, Beskidy Zachodnie 68.0 → 70.8, Bieszczady 37.5 → 38.3, Gorce i Pieniny 41.5 → 43.2, Góry Świętokrzyskie 25.1 → 26.5, Sudety Środkowe 47.0 → 51.1, Sudety Wschodnie 25.8 → 27.6, Sudety Zachodnie 45.1 → 48.5, Tatry 18.8 → 19.5. `trails.network` 9,661,388 → 15,201,110, `trails.edges` 128,444 → 273,504, `places.sqlite` 7,176,192 → 7,565,312. 1,444 Bike routes, 233 ridden one way; 2,478 Trails against 2,492, the 14 of § 2 and no other. The Trails' network loses 152 km of 20,879 and no large part of it splits off; 2,469 Trails keep their length, and their climb moves 0.2 %. Two builds of the Tatry archive and of the three base files are byte-identical |
+| R1 | The archives' and base files' growth, per Region and in total, on B's branch before it merges | `build-map-data.py` over B's pin; `ls -l map-data/archives/` against the v0.14.4 release's attachments | 2026-11-02, pin `poland 4956`, `slovakia 4956`, `czech-republic 4957`: the nine Regions 354,023,014 → 371,743,028 bytes, +5.0 %: Beskid Niski 45.1 → 46.1 MB, Beskidy Zachodnie 68.0 → 70.8, Bieszczady 37.5 → 38.3, Gorce i Pieniny 41.5 → 43.2, Góry Świętokrzyskie 25.1 → 26.5, Sudety Środkowe 47.0 → 51.1, Sudety Wschodnie 25.8 → 27.6, Sudety Zachodnie 45.1 → 48.5, Tatry 18.8 → 19.5. `trails.network` 9,661,388 → 15,198,240, `trails.edges` 128,444 → 275,796, `places.sqlite` 7,176,192 → 7,565,312. 1,444 Bike routes, 234 ridden one way (228 MTB, 6 Touring), one past the longest-path search: Pasmo Olbrzymy r9972917, a real network, 15.9 km of its 68.2. No Trail is past it, against 5 in a Trails-only build. 2,478 Trails against 2,492, the 14 of § 2 and no other. The Trails' network loses 152 km of 20,879 and no large part of it splits off. **Against a Trails-only build at this pin**, 2,470 Trails tread the same nodes in the same order. Of the other 8, 5 were past the search there and are searched here: Drabina Wałbrzyska r16904530 39.6 → 79.5 km, The Loop r19308791 83.2 → 116.6, Beskidzka Droga św. Jakuba r3076284 291.0 → 291.2, Główny Szlak Beskidu Wyspowego r17794451 190.6 → 190.7, Kłodzka Droga św. Jakuba r3483133 68.5 → 68.6. The other 3 are loops whose start no network edge ends at, so it moves along the same walk, as § 2 says: NS U Mlejna r5990716 568 m, Ścieżka „Dolina potoku Jaszcze” r6199591 2.5 km, Oravská Lesná r8832357 532 m. **Against v0.14.4**, 2,469 Trails keep their length to a metre. Of the other 9, 4 are those the search now reaches (Kłodzka's length is v0.14.4's), and 5 moved under 20 m with the pin: r387407, r1714137, r1705720, r11754098, r1692077. Of the 2,469, 10 walk the other way and 9 loops start elsewhere, by up to 2.5 km: 3 of those loops as above, the rest the pin's, since the Trails-only build gives them too. Their climb moves 0.37 %, 0.09 % with the pin and 0.28 % with the Bike routes' cuts, each of which ends a dead band: 76 Trails move 10 m or more, the most 87 m of 13.2 km. Two builds of the Tatry archive and of the three base files are byte-identical |
 | R2 | The title tally for Bike routes, and the largest union `count` on a way | `map-data/network-venv/bin/python scripts/map/trail-tally.py` | 2026-11-02, the cuts stamped 2026-10-28 (6c R1's pin, not the committed one): 1,450 Bike routes, 1,040 Touring and 410 MTB; 1,135 by name, 241 by number, 8 by ends, 66 by neither (52 of them coloured), so 95.4 % titled by tags, the lowest Sudety Środkowe's Touring at 89.7 %. Of 19 parents, 7 keep a row for their own ways and none has a piece at this pin, because every parent outside `icn`/`ncn` is uncoloured. **The largest union `count` is 10**, on 2 ways, against 9 for Trails alone, so `symbol_offset()` needs −9..9; B re-read it at its own pin, with `proposed` and `abandoned` dropped: still 10, on the same 2 ways; 1,444 Bike routes and 18 parents, 6 of them with a row |
 | R3 | The plates, the fade, the zoom thresholds and the gaps where strands are hidden (below zoom 12, under each chip) at real size, in both themes | test phone, screencaps at zoom 10–17 over Beskidy Zachodnie and the Sudety | |
 | R4 | Direction: Twister (r5738733) and Rapický okruh (r1636172) draw their chevrons the way they are ridden and their sheets give one direction; Rychlebské stezky (r377944), part directed, draws chevrons on its directed ways and its sheet gives both | test phone, `CameraReceiver` to each, screencaps | |
