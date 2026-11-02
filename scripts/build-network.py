@@ -67,9 +67,10 @@ COLOUR_CODE = re.compile(r"^\[[^\]]{1,3}\]\s*")
 DASH = re.compile(r"\s+[-–—]\s+")
 LONGEST_END = 40
 TIED_GAPS = 1.0
-SEARCHED_EDGES = 60
+SEARCHED_RUNS = 60
 SEARCH_STEPS = 200_000
 ENDLESS_LONGER = 2
+BESIDE_METRES = 150.0
 OFF_WALK = {"alternative", "excursion", "approach", "branch"}
 UNDECOMPOSED = str.maketrans({"ł": "l", "đ": "d", "ð": "d", "ø": "o", "ß": "ss", "æ": "ae", "œ": "oe", "ı": "i"})
 
@@ -242,6 +243,13 @@ class Relief:
         top = corners[0] * (1 - fx) + corners[1] * fx
         bottom = corners[2] * (1 - fx) + corners[3] * fx
         return top * (1 - fy) + bottom * fy
+
+
+class Level:
+    """Heights for edges only their lengths are read from."""
+
+    def height(self, lat: float, lon: float) -> float:
+        return 0.0
 
 
 def _varint(data: bytes, pos: int) -> tuple[int, int]:
@@ -726,14 +734,49 @@ def memberships_of(trails: dict[int, TrailLine]) -> dict[int, frozenset]:
     return {way: frozenset(pairs) for way, pairs in found.items()}
 
 
-def bike_memberships_of(bikes: dict[int, TrailLine]) -> dict[int, frozenset]:
+def strands_of(members: list[int], ways: dict) -> list[tuple[set[int], dict[int, tuple[float, float]]]]:
+    """The members joined where they share a node, each strand as its ways and its nodes."""
+    strands: list = []
+    for way in members:
+        held, nodes = {way}, {ref: (lat, lon) for ref, lat, lon in ways[way][0]}
+        apart = []
+        for strand in strands:
+            if strand[1].keys() & nodes.keys():
+                held |= strand[0]
+                nodes |= strand[1]
+            else:
+                apart.append(strand)
+        strands = [*apart, (held, nodes)]
+    return strands
+
+
+def beside_forward(line: TrailLine, ways: dict) -> set[int]:
+    """docs/phase-7a.md § 2: the `backward` members that are the other strand of a `forward` one."""
+    def with_role(wanted: str) -> list[int]:
+        return [way for way, role in line.members if role == wanted and way in ways]
+
+    def along(held: set[int]) -> list[tuple[float, float]]:
+        return [(lat, lon) for way in held for _, lat, lon in densify(ways[way][0])]
+
+    forward = strands_of(with_role("forward"), ways)
+    beside: set[int] = set()
+    for held, nodes in strands_of(with_role("backward"), ways):
+        touched = [strand for strand in forward if strand[1].keys() & nodes.keys()]
+        if len(touched) == 1 and len(touched[0][1].keys() & nodes.keys()) >= 2:
+            near = along(touched[0][0])
+            if all(min(distance(*point, *other) for other in near) <= BESIDE_METRES for point in along(held)):
+                beside |= held
+    return beside
+
+
+def bike_memberships_of(bikes: dict[int, TrailLine], ways: dict) -> dict[int, frozenset]:
     """Each way's Bike routes, each with whether the way is on its walk and the sense it is ridden in against
     the way's nodes."""
     found: dict[int, set] = {}
     for number, line in bikes.items():
-        off = OFF_WALK | {"backward"} if any(role == "forward" for _, role in line.members) else OFF_WALK
+        beside = beside_forward(line, ways)
         for way, role in line.members:
-            found.setdefault(way, set()).add((number, role not in off, line.senses.get(way, 0)))
+            found.setdefault(way, set()).add((number, role not in OFF_WALK and way not in beside, line.senses.get(way, 0)))
     return {way: frozenset(triples) for way, triples in found.items()}
 
 
@@ -952,16 +995,45 @@ def runs_as_way(edge: Edge, way: tuple | None) -> bool:
     return True
 
 
+def runs_of(members: set[int], at: dict, edges: list[Edge], other, stops: set[int]) -> list[tuple[int, list[int], int]]:
+    """The component's edges joined through every vertex where two of them meet and no walk starts or ends, each
+    run as (first vertex, its edges in order, last vertex)."""
+    def through(vertex: int) -> bool:
+        return vertex not in stops and len(at[vertex]) == 2
+
+    runs, done = [], set()
+    for i in sorted(members):
+        for vertex in (edges[i].points[0][0], edges[i].points[-1][0]):
+            if i in done or through(vertex):
+                continue
+            done.add(i)
+            path, head = [i], other(i, vertex)
+            while through(head):
+                path.append(next(j for j in at[head] if j != path[-1]))
+                done.add(path[-1])
+                head = other(path[-1], head)
+            runs.append((vertex, path, head))
+    return runs
+
+
 def longest(sources: list[int], members: set[int], at: dict, edges: list[Edge], other, ends: set[int]
             ) -> tuple[tuple | None, tuple] | None:
     """The longest walks over the component's edges from one of the sources that take no edge twice, as (length,
     source, edges): the longest to another of the ends, if any, and the longest to anywhere; ties go to the
-    smallest edge indices. None when the component or the search is too large to search through."""
-    if len(members) > SEARCHED_EDGES:
+    smallest edge indices. None when the component's runs or the search are too many to search through."""
+    runs = runs_of(members, at, edges, other, set(sources) | ends)
+    if len(runs) > SEARCHED_RUNS:
         return None
+    leaving: dict[int, list] = {}
+    for run, (first, path, last) in enumerate(runs):
+        leaving.setdefault(first, []).append((path[0], run, path, last))
+        leaving.setdefault(last, []).append((path[-1], run, path[::-1], first))
+    for options in leaving.values():
+        options.sort(key=lambda option: option[0])
     best: list = [(-1.0, ()), (-1.0, ())]
     found: list = [None, None]
-    path: list[int] = []
+    walked: list[int] = []
+    taken: set[int] = set()
     budget = SEARCH_STEPS
 
     def visit(source: int, vertex: int, length: float) -> bool:
@@ -969,16 +1041,22 @@ def longest(sources: list[int], members: set[int], at: dict, edges: list[Edge], 
         budget -= 1
         if budget < 0:
             return False
-        if path:
-            key = (length, tuple(-i for i in sorted(path)))
+        if walked:
             for k in (0, 1) if vertex in ends else (1,):
-                if key > best[k]:
-                    best[k], found[k] = key, (length, source, list(path))
-        for i in sorted(at[vertex]):
-            if i in members and i not in path:
-                path.append(i)
-                ok = visit(source, other(i, vertex), length + edges[i].length)
-                path.pop()
+                if length >= best[k][0]:
+                    key = (length, tuple(-i for i in sorted(walked)))
+                    if key > best[k]:
+                        best[k], found[k] = key, (length, source, list(walked))
+        for _, run, path, far in leaving[vertex]:
+            if run not in taken:
+                taken.add(run)
+                walked.extend(path)
+                reached = length
+                for i in path:
+                    reached += edges[i].length
+                ok = visit(source, far, reached)
+                del walked[-len(path):]
+                taken.discard(run)
                 if not ok:
                     return False
         return True
@@ -1027,19 +1105,52 @@ class TrailRow:
     one_way: bool = False
 
 
-def route_rows(lines: dict[int, TrailLine], long_distance: dict[int, int], edges: list[Edge], ways: dict, by_route: dict,
+def own_edges(lines: dict[int, TrailLine], ways: dict, memberships: dict[int, frozenset] | None = None,
+              bikes: dict[int, frozenset] | None = None) -> list[Edge]:
+    """docs/phase-7a.md § 2: the edges one kind's ways make with the other kind's ways left out."""
+    wanted = {way for line in lines.values() for way, _ in line.members}
+    return edges_of({way: found for way, found in ways.items() if way in wanted}, Level(), memberships, bikes)[0]
+
+
+def laid_on(walk: Walk, own: list[Edge], edges: list[Edge], hops: dict) -> Walk:
+    """A walk over a kind's own edges as steps of the network's. A loop whose start no network edge ends at
+    starts where the edge holding its start does."""
+    steps: list[Step] = []
+    for own_step in walk.steps:
+        refs = [ref for ref, _, _ in own[own_step.edge].points]
+        refs = refs[::-1] if own_step.reversed else refs
+        held = set(own[own_step.edge].ways)
+        breaks = own_step.breaks
+        for hop in zip(refs, refs[1:]):
+            step = next(found for found in hops[hop] if held.intersection(edges[found.edge].ways))
+            if not steps or steps[-1].edge != step.edge:
+                steps.append(replace(step, breaks=breaks))
+                breaks = False
+    if len(steps) > 1 and steps[0].edge == steps[-1].edge:
+        steps.pop()
+    return replace(walk, steps=steps)
+
+
+def route_rows(lines: dict[int, TrailLine], long_distance: dict[int, int], edges: list[Edge], ways: dict, own: list[Edge],
                names_of: dict[int, dict[str, str]]) -> list[TrailRow]:
+    by_own = trail_edges(own)
+    hops: dict[tuple[int, int], list[Step]] = {}
+    for i, edge in enumerate(edges):
+        for (a, _, _), (b, _, _) in zip(edge.points, edge.points[1:]):
+            hops.setdefault((a, b), []).append(Step(i, False))
+            hops.setdefault((b, a), []).append(Step(i, True))
     rows = []
     for number, line in lines.items():
-        walk = walk_of(number, line, edges, ways, by_route)
+        walk = walk_of(number, line, own, ways, by_own)
         if walk is not None:
-            rows.append(TrailRow(number, names_of.get(number, {}), line, walk, long_distance.get(number)))
+            rows.append(TrailRow(number, names_of.get(number, {}), line, laid_on(walk, own, edges, hops),
+                                 long_distance.get(number)))
     return rows
 
 
 def bike_rows(bikes: dict[int, TrailLine], names_of: dict[int, dict[str, str]], sections: dict[int, list[int]],
-              edges: list[Edge], ways: dict, by_route: dict) -> list[TrailRow]:
-    rows = route_rows(bikes, outermost(sections), edges, ways, by_route, names_of)
+              edges: list[Edge], ways: dict, own: list[Edge]) -> list[TrailRow]:
+    rows = route_rows(bikes, outermost(sections), edges, ways, own, names_of)
     for row in rows:
         row.walk, row.one_way = ridden(row.number, row.walk, edges, row.tags.get("signed_direction") == "yes")
     return rows
@@ -1185,10 +1296,11 @@ def main() -> None:
     wanted_ways = {way for line in (*trails.values(), *bikes.values()) for way, _ in line.members}
     wanted_relations = set(trails) | set(sections) | set(bikes) | set(bike_sections)
     ways, names_of, places = read_cuts([(region, pbf, wanted_ways, wanted_relations) for region, pbf, _ in args.region])
-    edges, flat = edges_of(ways, relief, memberships_of(trails), bike_memberships_of(bikes))
+    memberships, bike_memberships = memberships_of(trails), bike_memberships_of(bikes, ways)
+    edges, flat = edges_of(ways, relief, memberships, bike_memberships)
     by_route = trail_edges(edges)
-    rows = route_rows(trails, outermost(sections), edges, ways, by_route, names_of)
-    ridden_rows = bike_rows(bikes, names_of, bike_sections, edges, ways, by_route)
+    rows = route_rows(trails, outermost(sections), edges, ways, own_edges(trails, ways, memberships), names_of)
+    ridden_rows = bike_rows(bikes, names_of, bike_sections, edges, ways, own_edges(bikes, ways, None, bike_memberships))
     for label, found, lines, of in (("Trails", rows, trails, "Long-distance Trails"),
                                     ("Bike routes", ridden_rows, bikes, "parents")):
         shapes: dict[str, int] = {"no way in any cut": len(lines) - len(found)}
