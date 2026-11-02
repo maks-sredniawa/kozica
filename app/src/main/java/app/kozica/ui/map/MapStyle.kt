@@ -155,6 +155,15 @@ internal fun fadeOf(style: String): Fade {
     )
 }
 
+/** The first value read for [key] stays, null included, which `getOrPut` would read again as absent. */
+internal fun <K, V : Any> MutableMap<K, V?>.holdFirst(
+    key: K,
+    read: () -> V?,
+): V? {
+    if (key !in this) this[key] = read()
+    return this[key]
+}
+
 private fun pmtiles(
     type: String,
     archive: File,
