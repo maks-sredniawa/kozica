@@ -429,7 +429,7 @@ fun MapScreen(
         val style = loaded ?: return@LaunchedEffect
         for (layer in style.layers) {
             if (layer.id.startsWith(BIKE_ROUTE_LAYERS)) {
-                val own = styleFilters.getOrPut(layer.id) { filterOf(layer) }
+                val own = styleFilters.holdFirst(layer.id) { filterOf(layer) }
                 setFilterOf(layer, bikeRouteFilter(own, bikeRouteKind))
             }
         }

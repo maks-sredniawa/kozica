@@ -107,6 +107,26 @@ class MapStyleTest {
     }
 
     @Test
+    fun `a layer with no filter of its own keeps none after a chip has set one on it`() {
+        val held = mutableMapOf<String, String?>()
+        var onTheLayer: String? = null
+
+        assertEquals(null, held.holdFirst("bike-route-plates-tatry") { onTheLayer })
+        onTheLayer = "kind==mtb"
+        assertEquals(null, held.holdFirst("bike-route-plates-tatry") { onTheLayer })
+    }
+
+    @Test
+    fun `a layer's own filter is the one first read, not what a chip narrowed it to`() {
+        val held = mutableMapOf<String, String?>()
+        var onTheLayer: String? = "has dir"
+
+        assertEquals("has dir", held.holdFirst("bike-route-chevrons-tatry") { onTheLayer })
+        onTheLayer = "has dir and kind==mtb"
+        assertEquals("has dir", held.holdFirst("bike-route-chevrons-tatry") { onTheLayer })
+    }
+
+    @Test
     fun `the Regions' outlines are drawn once, and their bounds are where the camera may go`() {
         val withRegions =
             """
