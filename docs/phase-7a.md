@@ -351,6 +351,9 @@ merges.
   gone from the map until a mapper corrects the tag and a later pin brings it back.
 - **A Bike route's direction is OSM's.** A trail-centre line mapped with none of the four tags is
   drawn and given as two-way. Fixing it is an OSM edit, reaching the app with the next pin.
+- **A ring hanging on a shorter ring can stay against the ride.** Rings are turned smallest first,
+  so the pair can end one way round while a walk with nothing against the ride exists, and the
+  route reads two-way. No route at B's pin has this shape.
 - **A route with no ends starts where its first edge does**, as 6c's Trails do, so a ring with a
   chord leaves a run out when that is no junction. Żółta Bielawa r12909385 walks 17.9 of its 21.2 km,
   all of it along the ride. Starting at the junctions too would walk it whole with 8.8 km against the
