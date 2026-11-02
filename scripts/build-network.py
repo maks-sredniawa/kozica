@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Builds the Trail network, the name index and the Trails' walks of docs/phase-5.md § 2 and
-docs/phase-6c.md § 2 from the Regions' merged cuts.
+"""Builds the Trail network, the name index and the walks of docs/phase-5.md § 2, docs/phase-6c.md § 2 and
+docs/phase-7a.md § 2 from the Regions' merged cuts.
 
     python3 scripts/build-network.py --relief map-data/relief/relief.pmtiles --out map-data/base-assets \\
         --region tatry map-data/merged/pin/tatry.osm.pbf map-data/archives/tatry.trails ...
 
-The Trails and their ways are the ones KozicaProfile.java listed for each Region; the ways' nodes and
-tags, the Trails' own tags and the named places are read from the merged cuts. Needs pyosmium 4.2+ and Pillow with WebP, imported only
+The Trails, the Bike routes and their ways are the ones KozicaProfile.java listed for each Region; the
+ways' nodes and tags, the relations' own tags and the named places are read from the merged cuts. Needs pyosmium 4.2+ and Pillow with WebP, imported only
 where they are used, so `scripts/test_build_network.py` runs on a plain Python.
 """
 
@@ -24,10 +24,10 @@ import sqlite3
 import struct
 import sys
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 MAGIC = b"KZTN"
 WALK_FORMAT_VERSION = 1
 WALK_MAGIC = b"KZTE"
@@ -52,9 +52,17 @@ SAC_GRADES = {
 }
 FORWARD_ONLY = 1
 BACKWARD_ONLY = 2
+TURNED = {FORWARD_ONLY: BACKWARD_ONLY, BACKWARD_ONLY: FORWARD_ONLY}
+ONEWAY_VALUES = {"yes": FORWARD_ONLY, "true": FORWARD_ONLY, "1": FORWARD_ONLY, "-1": BACKWARD_ONLY}
+ONE_WAY_SHARE = 0.75
+SET_TRAIL = 1
+SET_BIKE_ROUTE = 2
 NAME_KEYS = ("name", "name:pl", "name:sk", "name:cs", "alt_name", "old_name")
 ENDS_KEYS = ("description", "osmc:name", "note:cs", "note")
 TRAIL_KEYS = ("name", "name:pl", "ref", "from", "to", *ENDS_KEYS)
+BIKE_ROUTE_KEYS = ("network", "mtb:scale", "mtb:scale:uphill", "signed_direction")
+WAY_KEYS = ("highway", "oneway", "oneway:foot", "foot:backward", "foot:forward", "sac_scale", "oneway:bicycle",
+            "mtb:scale", "mtb:scale:uphill")
 COLOUR_CODE = re.compile(r"^\[[^\]]{1,3}\]\s*")
 DASH = re.compile(r"\s+[-–—]\s+")
 LONGEST_END = 40
@@ -125,15 +133,25 @@ def oneway(tags: dict[str, str]) -> int:
     """docs/phase-5.md § 3: the walker's direction, never a vehicle's."""
     foot = tags.get("oneway:foot")
     if foot is not None:
-        return {"yes": FORWARD_ONLY, "true": FORWARD_ONLY, "1": FORWARD_ONLY, "-1": BACKWARD_ONLY}.get(foot, 0)
+        return ONEWAY_VALUES.get(foot, 0)
     if tags.get("foot:backward") == "no":
         return FORWARD_ONLY
     if tags.get("foot:forward") == "no":
         return BACKWARD_ONLY
     if tags.get("highway") in ONEWAY_HIGHWAYS:
-        return {"yes": FORWARD_ONLY, "true": FORWARD_ONLY, "1": FORWARD_ONLY, "-1": BACKWARD_ONLY}.get(
-            tags.get("oneway", ""), 0)
+        return ONEWAY_VALUES.get(tags.get("oneway", ""), 0)
     return 0
+
+
+def ride(tags: dict[str, str]) -> int:
+    """docs/phase-7a.md § 2: the rider's direction, `oneway:bicycle` over `oneway` on any highway."""
+    value = tags.get("oneway:bicycle")
+    return ONEWAY_VALUES.get(tags.get("oneway", "") if value is None else value, 0)
+
+
+def grade(value: str | None) -> int:
+    """An `mtb:scale`'s leading digit plus one, 0 ungraded."""
+    return int(value[0]) + 1 if value and value[0].isdigit() else 0
 
 
 class Relief:
@@ -331,6 +349,8 @@ class TrailLine:
     colour: str
     symbol: str | None
     members: list[tuple[int, str]]
+    kind: str | None = None
+    senses: dict[int, int] = field(default_factory=dict)
 
 
 def parse_trails(text: str) -> tuple[dict[int, TrailLine], dict[int, list[int]]]:
@@ -348,6 +368,28 @@ def parse_trails(text: str) -> tuple[dict[int, TrailLine], dict[int, list[int]]]
         elif kind == "long":
             long_distance[int(number)] = [int(section) for section in rest[0].split()]
     return trails, long_distance
+
+
+def parse_bike_routes(text: str) -> tuple[dict[int, TrailLine], dict[int, list[int]]]:
+    """One Region's Bike routes in the same file: `bike <id> <colour> <kind> <way>[/<role>][@f|@b] ...`, the
+    sense the way is ridden in against its nodes, and `sections <id> <section> ...`."""
+    bikes, sections = {}, {}
+    senses = {"f": FORWARD_ONLY, "b": BACKWARD_ONLY}
+    for line in text.splitlines():
+        kind, number, *rest = line.split("\t")
+        if kind == "bike":
+            colour, route_kind, members = rest
+            parsed, sensed = [], {}
+            for member in members.split():
+                listed, _, sense = member.partition("@")
+                way, _, role = listed.partition("/")
+                parsed.append((int(way), role))
+                if sense:
+                    sensed[int(way)] = senses[sense]
+            bikes[int(number)] = TrailLine(colour, None, parsed, route_kind, sensed)
+        elif kind == "sections":
+            sections[int(number)] = [int(section) for section in rest[0].split()]
+    return bikes, sections
 
 
 def merge_lists(lists: list[list]) -> list:
@@ -381,7 +423,8 @@ def merge_trails(regions: list[tuple[dict[int, TrailLine], dict[int, list[int]]]
             for way, role in line.members:
                 roles.setdefault(way, role)
         order = merge_lists([[way for way, _ in line.members] for line in found])
-        trails[number] = TrailLine(longest.colour, longest.symbol, [(way, roles[way]) for way in order])
+        senses = {way: sense for line in found for way, sense in line.senses.items()}
+        trails[number] = TrailLine(longest.colour, longest.symbol, [(way, roles[way]) for way in order], longest.kind, senses)
     return trails, {number: merge_lists(found) for number, found in sorted(sections.items())}
 
 
@@ -422,13 +465,12 @@ def read_cuts(regions: list[tuple[str, str, set[int], set[int]]]) -> tuple[dict,
             if w.id in self.wanted_ways and w.id not in self.ways:
                 nodes = [(nd.ref, nd.location.lat, nd.location.lon) for nd in w.nodes if nd.location.valid()]
                 if len(nodes) >= 2:
-                    tags = {k: w.tags.get(k) for k in ("highway", "oneway", "oneway:foot", "foot:backward",
-                                                        "foot:forward", "sac_scale") if k in w.tags}
+                    tags = {k: w.tags.get(k) for k in WAY_KEYS if k in w.tags}
                     self.ways[w.id] = (nodes, tags)
 
         def relation(self, r) -> None:
             if r.id in self.wanted_relations and r.id not in self.relations:
-                self.relations[r.id] = {key: r.tags.get(key) for key in TRAIL_KEYS if key in r.tags}
+                self.relations[r.id] = {key: r.tags.get(key) for key in (*TRAIL_KEYS, *BIKE_ROUTE_KEYS) if key in r.tags}
 
         def area(self, a) -> None:
             if "name" not in a.tags or place_kind(a.tags) is None:
@@ -461,6 +503,11 @@ class Edge:
     sac: int
     trails: frozenset = frozenset()
     ways: tuple[int, ...] = ()
+    sets: int = SET_TRAIL
+    ride: int = 0
+    mtb: int = 0
+    mtb_up: int = 0
+    bikes: frozenset = frozenset()
 
 
 def densify(points: list[tuple[int, float, float]]) -> list[tuple[int, float, float]]:
@@ -505,16 +552,31 @@ class Piece:
     sac: int
     trails: frozenset = frozenset()
     ways: tuple[int, ...] = ()
+    sets: int = SET_TRAIL
+    ride: int = 0
+    mtb: int = 0
+    mtb_up: int = 0
+    bikes: frozenset = frozenset()
 
     def turned(self) -> Piece:
-        flags = {FORWARD_ONLY: BACKWARD_ONLY, BACKWARD_ONLY: FORWARD_ONLY}.get(self.flags, self.flags)
-        return Piece(self.way, self.points[::-1], flags, self.sac, self.trails, self.ways)
+        return replace(
+            self, points=self.points[::-1], flags=TURNED.get(self.flags, self.flags), ride=TURNED.get(self.ride, self.ride),
+            bikes=frozenset((number, on_walk, TURNED.get(sense, sense)) for number, on_walk, sense in self.bikes))
 
     def walks_like(self, other: Piece) -> bool:
-        return (self.flags, self.sac, self.trails) == (other.flags, other.sac, other.trails)
+        return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes)
+                == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes))
 
 
-def pieces_of(ways: dict, memberships: dict[int, frozenset] | None = None) -> list[Piece]:
+def sets_of(way: int, memberships: dict | None, bikes: dict | None) -> int:
+    """With no Bike routes given, every way is a Trail's, as a network built for a test is."""
+    if not bikes or way not in bikes:
+        return SET_TRAIL
+    return SET_BIKE_ROUTE | (SET_TRAIL if memberships and way in memberships else 0)
+
+
+def pieces_of(ways: dict, memberships: dict[int, frozenset] | None = None, bikes: dict[int, frozenset] | None = None
+              ) -> list[Piece]:
     """Every way split at each of its inner nodes another Trail way, or the same one, passes through, and
     a piece that closes on itself split again in its middle, so a loop is kept without an edge from a
     node to itself."""
@@ -534,7 +596,9 @@ def pieces_of(ways: dict, memberships: dict[int, frozenset] | None = None) -> li
             middle = len(part) // 2
             for half in (part[:middle + 1], part[middle:]) if closed else (part,):
                 pieces.append(Piece(way_id, half, oneway(tags), SAC_GRADES.get(tags.get("sac_scale", ""), 0),
-                                    (memberships or {}).get(way_id, frozenset()), (way_id,)))
+                                    (memberships or {}).get(way_id, frozenset()), (way_id,),
+                                    sets_of(way_id, memberships, bikes), ride(tags), grade(tags.get("mtb:scale")),
+                                    grade(tags.get("mtb:scale:uphill")), (bikes or {}).get(way_id, frozenset())))
     return pieces
 
 
@@ -583,13 +647,14 @@ def chains(pieces: list[Piece]) -> list[Piece]:
         for run in (chain[:-1], chain[-1:]) if closed else (chain,):
             points = run[0].points + [point for piece in run[1:] for point in piece.points[1:]]
             ways = tuple(dict.fromkeys(way for piece in run for way in piece.ways))
-            out.append(Piece(run[0].way, points, run[0].flags, run[0].sac, run[0].trails, ways))
+            out.append(replace(run[0], points=points, ways=ways))
     return out
 
 
-def edges_of(ways: dict, relief: Relief, memberships: dict[int, frozenset] | None = None) -> tuple[list[Edge], int]:
+def edges_of(ways: dict, relief: Relief, memberships: dict[int, frozenset] | None = None,
+             bikes: dict[int, frozenset] | None = None) -> tuple[list[Edge], int]:
     edges, flat = [], 0
-    for chain in chains(pieces_of(ways, memberships)):
+    for chain in chains(pieces_of(ways, memberships, bikes)):
         dense = densify(chain.points)
         heights = fill_heights([relief.height(lat, lon) for _, lat, lon in dense])
         if heights is None:
@@ -598,7 +663,8 @@ def edges_of(ways: dict, relief: Relief, memberships: dict[int, frozenset] | Non
         lengths = [distance(a[1], a[2], b[1], b[2]) for a, b in zip(dense, dense[1:])]
         kept = [i for i, point in enumerate(dense) if point[0] != 0]
         edges.append(Edge(chain.way, [dense[i] for i in kept], [heights[i] for i in kept], sum(lengths),
-                          climb(lengths, heights), chain.flags, chain.sac, chain.trails, chain.ways))
+                          climb(lengths, heights), chain.flags, chain.sac, chain.trails, chain.ways, chain.sets,
+                          chain.ride, chain.mtb, chain.mtb_up, chain.bikes))
     return edges, flat
 
 
@@ -643,8 +709,8 @@ def write_network(edges: list[Edge], target: Path) -> tuple[int, int, int]:
     out.write(struct.pack(f"<{point_count}i", *(e7(lon) for edge in edges for _, _, lon in edge.points)))
     out.write(struct.pack(f"<{len(vertices)}h", *(dm(where[ref][2]) for ref in vertices)))
     out.write(struct.pack(f"<{point_count}h", *(dm(h) for edge in edges for h in edge.heights)))
-    out.write(bytes(edge.flags for edge in edges))
-    out.write(bytes(edge.sac for edge in edges))
+    for values in ("flags", "sac", "sets", "ride", "mtb", "mtb_up"):
+        out.write(bytes(getattr(edge, values) for edge in edges))
     target.write_bytes(out.getvalue())
     return len(vertices), len(edges), point_count
 
@@ -658,6 +724,17 @@ def memberships_of(trails: dict[int, TrailLine]) -> dict[int, frozenset]:
         for way, role in line.members:
             found.setdefault(way, set()).add((number, role not in off))
     return {way: frozenset(pairs) for way, pairs in found.items()}
+
+
+def bike_memberships_of(bikes: dict[int, TrailLine]) -> dict[int, frozenset]:
+    """Each way's Bike routes, each with whether the way is on its walk and the sense it is ridden in against
+    the way's nodes."""
+    found: dict[int, set] = {}
+    for number, line in bikes.items():
+        off = OFF_WALK | {"backward"} if any(role == "forward" for _, role in line.members) else OFF_WALK
+        for way, role in line.members:
+            found.setdefault(way, set()).add((number, role not in off, line.senses.get(way, 0)))
+    return {way: frozenset(triples) for way, triples in found.items()}
 
 
 @dataclass(frozen=True)
@@ -678,7 +755,7 @@ def trail_edges(edges: list[Edge]) -> dict[tuple[int, bool], list[int]]:
     """For each Trail, the edges on its walk under (id, True) and those off it under (id, False)."""
     found: dict[tuple[int, bool], list[int]] = {}
     for i, edge in enumerate(edges):
-        for pair in edge.trails:
+        for pair in (*edge.trails, *((number, on_walk) for number, on_walk, _ in edge.bikes)):
             found.setdefault(pair, []).append(i)
     return found
 
@@ -837,6 +914,32 @@ def walk_of(number: int, line: TrailLine, edges: list[Edge], ways: dict, by_trai
     return Walk(walked, shape, estimated)
 
 
+def sense_along(number: int, edge: Edge, step: Step) -> int:
+    """1 where the step goes the way the Bike route is ridden, -1 against it, 0 where the edge has no direction for it."""
+    sense = next((sense for route, _, sense in edge.bikes if route == number), 0)
+    if not sense:
+        return 0
+    return 1 if (sense == FORWARD_ONLY) != step.reversed else -1
+
+
+def turned_steps(steps: list[Step]) -> list[Step]:
+    """The steps from the far end, each gap still between the same two stretches."""
+    return [Step(step.edge, not step.reversed, i + 1 < len(steps) and steps[i + 1].breaks)
+            for i, step in reversed(list(enumerate(steps)))]
+
+
+def ridden(number: int, walk: Walk, edges: list[Edge], signed: bool) -> tuple[Walk, bool]:
+    """docs/phase-7a.md § 2, Ridden one way: the walk starting where its direction leaves, and whether it has one."""
+    runs = [(sense_along(number, edges[step.edge], step), edges[step.edge].length) for step in walk.steps]
+    along = sum(length for sense, length in runs if sense > 0)
+    against = sum(length for sense, length in runs if sense < 0)
+    length = sum(length for _, length in runs)
+    directed = (not along or not against) and along + against >= ONE_WAY_SHARE * length
+    if not signed and not directed:
+        return walk, False
+    return (replace(walk, steps=turned_steps(walk.steps)) if against > along else walk), True
+
+
 def runs_as_way(edge: Edge, way: tuple | None) -> bool:
     """Whether the edge runs the way its way does, read from two of the way's nodes in the edge."""
     if way is None:
@@ -921,6 +1024,25 @@ class TrailRow:
     line: TrailLine
     walk: Walk
     long_distance: int | None
+    one_way: bool = False
+
+
+def route_rows(lines: dict[int, TrailLine], long_distance: dict[int, int], edges: list[Edge], ways: dict, by_route: dict,
+               names_of: dict[int, dict[str, str]]) -> list[TrailRow]:
+    rows = []
+    for number, line in lines.items():
+        walk = walk_of(number, line, edges, ways, by_route)
+        if walk is not None:
+            rows.append(TrailRow(number, names_of.get(number, {}), line, walk, long_distance.get(number)))
+    return rows
+
+
+def bike_rows(bikes: dict[int, TrailLine], names_of: dict[int, dict[str, str]], sections: dict[int, list[int]],
+              edges: list[Edge], ways: dict, by_route: dict) -> list[TrailRow]:
+    rows = route_rows(bikes, outermost(sections), edges, ways, by_route, names_of)
+    for row in rows:
+        row.walk, row.one_way = ridden(row.number, row.walk, edges, row.tags.get("signed_direction") == "yes")
+    return rows
 
 
 def outermost(sections: dict[int, list[int]]) -> dict[int, int]:
@@ -941,6 +1063,7 @@ def write_walks(rows: list[TrailRow], target: Path) -> int:
     """docs/phase-6c.md § 2's `trails.edges`, little-endian: each Trail's walk as steps into the network's
     edges, a step being its edge's index shifted left two, its second bit a gap before it, its first the
     edge walked from its last point to its first."""
+    rows = sorted(rows, key=lambda row: row.number)
     steps = [s for row in rows for s in row.walk.steps]
     out = io.BytesIO()
     out.write(WALK_MAGIC + struct.pack("<HHII", WALK_FORMAT_VERSION, 0, len(rows), len(steps)))
@@ -979,8 +1102,20 @@ def trail_values(row: TrailRow, names_of: dict[int, dict[str, str]], edges: list
     )
 
 
-def write_places(places: dict, rows: list[TrailRow], names_of: dict[int, dict[str, str]], edges: list[Edge],
-                 by_trail: dict, target: Path) -> int:
+def bike_route_values(row: TrailRow, names_of: dict[int, dict[str, str]], edges: list[Edge], by_route: dict) -> tuple:
+    """`trails`' columns less `symbol`, then the Bike route's own."""
+    values = trail_values(row, names_of, edges, by_route)
+
+    def own_grade(key: str) -> int | None:
+        found = grade(row.tags.get(key))
+        return found - 1 if found else None
+
+    return (*values[:5], *values[6:], row.line.kind, row.tags.get("network"), int(row.one_way),
+            own_grade("mtb:scale"), own_grade("mtb:scale:uphill"))
+
+
+def write_places(places: dict, rows: list[TrailRow], bikes: list[TrailRow], names_of: dict[int, dict[str, str]],
+                 edges: list[Edge], by_trail: dict, target: Path) -> int:
     target.unlink(missing_ok=True)
     db = sqlite3.connect(target)
     db.executescript(
@@ -998,6 +1133,14 @@ def write_places(places: dict, rows: list[TrailRow], names_of: dict[int, dict[st
             length REAL NOT NULL, ascent REAL NOT NULL, descent REAL NOT NULL, gaps INTEGER NOT NULL,
             min_lat REAL NOT NULL, min_lon REAL NOT NULL, max_lat REAL NOT NULL, max_lon REAL NOT NULL);
         CREATE VIRTUAL TABLE trail_names USING fts4(trail, name, folded, notindexed=trail, notindexed=name);
+        CREATE TABLE bike_routes (
+            id INTEGER PRIMARY KEY, name TEXT, name_pl TEXT, ref TEXT, colour TEXT NOT NULL,
+            from_place TEXT, to_place TEXT, long_distance INTEGER, long_distance_name TEXT,
+            start_lat REAL NOT NULL, start_lon REAL NOT NULL, end_lat REAL NOT NULL, end_lon REAL NOT NULL,
+            length REAL NOT NULL, ascent REAL NOT NULL, descent REAL NOT NULL, gaps INTEGER NOT NULL,
+            min_lat REAL NOT NULL, min_lon REAL NOT NULL, max_lat REAL NOT NULL, max_lon REAL NOT NULL,
+            kind TEXT NOT NULL, network TEXT, one_way INTEGER NOT NULL, mtb_scale INTEGER, mtb_scale_uphill INTEGER);
+        CREATE VIRTUAL TABLE bike_route_names USING fts4(bike_route, name, folded, notindexed=bike_route, notindexed=name);
         """
     )
     order = sorted(places, key=lambda key: ({"n": 0, "w": 1, "r": 2}[key[0]], key[1]))
@@ -1013,8 +1156,15 @@ def write_places(places: dict, rows: list[TrailRow], names_of: dict[int, dict[st
                        trail_values(row, names_of, edges, by_trail))
             for name in dict.fromkeys(filter(None, (without_colour_code(row.tags.get(key)) for key in ("name", "name:pl")))):
                 db.execute("INSERT INTO trail_names (trail, name, folded) VALUES (?, ?, ?)", (row.number, name, fold(name)))
+        for row in bikes:
+            values = bike_route_values(row, names_of, edges, by_trail)
+            db.execute(f"INSERT INTO bike_routes VALUES ({', '.join('?' * len(values))})", values)
+            for name in dict.fromkeys(filter(None, (without_colour_code(row.tags.get(key)) for key in ("name", "name:pl")))):
+                db.execute("INSERT INTO bike_route_names (bike_route, name, folded) VALUES (?, ?, ?)",
+                           (row.number, name, fold(name)))
     db.execute("INSERT INTO place_names (place_names) VALUES ('optimize')")
     db.execute("INSERT INTO trail_names (trail_names) VALUES ('optimize')")
+    db.execute("INSERT INTO bike_route_names (bike_route_names) VALUES ('optimize')")
     db.commit()
     db.execute("VACUUM")
     db.close()
@@ -1029,35 +1179,36 @@ def main() -> None:
     args = parser.parse_args()
 
     relief = Relief(args.relief)
-    trails, sections = merge_trails([parse_trails(Path(listed).read_text()) for _, _, listed in args.region])
-    wanted_ways = {way for line in trails.values() for way, _ in line.members}
-    wanted_relations = set(trails) | set(sections)
+    listed = [Path(listed).read_text() for _, _, listed in args.region]
+    trails, sections = merge_trails([parse_trails(text) for text in listed])
+    bikes, bike_sections = merge_trails([parse_bike_routes(text) for text in listed])
+    wanted_ways = {way for line in (*trails.values(), *bikes.values()) for way, _ in line.members}
+    wanted_relations = set(trails) | set(sections) | set(bikes) | set(bike_sections)
     ways, names_of, places = read_cuts([(region, pbf, wanted_ways, wanted_relations) for region, pbf, _ in args.region])
-    edges, flat = edges_of(ways, relief, memberships_of(trails))
-    long_distance = outermost(sections)
-    by_trail = trail_edges(edges)
-    rows, shapes, estimated = [], {}, 0
-    for number, line in trails.items():
-        walk = walk_of(number, line, edges, ways, by_trail)
-        if walk is None:
-            shapes["no way in any cut"] = shapes.get("no way in any cut", 0) + 1
-            continue
-        shapes[walk.shape] = shapes.get(walk.shape, 0) + 1
-        estimated += walk.estimated
-        rows.append(TrailRow(number, names_of.get(number, {}), line, walk, long_distance.get(number)))
-    log(f"{len(rows)} Trails, {sum(1 for row in rows if row.long_distance)} of them Sections of "
-        f"{len({row.long_distance for row in rows if row.long_distance})} Long-distance Trails; walks: "
-        + ", ".join(f"{count} {shape}" for shape, count in sorted(shapes.items()))
-        + f"; {estimated} of them past the longest-path search, taken by the farthest ends instead")
+    edges, flat = edges_of(ways, relief, memberships_of(trails), bike_memberships_of(bikes))
+    by_route = trail_edges(edges)
+    rows = route_rows(trails, outermost(sections), edges, ways, by_route, names_of)
+    ridden_rows = bike_rows(bikes, names_of, bike_sections, edges, ways, by_route)
+    for label, found, lines, of in (("Trails", rows, trails, "Long-distance Trails"),
+                                    ("Bike routes", ridden_rows, bikes, "parents")):
+        shapes: dict[str, int] = {"no way in any cut": len(lines) - len(found)}
+        for row in found:
+            shapes[row.walk.shape] = shapes.get(row.walk.shape, 0) + 1
+        log(f"{len(found)} {label}, {sum(1 for row in found if row.long_distance)} of them Sections of "
+            f"{len({row.long_distance for row in found if row.long_distance})} {of}; walks: "
+            + ", ".join(f"{count} {shape}" for shape, count in sorted(shapes.items()))
+            + f"; {sum(row.walk.estimated for row in found)} of them past the longest-path search, taken by the farthest ends instead")
+    log(f"{sum(row.one_way for row in ridden_rows)} Bike routes ridden one way")
     args.out.mkdir(parents=True, exist_ok=True)
     nodes, edge_count, points = write_network(edges, args.out / "trails.network")
     log(f"trails.network: {nodes} nodes, {edge_count} edges, {points} points, "
         f"{(args.out / 'trails.network').stat().st_size:,} bytes; {relief.missing} points beyond the relief, "
         f"{flat} edges with no height at all")
-    steps = write_walks(rows, args.out / "trails.edges")
-    log(f"trails.edges: {len(rows)} Trails, {steps} steps, {(args.out / 'trails.edges').stat().st_size:,} bytes")
-    count = write_places(places, rows, names_of, edges, by_trail, args.out / "places.sqlite")
-    log(f"places.sqlite: {count} places and {len(rows)} Trails, {(args.out / 'places.sqlite').stat().st_size:,} bytes")
+    steps = write_walks([*rows, *ridden_rows], args.out / "trails.edges")
+    log(f"trails.edges: {len(rows) + len(ridden_rows)} routes, {steps} steps, {(args.out / 'trails.edges').stat().st_size:,} bytes")
+    count = write_places(places, rows, ridden_rows, names_of, edges, by_route, args.out / "places.sqlite")
+    log(f"places.sqlite: {count} places, {len(rows)} Trails and {len(ridden_rows)} Bike routes, "
+        f"{(args.out / 'places.sqlite').stat().st_size:,} bytes")
 
 
 if __name__ == "__main__":

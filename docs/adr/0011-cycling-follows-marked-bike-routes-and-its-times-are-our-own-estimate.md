@@ -75,8 +75,8 @@ keying the factor by both covers each without any setting but a name.
 - Every Region's archive grows with the Bike routes and is delivered again; the growth is measured
   in phase 7a before it ships.
 - The network ADR-0010 builds gains the Bike routes' ways as a second set of edges, with their own
-  direction and timing, in an amendment there; the base files' growth is measured in phases 7a and
-  7b. A riding time is never compared with a signpost's, since no signpost gives one.
+  direction and timing, in an amendment there; the edges and direction are built in phase 7a, the
+  timing in 7b, and the base files' growth is measured in both. A riding time is never compared with a signpost's, since no signpost gives one.
 - The hike log holds Rides too, each marked and changeable afterwards. The Bikes, whether a
   recording is a Hike or a Ride, and a Ride's Bike are a schema change, shipped under the house rule
   on migrations: a registered `MIGRATION_x_y`, the exported schema, the gate's assertion and a

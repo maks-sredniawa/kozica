@@ -160,7 +160,10 @@ from cost 3 MB, so only OSM's own nodes are stored.
   nodes are read from the merged cut. Nodes carry a position and a height; edges carry their geometry, length, the
   walking time each way (§ 3), the ascent and descent each way, the `sac_scale` grade, and their
   one-way direction, if any, by § 3's rule. A compact little-endian binary with a format version in
-  its header, loaded whole into memory; A's verdict confirms that or replaces it.
+  its header, loaded whole into memory; A's verdict confirms that or replaces it. Format version 2
+  (phase 7a § 2) holds the Bike routes' ways too, and four bytes more per edge: `sets` (1 Trail, 2 Bike
+  route, 3 both), `ride`, `mtb` and `mtb_up`. The router leaves an edge without the Trail bit out of its
+  grid and never walks it.
 - **Heights are sampled at build time** from the pinned `relief.pmtiles`, which `fetch-relief.py`
   already puts in the build before the map data. The phone never decodes a relief tile to plan: the
   network carries the heights, so the profile and the ascent are the grid's numbers, read once,
@@ -228,7 +231,9 @@ from cost 3 MB, so only OSM's own nodes are stored.
   reads them for walkers: `oneway:foot` (or `foot:backward`/`foot:forward=no`) wherever it is set,
   and it wins; otherwise `oneway=yes` or `-1` only on `highway=path`, `footway`, `steps` and
   `via_ferrata`, and never on a road or a track, where it binds vehicles only. `-1` is against the
-  way's drawn direction. A leg that has no other way says so rather than drawing one.
+  way's drawn direction. A leg that has no other way says so rather than drawing one. This is the
+  walker's rule; `ride` beside it is the rider's, `oneway:bicycle` over `oneway` on any highway
+  (phase 7a § 2).
 - **Walking time**, per edge and each way, by the PTTK marker's rule (decided with the owner on
   2026-10-25, the best-sourced match for Polish signposts; no trail body publishes its own): **4 km/h
   on the flat, plus 10 minutes per 100 m of ascent, plus 5 minutes per 100 m of descent where the

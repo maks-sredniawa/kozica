@@ -33,6 +33,7 @@ LONGEST_END = 40
 BIKE_KINDS = {"bicycle": "touring", "mtb": "mtb"}
 BIKE_RULES = ("name", "ref", "from – to", *ENDS_KEYS, "neither")
 HAS_SECTIONS = ("icn", "ncn")
+NOT_SIGNED = ("proposed", "abandoned")
 COLOUR_ALIASES = {
     "czerwony": "red", "#ff0000": "red",
     "niebieski": "blue", "#0000ff": "blue",
@@ -99,7 +100,8 @@ def read(regions: list[str], cuts: Path) -> tuple[dict[int, Relation], set[int]]
         for obj in osmium.FileProcessor(str(cuts / f"{region}.osm.pbf"), osmium.osm.WAY | osmium.osm.RELATION):
             if obj.is_way():
                 present.add(obj.id)
-            elif "route" in obj.tags or obj.tags.get("type") == "superroute":
+            elif (("route" in obj.tags or obj.tags.get("type") == "superroute")
+                  and obj.tags.get("state") not in NOT_SIGNED):
                 candidates[obj.id] = Relation(
                     dict(obj.tags),
                     [m.ref for m in obj.members if m.type == "w"],
