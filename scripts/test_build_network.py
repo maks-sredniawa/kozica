@@ -345,7 +345,20 @@ def bike_line(colour: str, kind: str, members: list, senses: dict | None = None)
 
 
 def edges_with_bikes(ways: dict, trails: dict, bikes: dict) -> list:
-    return network["edges_of"](ways, Rising(), network["memberships_of"](trails), network["bike_memberships_of"](bikes))[0]
+    return network["edges_of"](ways, Rising(), network["memberships_of"](trails), network["bike_memberships_of"](bikes, ways))[0]
+
+
+def own_bike_edges(ways: dict, bikes: dict) -> list:
+    return network["own_edges"](bikes, ways, None, network["bike_memberships_of"](bikes, ways))
+
+
+def legs_of(walk, edges: list) -> list:
+    legs = []
+    for step in walk.steps:
+        refs = [ref for ref, _, _ in edges[step.edge].points]
+        refs = refs[::-1] if step.reversed else refs
+        legs.append((refs[0], refs[-1], step.breaks))
+    return legs
 
 
 class BikeEdgesTest(unittest.TestCase):
@@ -378,7 +391,7 @@ class BikeEdgesTest(unittest.TestCase):
 def index_of(ways: dict, bikes: dict, tags: dict, sections: dict | None = None) -> list[dict]:
     edges = edges_with_bikes(ways, {}, bikes)
     by_route = network["trail_edges"](edges)
-    rows = network["bike_rows"](bikes, tags, sections or {}, edges, ways, by_route)
+    rows = network["bike_rows"](bikes, tags, sections or {}, edges, ways, own_bike_edges(ways, bikes))
     with tempfile.TemporaryDirectory() as directory:
         target = Path(directory) / "places.sqlite"
         network["write_places"]({}, [], rows, tags, edges, by_route, target)
@@ -452,7 +465,7 @@ class RiddenOneWayTest(unittest.TestCase):
         for sense, second in ((self.forward, 2), (self.backward, 11)):
             edges = edges_with_bikes(ways, {}, {7: bike_line("red", "mtb", [(1, ""), (2, "")], {1: sense, 2: sense})})
             line = bike_line("red", "mtb", [(1, ""), (2, "")], {1: sense, 2: sense})
-            rows = network["bike_rows"]({7: line}, {}, {}, edges, ways, network["trail_edges"](edges))
+            rows = network["bike_rows"]({7: line}, {}, {}, edges, ways, own_bike_edges(ways, {7: line}))
             self.assertTrue(rows[0].one_way)
             first = rows[0].walk.steps[0]
             refs = [ref for ref, _, _ in edges[first.edge].points]
@@ -464,18 +477,150 @@ class RiddenOneWayTest(unittest.TestCase):
         self.assertEqual(index_of(ways, {7: line}, {})[0]["one_way"], 0)
 
     def test_a_forward_backward_pair_in_town_is_two_way(self):
-        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3]), 3: grid_way([2, 13, 3]), 4: grid_way([3, 4])}
         line = bike_line("red", "touring", [(1, ""), (2, "forward"), (3, "backward"), (4, "")],
                          {2: self.forward, 3: self.backward})
-        self.assertEqual(index_of(ways, {7: line}, {})[0]["one_way"], 0)
+        self.assertEqual(index_of(TOWN_PAIR, {7: line}, {})[0]["one_way"], 0)
+
+    def test_a_backward_strand_beside_a_one_way_line_leaves_it_one_way(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3]), 3: TOWN_PAIR[3]}
+        line = bike_line("red", "mtb", [(1, "forward"), (2, "forward"), (3, "backward")],
+                         {1: self.forward, 2: self.forward, 3: self.backward})
+        row = index_of(ways, {7: line}, {})[0]
+        self.assertEqual(row["one_way"], 1)
+        self.assertAlmostEqual(row["length"], 1459, delta=1)
 
     def test_a_turned_walk_keeps_its_gaps_where_they_were(self):
         ways = {1: grid_way([1, 2]), 2: grid_way([5, 6])}
         line = bike_line("red", "mtb", [(1, ""), (2, "")], {1: self.backward, 2: self.backward})
         edges = edges_with_bikes(ways, {}, {7: line})
-        walk = network["bike_rows"]({7: line}, {}, {}, edges, ways, network["trail_edges"](edges))[0].walk
+        walk = network["bike_rows"]({7: line}, {}, {}, edges, ways, own_bike_edges(ways, {7: line}))[0].walk
         self.assertEqual([(step.breaks) for step in walk.steps], [False, True])
         self.assertTrue(all(step.reversed for step in walk.steps))
+
+
+TOWN_PAIR = {
+    1: grid_way([1, 2]),
+    2: grid_way([2, 3]),
+    3: ([(2, *place(2)), (900, 49.0005, 20.025), (3, *place(3))], {}),
+    4: grid_way([3, 4]),
+}
+
+
+class BackwardMembersTest(unittest.TestCase):
+    forward = network["FORWARD_ONLY"]
+    backward = network["BACKWARD_ONLY"]
+
+    def line(self, *members: tuple) -> object:
+        senses = {way: {"forward": self.forward, "backward": self.backward}[role] for way, role in members if role}
+        return bike_line("red", "mtb", list(members), senses)
+
+    def test_the_other_strand_of_a_pair_is_off_the_walk(self):
+        line = self.line((1, ""), (2, "forward"), (3, "backward"), (4, ""))
+        self.assertEqual(network["bike_memberships_of"]({7: line}, TOWN_PAIR)[3], frozenset({(7, False, self.backward)}))
+        row = index_of(TOWN_PAIR, {7: line}, {})[0]
+        self.assertAlmostEqual(row["length"], 2188, delta=1)
+        self.assertEqual(row["gaps"], 0)
+
+    def test_stretches_drawn_against_the_ride_are_on_the_walk(self):
+        ways = {1: grid_way([2, 1]), 2: grid_way([2, 3]), 3: grid_way([4, 3])}
+        row = index_of(ways, {7: self.line((1, "backward"), (2, "forward"), (3, "backward"))}, {})[0]
+        self.assertAlmostEqual(row["length"], 2188, delta=1)
+        self.assertEqual(row["one_way"], 1)
+        self.assertEqual((row["start_lon"], row["end_lon"]), (place(1)[1], place(4)[1]))
+        self.assertAlmostEqual(row["ascent"], 12)
+        self.assertAlmostEqual(row["descent"], 0)
+
+    def test_a_backward_stretch_between_two_forward_strands_is_on_the_walk_however_close(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([3, 2]), 3: grid_way([3, 4])}
+        row = index_of(ways, {7: self.line((1, "forward"), (2, "backward"), (3, "forward"))}, {})[0]
+        self.assertAlmostEqual(row["length"], 2188, delta=1)
+        self.assertEqual(row["one_way"], 1)
+
+    def test_a_ring_of_one_forward_and_one_backward_strand_goes_all_the_way_round(self):
+        ways = {1: grid_way([1, 2, 3]), 2: grid_way([1, 11, 21, 22, 23, 13, 3])}
+        row = index_of(ways, {7: self.line((1, "forward"), (2, "backward"))}, {})[0]
+        self.assertAlmostEqual(row["length"], 5697, delta=1)
+        self.assertEqual(row["one_way"], 1)
+        self.assertEqual((row["start_lon"], row["end_lon"]), (place(1)[1], place(1)[1]))
+        self.assertAlmostEqual(row["ascent"], 8)
+        self.assertAlmostEqual(row["descent"], 8)
+
+    def test_a_trail_keeps_its_own_rule(self):
+        memberships = network["memberships_of"]({7: TrailLine("red", None, [(1, "forward"), (2, "backward")])})
+        self.assertEqual(memberships[2], frozenset({(7, False)}))
+
+
+class OwnWaysTest(unittest.TestCase):
+    def rows(self, ways: dict, trails: dict, bikes: dict) -> tuple:
+        memberships = network["memberships_of"](trails)
+        edges = network["edges_of"](ways, Rising(), memberships, network["bike_memberships_of"](bikes, ways))[0]
+        own = network["own_edges"](trails, ways, memberships)
+        return network["route_rows"](trails, {}, edges, ways, own, {}), edges
+
+    def test_a_bike_route_s_cut_does_not_turn_a_trail(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3]), 3: grid_way([3, 4]), 4: grid_way([4, 5]), 9: grid_way([3, 13])}
+        trails = {7: TrailLine("red", None, [(3, ""), (4, ""), (2, ""), (1, "")])}
+        alone = walked({k: ways[k] for k in (1, 2, 3, 4)}, trails, 7)[2]
+        self.assertEqual(alone, [(1, 5, False)])
+        rows, edges = self.rows(ways, trails, {8: bike_line("blue", "touring", [(9, "")])})
+        self.assertEqual(legs_of(rows[0].walk, edges), [(1, 3, False), (3, 5, False)])
+
+    def test_a_bike_route_s_cut_does_not_move_a_trail_s_loop(self):
+        ways = {1: grid_way([1, 2, 3]), 2: grid_way([3, 4, 1]), 9: grid_way([4, 14])}
+        trails = {7: TrailLine("red", None, [(2, ""), (1, "")])}
+        rows, edges = self.rows(ways, trails, {8: bike_line("blue", "touring", [(9, "")])})
+        self.assertEqual(legs_of(rows[0].walk, edges), [(3, 4, False), (4, 3, False)])
+
+    def test_a_loop_starting_inside_a_network_edge_starts_at_that_edge_s_end_and_goes_round_once(self):
+        ways = {1: grid_way([1, 2, 3, 4, 5]), 2: grid_way([5, 6, 1]), 9: grid_way([3, 13])}
+        trails = {7: TrailLine("red", None, [(2, ""), (1, "")])}
+        rows, edges = self.rows(ways, trails, {8: bike_line("blue", "touring", [(9, "")])})
+        self.assertEqual(legs_of(rows[0].walk, edges), [(3, 1, False), (1, 3, False)])
+
+    def test_a_gap_stays_before_the_stretch_it_came_before(self):
+        ways = {1: grid_way([1, 2, 3]), 2: grid_way([5, 6, 7]), 9: grid_way([2, 12]), 10: grid_way([6, 16])}
+        trails = {7: TrailLine("red", None, [(1, ""), (2, "")])}
+        rows, edges = self.rows(ways, trails, {8: bike_line("blue", "touring", [(9, ""), (10, "")])})
+        self.assertEqual(legs_of(rows[0].walk, edges), [(1, 2, False), (2, 3, False), (5, 6, True), (6, 7, False)])
+
+    def test_a_bike_route_is_not_turned_by_a_trail_s_cut(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3]), 3: grid_way([3, 4]), 4: grid_way([4, 5]), 9: grid_way([3, 13])}
+        bikes = {8: bike_line("blue", "touring", [(3, ""), (4, ""), (2, ""), (1, "")])}
+        edges = edges_with_bikes(ways, {7: TrailLine("red", None, [(9, "")])}, bikes)
+        rows = network["bike_rows"](bikes, {}, {}, edges, ways, own_bike_edges(ways, bikes))
+        self.assertEqual(legs_of(rows[0].walk, edges), [(1, 3, False), (3, 5, False)])
+
+
+def bowed_way(first: int, last: int, hops: int) -> dict:
+    """A long way round from node `first` to node `last`, one way per hop, bowing north between them."""
+    refs = [first, *range(1001, 1000 + hops), last]
+    nodes = [(ref, 49.0 + 0.001 * min(k, hops - k), 20.0 + 0.001 * k) for k, ref in enumerate(refs)]
+    return {100 + k: ([nodes[k], nodes[k + 1]], {}) for k in range(hops)}
+
+
+class SearchTest(unittest.TestCase):
+    def test_cuts_do_not_count_against_the_search(self):
+        long_side = bowed_way(2, 3, 70)
+        ways = {1: ([(1, 49.0, 19.99), (2, 49.0, 20.0)], {}), 2: ([(2, 49.0, 20.0), (3, 49.0, 20.07)], {}),
+                3: ([(3, 49.0, 20.07), (4, 49.0, 20.08)], {}), **long_side}
+        trails = {7: TrailLine("red", None, [(1, ""), (2, ""), *((way, "") for way in long_side), (3, "")]),
+                  8: TrailLine("blue", None, [(way, "") for way in long_side if way % 2 == 0])}
+        walk, _, legs = walked(ways, trails, 7)
+        self.assertFalse(walk.estimated)
+        self.assertEqual(walk.shape, "branch")
+        self.assertEqual(len(legs), 72)
+        self.assertEqual((legs[0], legs[1], legs[-2], legs[-1]),
+                         ((1, 2, False), (2, 1001, False), (1069, 3, False), (3, 4, False)))
+
+    def test_a_real_network_is_still_past_the_search(self):
+        ways = {}
+        for k in range(30):
+            ways[10 + k] = grid_way([1000 + k, 1001 + k])
+            ways[50 + k] = grid_way([2000 + k, 2001 + k])
+        for k in range(31):
+            ways[90 + k] = grid_way([1000 + k, 2000 + k])
+        walk, _, _ = walked(ways, {7: TrailLine("red", None, [(way, "") for way in ways])}, 7)
+        self.assertTrue(walk.estimated)
 
 
 class BikeRouteIndexTest(unittest.TestCase):
@@ -502,9 +647,9 @@ class BikeRouteIndexTest(unittest.TestCase):
         ways = {1: grid_way([1, 2]), 2: grid_way([5, 6])}
         bikes = {7: bike_line("red", "mtb", [(2, "")])}
         trails = {9: TrailLine("red", None, [(1, "")])}
-        edges = network["edges_of"](ways, Rising(), network["memberships_of"](trails), network["bike_memberships_of"](bikes))[0]
-        by_route = network["trail_edges"](edges)
-        rows = network["route_rows"](trails, {}, edges, ways, by_route, {}) + network["bike_rows"](bikes, {}, {}, edges, ways, by_route)
+        edges = edges_with_bikes(ways, trails, bikes)
+        own_trails = network["own_edges"](trails, ways, network["memberships_of"](trails))
+        rows = network["route_rows"](trails, {}, edges, ways, own_trails, {}) + network["bike_rows"](bikes, {}, {}, edges, ways, own_bike_edges(ways, bikes))
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "walks"
             network["write_walks"](rows, target)
