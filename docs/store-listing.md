@@ -415,3 +415,17 @@ The map's relief, its shading and the heights behind ascents, is now a third of 
 ```
 Rzeźba terenu na mapie, czyli cieniowanie i wysokości, z których liczone są podejścia, ma teraz jedną trzecią wcześniejszego rozmiaru: każda aktualizacja pobiera około 170 MB mniej. Mapa wygląda tak samo.
 ```
+
+### 0.15.0 — fresher map data, and no Trails without markings
+
+**English** — 265/500:
+
+```
+The map's OpenStreetMap data is refreshed to 1 November 2026. Trails mapped as proposed or abandoned are gone, since there may be no markings on the ground. Some long Trails, such as Drabina Wałbrzyska and The Loop, now show their full length and climb when tapped.
+```
+
+**Polish** — 269/500:
+
+```
+Dane OpenStreetMap na mapie są odświeżone do 1 listopada 2026. Szlaki oznaczone jako proponowane lub porzucone zniknęły, bo w terenie może nie być znaków. Niektóre długie szlaki, jak Drabina Wałbrzyska i The Loop, po dotknięciu pokazują teraz pełną długość i podejścia.
+```
