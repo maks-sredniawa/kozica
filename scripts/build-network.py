@@ -971,16 +971,55 @@ def turned_steps(steps: list[Step]) -> list[Step]:
             for i, step in reversed(list(enumerate(steps)))]
 
 
+def lengths_by_sense(number: int, steps: list[Step], edges: list[Edge]) -> tuple[float, float]:
+    """How much of the steps goes with the ride and how much against it."""
+    runs = [(sense_along(number, edges[step.edge], step), edges[step.edge].length) for step in steps]
+    return sum(length for sense, length in runs if sense > 0), sum(length for sense, length in runs if sense < 0)
+
+
+def rings_with_the_ride(number: int, steps: list[Step], edges: list[Edge]) -> list[Step]:
+    """Each closed stretch of the walk that runs more against the ride than with it, turned: it is the same edges
+    from the same vertex to the same vertex, and which way round the search took it was a tie."""
+    def first(step: Step) -> int:
+        return edges[step.edge].points[-1 if step.reversed else 0][0]
+
+    def last(step: Step) -> int:
+        return edges[step.edge].points[0 if step.reversed else -1][0]
+
+    steps = list(steps)
+    turned = True
+    while turned:
+        turned = False
+        windows = sorted(((end - begin, begin, end) for begin in range(len(steps)) for end in range(begin + 1, len(steps) + 1)
+                          if first(steps[begin]) == last(steps[end - 1])
+                          and not any(step.breaks for step in steps[begin + 1:end])))
+        for _, begin, end in windows:
+            along, against = lengths_by_sense(number, steps[begin:end], edges)
+            if against > along:
+                ring = turned_steps(steps[begin:end])
+                ring[0] = replace(ring[0], breaks=steps[begin].breaks)
+                steps[begin:end] = ring
+                turned = True
+                break
+    return steps
+
+
 def ridden(number: int, walk: Walk, edges: list[Edge], signed: bool) -> tuple[Walk, bool]:
-    """docs/phase-7a.md § 2, Ridden one way: the walk starting where its direction leaves, and whether it has one."""
-    runs = [(sense_along(number, edges[step.edge], step), edges[step.edge].length) for step in walk.steps]
-    along = sum(length for sense, length in runs if sense > 0)
-    against = sum(length for sense, length in runs if sense < 0)
-    length = sum(length for _, length in runs)
-    directed = (not along or not against) and along + against >= ONE_WAY_SHARE * length
+    """docs/phase-7a.md § 2, Ridden one way: the walk starting where its direction leaves, a ring turned only where
+    turning the whole walk does not bring it with the ride, and whether it has a direction."""
+    def margin(steps: list[Step]) -> float:
+        along, against = lengths_by_sense(number, steps, edges)
+        return along - against
+
+    if not any(lengths_by_sense(number, walk.steps, edges)):
+        return walk, signed
+    plain = (walk.steps, turned_steps(walk.steps))
+    best = max((*plain, *(rings_with_the_ride(number, steps, edges) for steps in plain)), key=margin)
+    along, against = lengths_by_sense(number, best, edges)
+    directed = (not along or not against) and along + against >= ONE_WAY_SHARE * sum(edges[s.edge].length for s in best)
     if not signed and not directed:
         return walk, False
-    return (replace(walk, steps=turned_steps(walk.steps)) if against > along else walk), True
+    return replace(walk, steps=best), True
 
 
 def runs_as_way(edge: Edge, way: tuple | None) -> bool:

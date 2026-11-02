@@ -460,6 +460,56 @@ class RiddenOneWayTest(unittest.TestCase):
         senses = {1: self.forward, 2: self.forward, 3: self.forward, 4: self.forward, 5: self.backward}
         self.assertEqual(index_of(ways, {7: bike_line("blue", "mtb", members, senses)}, {})[0]["one_way"], 0)
 
+    def rows_of(self, ways: dict, line) -> tuple:
+        bikes = {7: line}
+        edges = edges_with_bikes(ways, {}, bikes)
+        return network["bike_rows"](bikes, {}, {}, edges, ways, own_bike_edges(ways, bikes))[0], edges
+
+    def against(self, row, edges: list) -> list:
+        return [step for step in row.walk.steps if network["sense_along"](7, edges[step.edge], step) < 0]
+
+    def test_a_ring_on_a_one_way_line_goes_round_with_the_ride(self):
+        ring = {1: grid_way([1, 2]), 2: grid_way([2, 3, 13]), 3: grid_way([13, 12, 2])}
+        for sense in (self.forward, self.backward):
+            senses = {1: self.forward, 2: sense, 3: sense}
+            row, edges = self.rows_of(ring, bike_line("red", "mtb", [(1, ""), (2, ""), (3, "")], senses))
+            self.assertTrue(row.one_way)
+            self.assertEqual(self.against(row, edges), [])
+
+    def test_a_ring_is_turned_where_the_line_into_it_runs_against_the_walk(self):
+        ring = {1: grid_way([1, 2]), 2: grid_way([2, 3, 13]), 3: grid_way([13, 12, 2])}
+        senses = {1: self.backward, 2: self.backward, 3: self.backward}
+        row, edges = self.rows_of(ring, bike_line("red", "mtb", [(1, ""), (2, ""), (3, "")], senses))
+        self.assertTrue(row.one_way)
+        self.assertEqual(self.against(row, edges), [])
+        first = edges[row.walk.steps[0].edge]
+        self.assertEqual((first.points[-1] if row.walk.steps[0].reversed else first.points[0])[0], 2)
+
+    def test_turning_the_whole_walk_wins_over_turning_only_its_ring(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3, 4, 5, 15]), 3: grid_way([15, 14, 13, 12, 2])}
+        members = [(1, ""), (2, ""), (3, "")]
+        ends = set()
+        for sense in (self.forward, self.backward):
+            row, edges = self.rows_of(ways, bike_line("red", "mtb", members, {2: sense, 3: sense}))
+            self.assertTrue(row.one_way)
+            self.assertEqual(self.against(row, edges), [])
+            first, last = row.walk.steps[0], row.walk.steps[-1]
+            ends.add((edges[first.edge].points[-1 if first.reversed else 0][0],
+                      edges[last.edge].points[0 if last.reversed else -1][0]))
+        self.assertEqual(ends, {(1, 2), (2, 1)})
+
+    def test_a_stretch_against_the_ride_on_no_ring_stays_two_way(self):
+        ways = {way: grid_way([way, way + 1]) for way in range(1, 5)}
+        senses = {1: self.forward, 2: self.forward, 3: self.backward, 4: self.backward}
+        row, _ = self.rows_of(ways, bike_line("red", "mtb", [(way, "") for way in ways], senses))
+        self.assertFalse(row.one_way)
+
+    def test_a_two_way_route_keeps_the_walk_the_search_gave_it(self):
+        ring = {1: grid_way([1, 2]), 2: grid_way([2, 3, 13]), 3: grid_way([13, 12, 2])}
+        row, edges = self.rows_of(ring, bike_line("red", "mtb", [(1, ""), (2, ""), (3, "")], {3: self.backward}))
+        self.assertFalse(row.one_way)
+        self.assertIs(network["ridden"](7, row.walk, edges, False)[0], row.walk)
+
     def test_a_loop_goes_round_the_way_it_is_ridden(self):
         ways = {1: grid_way([1, 2, 12]), 2: grid_way([12, 11, 1])}
         for sense, second in ((self.forward, 2), (self.backward, 11)):
