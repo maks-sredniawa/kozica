@@ -314,11 +314,11 @@ def print_bike_routes(regions: list[str], membership: BikeMembership, samples: i
     for rid in holders:
         relation = membership.bikes[rid]
         pieces = membership.pieces[rid]
-        sections = len(membership.members(rid)) - len(pieces)
+        separate = len(membership.members(rid)) - len(pieces)
         row = "a row" if rid in routes else "no row"
         print(f"  r{rid} {relation.tags.get('network', '-')} {marking_key(relation.tags) or 'no colour'}"
-              f" {name(relation.tags) or relation.tags.get('ref', '')}: {len(pieces)} pieces, {sections} Sections,"
-              f" {len(relation.present):,} ways of its own, {row}")
+              f" {name(relation.tags) or relation.tags.get('ref', '')}: {len(pieces)} pieces,"
+              f" {separate} separate routes, {len(relation.present):,} ways of its own, {row}")
 
 
 def print_union_count(trails: dict[int, set[int]], bikes: dict[int, set[int]]) -> None:

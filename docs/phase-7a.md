@@ -112,9 +112,13 @@ of the renders.
   `colour`, `network`, `from`/`to`, `mtb:scale`, `mtb:scale:uphill`, `signed_direction`.
 - **Relations of relations**, decided with the owner on 2026-11-02 (19 Bike routes at the current
   pin hold Bike routes), following 6c's per-member reading:
-  - **An `icn` or `ncn` parent has Sections**, whatever their marking: each member relation without
-    a role is a Bike route of its own, and "Show the whole" shows the parent, as a Long-distance
-    Trail's does.
+  - **An `icn` or `ncn` parent has Sections**, whatever their marking, and never takes a piece: each
+    member relation without a role, or with `part` or `connection`, is a Bike route of its own, and
+    "Show the whole" shows the parent, as a Long-distance Trail's does. A member with any other role
+    is a Bike route of its own outside that whole, as Via Mariae M02 r4649443's `alternative`s are
+    Trails of their own in the profile: Green Velo r5141547's `excursion`s r8748314 and r8748654. The
+    profile's rule for a parent with no role-less member, that its members are pieces, does not carry
+    over, or Greenway r2110268, ncn 21 r38927 and ncn 22 r3365635 would lose their Sections.
   - **Any other parent is read per member.** A member carrying the parent's marking is a piece: its
     ways write the parent's id, and the parent is one Bike route. A member marked otherwise is a
     Bike route of its own. A parent with no member carrying its marking has Sections, as an `icn`
@@ -263,7 +267,9 @@ merges.
   towards a strand drawn over another.
 - **The title rule**, each branch, in English and Polish, as 6c's test does for Trails.
 - **Sections or pieces**, in the build, one fixture per branch: an `ncn` parent with same-marked
-  members (Sections), an `lcn` parent with all members marked otherwise (Sections), a mixed `rcn`
+  members (Sections), one with a Section and an `excursion` (a Bike route of its own, outside "Show
+  the whole"), one with only a `connection` member (a Section, not a piece), an `lcn` parent with
+  all members marked otherwise (Sections), a mixed `rcn`
   parent (the same-marked member a piece writing the parent's id, the other a Bike route of its
   own), and a parent with Sections and `part`/`connection` ways of its own (a row for those ways,
   under the parent's id). Fails towards a tap that takes a fragment, or a parent's own ways that
