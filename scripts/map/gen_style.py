@@ -3,7 +3,7 @@
 
     python3 scripts/map/gen_style.py && python3 scripts/map/sprites.py
 
-The five Trail colours are the only literals. Every other colour is a tone of a palette that
+The five Trail colours and the violet of a Bike route with no marking colour are the only literals. Every other colour is a tone of a palette that
 scripts/gen_scheme.py derives from its seeds, so a seed change reaches the map when both re-run.
 """
 
@@ -30,6 +30,9 @@ TRAIL = {
     "yellow": "#e6b800",
     "black": "#1a1a1a",
 }
+BIKE_ROUTE = TRAIL | {"other": "#7f3fbf"}
+BIKE_KINDS = ("touring", "mtb")
+CHEVRONS = ("route_casing", "yellow_casing", "black_casing")
 SHAPES = ("bar", "dot", "cross", "triangle", "corner")
 POIS = ("hut", "shelter", "peak", "pass", "spring", "viewpoint", "parking", "stop", "station")
 
@@ -93,36 +96,79 @@ def by_zoom(*stops: tuple[float, object]) -> list:
 TRAIL_WIDTHS = ((10, 2.0), (13, 3.0), (15, 4.5), (17, 7.0))
 SYMBOL_STEP = 18
 FADED_OPACITY = 0.3
+MODE_FADED_OPACITY = 0.2
 NO_TRAIL = ["==", ["get", "trail"], -1]
-SLOT = ["-", ["coalesce", ["get", "index"], 0], ["/", ["-", ["coalesce", ["get", "count"], 1], 1], 2]]
+# phase 7a § 2: the largest union `count` on a way at B's pin is 10, so a twice-slot runs −9..9.
+LARGEST_COUNT = 10
+PLATE_STEP = 13
+# The union's slots, with the Trails' own pair in an archive built before phase 7a.
+TRAIL_INDEX = ["coalesce", ["get", "union_index"], ["get", "index"], 0]
+TRAIL_COUNT = ["coalesce", ["get", "union_count"], ["get", "count"], 1]
+BIKE_INDEX = ["coalesce", ["get", "index"], 0]
+BIKE_COUNT = ["coalesce", ["get", "count"], 1]
+TWICE_SLOTS = range(1 - LARGEST_COUNT, LARGEST_COUNT)
+
+
+def twice_slot(index: list, count: list) -> list:
+    return ["-", ["*", 2, index], ["-", count, 1]]
 
 
 def trail_width(extra: float = 0) -> list:
     return by_zoom(*((zoom, width + extra) for zoom, width in TRAIL_WIDTHS))
 
 
-def trail_offset() -> list:
-    return by_zoom(*((zoom, ["*", SLOT, width]) for zoom, width in TRAIL_WIDTHS))
+def line_offset(index: list, count: list) -> list:
+    slot = ["-", index, ["/", ["-", count, 1], 2]]
+    return by_zoom(*((zoom, ["*", slot, width]) for zoom, width in TRAIL_WIDTHS))
+
+
+def by_slot(index: list, count: list, offset) -> list:
+    """An expression cannot build an array from data, so each slot gets its own literal offset; twice the
+    slot is an integer, which match needs."""
+    slots = (value for twice in TWICE_SLOTS for value in (twice, ["literal", offset(twice / 2)]))
+    return ["match", twice_slot(index, count), *slots, ["literal", [0, 0]]]
 
 
 def symbol_offset() -> list:
-    # An expression cannot build an array from data, so each slot gets its own literal offset;
-    # twice the slot is an integer, which match needs. The step along the line keeps two Trails'
-    # symbols beside each other rather than stacked.
-    twice_slot = ["-", ["*", 2, ["coalesce", ["get", "index"], 0]], ["-", ["coalesce", ["get", "count"], 1], 1]]
+    # The step along the line keeps two Trails' symbols beside each other rather than stacked.
+    return by_zoom(*((zoom, by_slot(TRAIL_INDEX, TRAIL_COUNT, lambda slot, w=width: [slot * SYMBOL_STEP, slot * w]))
+                     for zoom, width in TRAIL_WIDTHS if zoom >= 13))
 
+
+def chevron_offset() -> list:
+    # icon-offset turns with icon-rotate, so a backward chevron's slot is on the other side.
     def at(width: float) -> list:
-        slots = (value for twice in range(-8, 9)
-                 for value in (twice, ["literal", [twice / 2 * SYMBOL_STEP, twice / 2 * width]]))
-        return ["match", twice_slot, *slots, ["literal", [0, 0]]]
+        return ["case", ["==", ["get", "dir"], "backward"],
+                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, -slot * width]),
+                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, slot * width])]
 
     return by_zoom(*((zoom, at(width)) for zoom, width in TRAIL_WIDTHS if zoom >= 13))
 
 
-def faded(layer: dict) -> dict:
-    """Marked for MapStyle.kt, which fades it while a Route is shown (docs/phase-5.md § 4)."""
+def ref_offset() -> list:
+    return by_zoom(*((zoom, by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot, w=width: [0, slot * w / REF_SIZE]))
+                     for zoom, width in TRAIL_WIDTHS if zoom >= 13))
+
+
+REF_SIZE = 10
+# docs/phase-7a.md § 3's thresholds, the same in both Modes.
+BIKE_ROUTE_SHOWN = ["case",
+                    ["==", ["get", "kind"], "mtb"], [">=", ["zoom"], 12],
+                    ["match", ["get", "network"], ["icn", "ncn"], True, False], True,
+                    ["==", ["get", "network"], "rcn"], [">=", ["zoom"], 11],
+                    [">=", ["zoom"], 12]]
+
+
+def faded(layer: dict, mode: str | None = None, mode_only: bool = False) -> dict:
+    """Marked for MapStyle.kt, which fades it while a Route is shown (docs/phase-5.md § 4), and in the other
+    Mode, or hides it there if it is `mode_only` (docs/phase-7a.md § 3)."""
     assert not any(key.endswith("-opacity") for key in layer.get("paint", {})), layer["id"]
-    return layer | {"metadata": {"kozica:fade": True}}
+    metadata = {"kozica:fade": True}
+    if mode:
+        metadata["kozica:mode"] = mode
+    if mode_only:
+        metadata["kozica:mode-only"] = True
+    return layer | {"metadata": metadata}
 
 
 def layer(id: str, type: str, source_layer: str | None = None, **parts) -> dict:
@@ -136,6 +182,7 @@ def style(dark: bool) -> dict:
     c = palette(dark)
     casing = "black" if dark else "yellow"
     trail_colour = ["match", ["get", "colour"], *(v for pair in TRAIL.items() for v in pair), c["trail_other"]]
+    bike_colour = ["match", ["get", "colour"], *(v for pair in TRAIL.items() for v in pair), BIKE_ROUTE["other"]]
 
     def text_layout(size, **more):
         return {"text-font": FONT, "text-size": size, **more}
@@ -201,10 +248,20 @@ def style(dark: bool) -> dict:
         faded(layer("trail-casings", "line", "trails", filter=["==", ["get", "colour"], casing],
                     layout={"line-join": "round"},
                     paint={"line-color": c[f"{casing}_casing"], "line-width": trail_width(2.0),
-                           "line-offset": trail_offset()})),
+                           "line-offset": line_offset(TRAIL_INDEX, TRAIL_COUNT)}), "hiking"),
         faded(layer("trails", "line", "trails",
                     layout={"line-join": "round"},
-                    paint={"line-color": trail_colour, "line-width": trail_width(), "line-offset": trail_offset()})),
+                    paint={"line-color": trail_colour, "line-width": trail_width(),
+                           "line-offset": line_offset(TRAIL_INDEX, TRAIL_COUNT)}), "hiking"),
+        faded(layer("bike-route-casings", "line", "bike_routes",
+                    filter=["all", ["==", ["get", "colour"], casing], BIKE_ROUTE_SHOWN],
+                    layout={"line-join": "round"},
+                    paint={"line-color": c[f"{casing}_casing"], "line-width": trail_width(2.0),
+                           "line-offset": line_offset(BIKE_INDEX, BIKE_COUNT)}), "cycling"),
+        faded(layer("bike-routes", "line", "bike_routes", filter=BIKE_ROUTE_SHOWN,
+                    layout={"line-join": "round"},
+                    paint={"line-color": bike_colour, "line-width": trail_width(),
+                           "line-offset": line_offset(BIKE_INDEX, BIKE_COUNT)}), "cycling"),
         faded(layer(
             "trail-symbols", "symbol", "trails", minzoom=14,
             layout={
@@ -218,7 +275,42 @@ def style(dark: bool) -> dict:
                 "icon-ignore-placement": True,
                 "icon-offset": symbol_offset(),
             },
-        )),
+        ), "hiking"),
+        faded(layer(
+            "bike-route-chevrons", "symbol", "bike_routes", minzoom=13, filter=["has", "dir"],
+            layout={
+                "symbol-placement": "line",
+                "symbol-spacing": by_zoom((13, 120), (16, 80)),
+                "icon-image": ["match", ["get", "colour"], "yellow", "chevron_yellow_casing",
+                               "black", "chevron_black_casing", "chevron_route_casing"],
+                "icon-rotate": ["match", ["get", "dir"], "backward", 180, 0],
+                "icon-rotation-alignment": "map",
+                "icon-keep-upright": False,
+                "icon-allow-overlap": True,
+                "icon-ignore-placement": True,
+                "icon-offset": chevron_offset(),
+            },
+        ), "cycling"),
+        faded(layer(
+            "bike-route-plates", "symbol", "bike_routes", minzoom=13,
+            layout={
+                "symbol-placement": "line",
+                "symbol-spacing": by_zoom((13, 260), (16, 180)),
+                "icon-image": ["concat", "bike_route_", ["get", "kind"], "_", ["get", "colour"]],
+                "icon-size": by_zoom((13, 0.85), (17, 1.3)),
+                "icon-rotation-alignment": "viewport",
+                "icon-allow-overlap": True,
+                "icon-ignore-placement": True,
+                "icon-offset": by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, slot * PLATE_STEP]),
+            },
+        ), "cycling"),
+        faded(layer(
+            "bike-route-refs", "symbol", "bike_routes", minzoom=13,
+            filter=["all", ["has", "ref"], ["any", ["==", ["get", "colour"], "other"], [">=", ["zoom"], 15]]],
+            layout=text_layout(REF_SIZE, **{"symbol-placement": "line", "text-field": ["get", "ref"],
+                                            "text-offset": ref_offset()}),
+            paint=text_paint(),
+        ), "cycling", mode_only=True),
         faded(layer(
             "pois", "symbol", "pois",
             layout=text_layout(
@@ -259,10 +351,12 @@ def style(dark: bool) -> dict:
         # tiles, by the filter MapScreen.kt sets on its id; below it, its walk from MapScreen.kt's GeoJSON.
         layer("trail-selected-casing", "line", "trails", minzoom=10, filter=NO_TRAIL,
               layout={"line-join": "round", "line-cap": "round"},
-              paint={"line-color": c["route_casing"], "line-width": trail_width(5.0), "line-offset": trail_offset()}),
+              paint={"line-color": c["route_casing"], "line-width": trail_width(5.0),
+                     "line-offset": line_offset(TRAIL_INDEX, TRAIL_COUNT)}),
         layer("trail-selected", "line", "trails", minzoom=10, filter=NO_TRAIL,
               layout={"line-join": "round", "line-cap": "round"},
-              paint={"line-color": trail_colour, "line-width": trail_width(2.0), "line-offset": trail_offset()}),
+              paint={"line-color": trail_colour, "line-width": trail_width(2.0),
+                     "line-offset": line_offset(TRAIL_INDEX, TRAIL_COUNT)}),
         {"id": "trail-walk-casing", "type": "line", "source": "trail-walk", "maxzoom": 10,
          "layout": {"line-join": "round", "line-cap": "round"},
          "paint": {"line-color": c["route_casing"], "line-width": 6.0}},
@@ -312,6 +406,8 @@ def style(dark: bool) -> dict:
     return {
         "version": 8,
         "metadata": {"kozica:faded-opacity": FADED_OPACITY,
+                     "kozica:mode-opacity": 0.5 if dark else 0.4,
+                     "kozica:mode-faded-opacity": MODE_FADED_OPACITY,
                      "kozica:bounds": json.loads(REGIONS.read_text())["bbox"]},
         "sources": {"route": {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}},
                     "route-back": {"type": "geojson", "data": {"type": "FeatureCollection", "features": []}},

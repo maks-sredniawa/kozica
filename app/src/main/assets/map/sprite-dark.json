@@ -1,245 +1,350 @@
 {
- "black_bar": {
+ "bike_route_mtb_black": {
   "x": 0,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "black_corner": {
-  "x": 16,
+ "bike_route_mtb_blue": {
+  "x": 20,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "black_cross": {
-  "x": 32,
+ "bike_route_mtb_green": {
+  "x": 40,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "black_dot": {
-  "x": 48,
+ "bike_route_mtb_other": {
+  "x": 60,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "black_triangle": {
-  "x": 64,
-  "y": 0,
-  "width": 16,
-  "height": 12,
-  "pixelRatio": 1
- },
- "blue_bar": {
+ "bike_route_mtb_red": {
   "x": 80,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "blue_corner": {
-  "x": 96,
+ "bike_route_mtb_yellow": {
+  "x": 100,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "blue_cross": {
-  "x": 112,
+ "bike_route_touring_black": {
+  "x": 120,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "blue_dot": {
-  "x": 128,
+ "bike_route_touring_blue": {
+  "x": 140,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "blue_triangle": {
-  "x": 144,
-  "y": 0,
-  "width": 16,
-  "height": 12,
-  "pixelRatio": 1
- },
- "green_bar": {
+ "bike_route_touring_green": {
   "x": 160,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "green_corner": {
-  "x": 176,
+ "bike_route_touring_other": {
+  "x": 180,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "green_cross": {
-  "x": 192,
+ "bike_route_touring_red": {
+  "x": 200,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "green_dot": {
-  "x": 208,
+ "bike_route_touring_yellow": {
+  "x": 220,
   "y": 0,
-  "width": 16,
+  "width": 20,
   "height": 12,
   "pixelRatio": 1
  },
- "green_triangle": {
-  "x": 224,
-  "y": 0,
-  "width": 16,
-  "height": 12,
-  "pixelRatio": 1
- },
- "other_bar": {
+ "black_bar": {
   "x": 240,
   "y": 0,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
- "poi_hut": {
+ "black_corner": {
   "x": 0,
   "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "black_cross": {
+  "x": 16,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "black_dot": {
+  "x": 32,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "black_triangle": {
+  "x": 48,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "blue_bar": {
+  "x": 64,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "blue_corner": {
+  "x": 80,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "blue_cross": {
+  "x": 96,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "blue_dot": {
+  "x": 112,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "blue_triangle": {
+  "x": 128,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "chevron_black_casing": {
+  "x": 144,
+  "y": 12,
+  "width": 8,
+  "height": 8,
+  "pixelRatio": 1
+ },
+ "chevron_route_casing": {
+  "x": 152,
+  "y": 12,
+  "width": 8,
+  "height": 8,
+  "pixelRatio": 1
+ },
+ "chevron_yellow_casing": {
+  "x": 160,
+  "y": 12,
+  "width": 8,
+  "height": 8,
+  "pixelRatio": 1
+ },
+ "green_bar": {
+  "x": 168,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "green_corner": {
+  "x": 184,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "green_cross": {
+  "x": 200,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "green_dot": {
+  "x": 216,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "green_triangle": {
+  "x": 232,
+  "y": 12,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "other_bar": {
+  "x": 0,
+  "y": 24,
+  "width": 16,
+  "height": 12,
+  "pixelRatio": 1
+ },
+ "poi_hut": {
+  "x": 16,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_parking": {
-  "x": 17,
-  "y": 12,
+  "x": 33,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_pass": {
-  "x": 34,
-  "y": 12,
+  "x": 50,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_peak": {
-  "x": 51,
-  "y": 12,
+  "x": 67,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_shelter": {
-  "x": 68,
-  "y": 12,
+  "x": 84,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_spring": {
-  "x": 85,
-  "y": 12,
+  "x": 101,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_station": {
-  "x": 102,
-  "y": 12,
+  "x": 118,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_stop": {
-  "x": 119,
-  "y": 12,
+  "x": 135,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "poi_viewpoint": {
-  "x": 136,
-  "y": 12,
+  "x": 152,
+  "y": 24,
   "width": 17,
   "height": 17,
   "pixelRatio": 1
  },
  "red_bar": {
-  "x": 153,
-  "y": 12,
+  "x": 169,
+  "y": 24,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "red_corner": {
-  "x": 169,
-  "y": 12,
+  "x": 185,
+  "y": 24,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "red_cross": {
-  "x": 185,
-  "y": 12,
+  "x": 201,
+  "y": 24,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "red_dot": {
-  "x": 201,
-  "y": 12,
+  "x": 217,
+  "y": 24,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "red_triangle": {
-  "x": 217,
-  "y": 12,
+  "x": 233,
+  "y": 24,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "yellow_bar": {
-  "x": 233,
-  "y": 12,
+  "x": 0,
+  "y": 41,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "yellow_corner": {
-  "x": 0,
-  "y": 29,
+  "x": 16,
+  "y": 41,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "yellow_cross": {
-  "x": 16,
-  "y": 29,
+  "x": 32,
+  "y": 41,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "yellow_dot": {
-  "x": 32,
-  "y": 29,
+  "x": 48,
+  "y": 41,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
  },
  "yellow_triangle": {
-  "x": 48,
-  "y": 29,
+  "x": 64,
+  "y": 41,
   "width": 16,
   "height": 12,
   "pixelRatio": 1
