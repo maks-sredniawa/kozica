@@ -215,8 +215,9 @@ becomes 2,496 Trails, 88.2 % titled by tags, which is still verdict 1.
   not tapped and not found by search. Over A's cuts that is 41 Trails from 233 pieces (121 of them in
   the Tatry), and 15 members of 11 parents left Trails of their own.
 - **A Long-distance Trail is an `nwn` or `iwn` relation of relations** (the owner, 2026-10-30), and
-  its member relations without a role are its Sections. One with a role is a piece taking that role,
-  as a regional parent's is: KČT's main Trails are `nwn`, and r549809 `Hronov - Kohoutov` (351 ways)
+  its member relations without a role are its Sections. Beside them, one with a role is a Trail of its
+  own, as Via Mariae M02 r4649443's `alternative`s are. In a parent with none of them, it is a piece
+  taking that role, as a regional parent's is: KČT's main Trails are `nwn`, and r549809 `Hronov - Kohoutov` (351 ways)
   and r2824733 (87) each hold one spur as an `excursion`, so each is a Trail, its spur tapped and
   highlighted with it and off its walk. The role decides, not the marking: read as the profile reads
   it, r4649443 `Via Mariae M02` and its Sections are all blue with no symbol, their `M02` and `SzM`
