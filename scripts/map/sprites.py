@@ -24,7 +24,6 @@ SYMBOL = (16, 12)
 POI = (17, 17)
 PLATE = (20, 12)
 CHEVRON = (8, 8)
-BICYCLE_INK = "#000000"
 
 
 def symbol(shape: str, colour: str, c: dict[str, str]):
@@ -66,13 +65,13 @@ def plate(kind: str, colour: str, c: dict[str, str]):
             return x * unit, y * unit
 
         def line(*points: tuple[float, float], width: float = 0.9) -> None:
-            d.line([at(*point) for point in points], fill=BICYCLE_INK, width=round(width * unit), joint="curve")
+            d.line([at(*point) for point in points], fill=TRAIL["black"], width=round(width * unit), joint="curve")
 
         radius = 2.3
         back, front, axle = (6.2, 6.4), (13.8, 6.4), 6.4
         tyre = 1.3 if mtb else 0.7
         for x, y in (back, front):
-            d.ellipse((*at(x - radius, y - radius), *at(x + radius, y + radius)), outline=BICYCLE_INK, width=round(tyre * unit))
+            d.ellipse((*at(x - radius, y - radius), *at(x + radius, y + radius)), outline=TRAIL["black"], width=round(tyre * unit))
         seat, head, crank = (8.0, 3.4), (12.4, 3.4), (9.6, axle)
         line(back, crank, head, front)
         line(back, seat, crank)
