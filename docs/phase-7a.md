@@ -110,6 +110,11 @@ of the renders.
 - **Kept relations**: `route=bicycle` (Touring) and `route=mtb` (MTB), whatever their `type` (R2
   found `site` and `network` among them), with `name`, `name:pl`, `ref`,
   `colour`, `network`, `from`/`to`, `mtb:scale`, `mtb:scale:uphill`, `signed_direction`.
+- **`state=proposed` and `state=abandoned` are not kept**, in either kind, decided with the owner on
+  2026-11-02: a line that looks marked where there may be no paint misleads someone at a junction.
+  That takes Trails out of a release for the first time: at 6c's pin, the 13 Trails of Via Slovakia and
+  Mária-út / Mariánska Cesta with Via Slovakia's parent, and Szlak Zabytków Ziemi Pszczyńskiej. A
+  Section of a dropped parent stays a route of its own. `state=recommended` is kept.
 - **Relations of relations**, decided with the owner on 2026-11-02 (19 Bike routes at the current
   pin hold Bike routes), following 6c's per-member reading:
   - **An `icn` or `ncn` parent has Sections**, whatever their marking, and never takes a piece: each
@@ -132,8 +137,9 @@ of the renders.
   - **A parent's own ways stay on the map as the parent's**, unlike a Long-distance Trail's
     (6c § 2): `part` and `connection` count as members. A parent with Sections and ways of its own
     gets a row for those ways, titled as the parent, with its own walk and sheet; a tap on them
-    takes it, and "Show the whole" adds its Sections. Greenway r2110268 (2,210 ways of its own) and
-    ncn 21 r38927 (277) keep theirs. Rychlebské stezky r377944 holds ways only.
+    takes it, and "Show the whole" adds its Sections. ncn 21 r38927 (277 ways of its own) and ncn 22
+    r3365635 (832) keep theirs. Rychlebské stezky r377944 holds ways only. Greenway r2110268 had
+    2,210, and is `abandoned`, so only its Section is left.
 - **The `bike_routes` layer**, from tile zoom 10: one feature per Bike route per way, with
   `bike_route` (the relation id), `kind` (`touring` | `mtb`), `colour` (the five or `other`),
   `network`, `ref`, `index`, `count`, and `dir` (`forward` | `backward`) on a one-way way only.
@@ -149,10 +155,12 @@ of the renders.
   way; the member's `forward`/`backward` role; and `signed_direction=yes`, whose sense is the
   relation's own member order. Each one-way relation's sense is computed against its own order, then
   written as `dir` against the way as drawn. Two-way ways carry no `dir`.
-- **Ridden one way**, for the sheet: a Bike route with `signed_direction=yes`, or one whose every
-  edge on its walk is directed for it, by role or by the way's tags, the same way along the walk. A
-  Touring route with a one-way street or a `forward`/`backward` pair in town is two-way on the sheet;
-  those ways still draw chevrons. A one-way route's walk starts where its direction leaves: a line
+- **Ridden one way**, for the sheet: a Bike route with `signed_direction=yes`, or one with at least
+  75 % of its walk's length directed for it, by role or by the way's tags, and no stretch against the
+  rest. Decided with the owner on 2026-11-02, once the first rule, every edge directed, left Twister
+  two-way for three untagged connectors at 98 %: a sheet that hides a direction costs less than one
+  offering the climb up a descent. A Touring route with a one-way street or a `forward`/`backward`
+  pair in town is two-way on the sheet; those ways still draw chevrons. A one-way route's walk starts where its direction leaves: a line
   is turned when 6c's walk runs against it, and a loop goes round the way it is ridden rather than
   the way its first way runs.
 - **The network**: `trails.network` goes to format version 2. The Bike routes' ways join
@@ -267,6 +275,9 @@ merges.
   four distinct slots, in the union's order, and the drawn direction of the union's first. Fails
   towards a strand drawn over another.
 - **The title rule**, each branch, in English and Polish, as 6c's test does for Trails.
+- **Not signed**, in the build: `proposed` and `abandoned` routes of both kinds are not kept, a live
+  route on the same way stays, `recommended` is kept, and a Section outlives its dropped parent. Fails
+  towards a line on the map with no paint on the ground.
 - **Sections or pieces**, in the build, one fixture per branch: an `ncn` parent with same-marked
   members (Sections), one with a Section and an `excursion` (a Bike route of its own, outside "Show
   the whole"), one with only a `connection` member (a Section, not a piece), one with only an `excursion` (a Bike
@@ -280,8 +291,9 @@ merges.
   no line when nothing is graded; in the build, an edge cut where `mtb:scale` changes along a way.
   Fails towards an easy grade claimed for an ungraded route.
 - **Ridden one way**, in the build: a one-way descent whose member order runs uphill gets a walk,
-  ascent and descent downhill, and its row `one_way`; a Touring loop with one one-way street is
-  two-way. Fails towards a sheet describing the climb a rider never makes.
+  ascent and descent downhill, and its row `one_way`; so does one 80 % directed past an untagged
+  connector; a stretch against the rest keeps a route two-way at any share; a Touring loop with one
+  one-way street is two-way. Fails towards a sheet describing the climb a rider never makes.
 - **Hiking keeps to Trails**, in `RouterTest`: a fixture where a bike-only edge is the shorter way
   plans the Route over the Trail, and a point beside the bike-only edge snaps to the Trail. Fails
   towards a walker sent along a downhill bike line.
@@ -303,6 +315,8 @@ merges.
 
 ## Known gaps, deliberately
 
+- **A route's `state` is OSM's.** A route tagged `proposed` or `abandoned` that is in fact signed is
+  gone from the map until a mapper corrects the tag and a later pin brings it back.
 - **A Bike route's direction is OSM's.** A trail-centre line mapped with none of the four tags is
   drawn and given as two-way. Fixing it is an OSM edit, reaching the app with the next pin.
 - **Difficulty is thin.** 14 % of MTB-route ways and 1.5 % of Touring ones carry `mtb:scale`; most
@@ -321,8 +335,8 @@ build with the Regions hand-pushed.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | The archives' and base files' growth, per Region and in total, on B's branch before it merges | `build-map-data.py` over B's pin; `ls -l map-data/archives/` against the v0.14.4 release's attachments | |
-| R2 | The title tally for Bike routes, and the largest union `count` on a way | `map-data/network-venv/bin/python scripts/map/trail-tally.py` | 2026-11-02, the cuts stamped 2026-10-28 (6c R1's pin, not the committed one): 1,450 Bike routes, 1,040 Touring and 410 MTB; 1,135 by name, 241 by number, 8 by ends, 66 by neither (52 of them coloured), so 95.4 % titled by tags, the lowest Sudety Środkowe's Touring at 89.7 %. Of 19 parents, 7 keep a row for their own ways and none has a piece at this pin, because every parent outside `icn`/`ncn` is uncoloured. **The largest union `count` is 10**, on 2 ways, against 9 for Trails alone, so `symbol_offset()` needs −9..9; B re-reads it at its own pin before setting that |
+| R1 | The archives' and base files' growth, per Region and in total, on B's branch before it merges | `build-map-data.py` over B's pin; `ls -l map-data/archives/` against the v0.14.4 release's attachments | 2026-11-02, pin `poland 4956`, `slovakia 4956`, `czech-republic 4957`: the nine Regions 354,023,014 → 371,743,028 bytes, +5.0 %: Beskid Niski 45.1 → 46.1 MB, Beskidy Zachodnie 68.0 → 70.8, Bieszczady 37.5 → 38.3, Gorce i Pieniny 41.5 → 43.2, Góry Świętokrzyskie 25.1 → 26.5, Sudety Środkowe 47.0 → 51.1, Sudety Wschodnie 25.8 → 27.6, Sudety Zachodnie 45.1 → 48.5, Tatry 18.8 → 19.5. `trails.network` 9,661,388 → 15,201,110, `trails.edges` 128,444 → 273,504, `places.sqlite` 7,176,192 → 7,565,312. 1,444 Bike routes, 233 ridden one way; 2,478 Trails against 2,492, the 14 of § 2 and no other. The Trails' network loses 152 km of 20,879 and no large part of it splits off; 2,469 Trails keep their length, and their climb moves 0.2 %. Two builds of the Tatry archive and of the three base files are byte-identical |
+| R2 | The title tally for Bike routes, and the largest union `count` on a way | `map-data/network-venv/bin/python scripts/map/trail-tally.py` | 2026-11-02, the cuts stamped 2026-10-28 (6c R1's pin, not the committed one): 1,450 Bike routes, 1,040 Touring and 410 MTB; 1,135 by name, 241 by number, 8 by ends, 66 by neither (52 of them coloured), so 95.4 % titled by tags, the lowest Sudety Środkowe's Touring at 89.7 %. Of 19 parents, 7 keep a row for their own ways and none has a piece at this pin, because every parent outside `icn`/`ncn` is uncoloured. **The largest union `count` is 10**, on 2 ways, against 9 for Trails alone, so `symbol_offset()` needs −9..9; B re-read it at its own pin, with `proposed` and `abandoned` dropped: still 10, on the same 2 ways; 1,444 Bike routes and 18 parents, 6 of them with a row |
 | R3 | The plates, the fade, the zoom thresholds and the gaps where strands are hidden (below zoom 12, under each chip) at real size, in both themes | test phone, screencaps at zoom 10–17 over Beskidy Zachodnie and the Sudety | |
 | R4 | Direction: Twister (r5738733) and Rapický okruh (r1636172) draw their chevrons the way they are ridden and their sheets give one direction; Rychlebské stezky (r377944), part directed, draws chevrons on its directed ways and its sheet gives both | test phone, `CameraReceiver` to each, screencaps | |
 | R5 | A tap in Cycling where Trails and Bike routes share a way lists the Bike routes only | test phone, screencap of the chooser | |

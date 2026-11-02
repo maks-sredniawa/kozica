@@ -15,15 +15,39 @@ class TrailNetworkTest {
 
     @Test
     fun `reads every array the writer wrote`() {
-        assertEquals(6, network.nodeCount)
-        assertEquals(5, network.edgeCount)
-        assertEquals(listOf(100L, 101L, 102L, 103L, 104L), network.edgeWay.toList())
+        assertEquals(9, network.nodeCount)
+        assertEquals(8, network.edgeCount)
+        assertEquals(listOf(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L), network.edgeWay.toList())
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeOneway[1].toInt())
         assertEquals(3, network.edgeSac[2].toInt())
         assertEquals(490_000_000, network.nodeLat[0])
         assertEquals(7000.toShort(), network.nodeHeight[3])
         assertEquals(3, network.edgePointCount[2])
         assertTrue(network.edgeAscent[2] > 150)
+        assertEquals(listOf<Byte>(1, 1, 1, 1, 1, 3, 1, 2), network.edgeSets.toList())
+        assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRide[7].toInt())
+        assertEquals(3, network.edgeMtb[7].toInt())
+        assertEquals(5, network.edgeMtbUphill[7].toInt())
+    }
+
+    @Test
+    fun `a Route in Hiking goes round a Bike route's shorter way`() {
+        val leg = router.leg(49.3, 20.3, 49.3, 20.32)!!
+        assertEquals(listOf(105L, 106L), ways(leg))
+    }
+
+    @Test
+    fun `a point beside a Bike route alone snaps to the Trail`() {
+        val snap = router.nearest(49.3, 20.31)!!
+        assertTrue(network.edgeWay[snap.edge] in listOf(105L, 106L))
+    }
+
+    @Test
+    fun `an edge in both sets is walked`() {
+        assertTrue(network.canWalkForward(5))
+        assertTrue(network.canWalkBackward(5))
+        assertFalse(network.canWalkForward(7))
+        assertFalse(network.canWalkBackward(7))
     }
 
     @Test

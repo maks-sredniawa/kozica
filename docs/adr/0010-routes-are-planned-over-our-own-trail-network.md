@@ -83,3 +83,10 @@ there. The network gains the Bike routes' ways as a second set of edges beside t
 their own direction and timing, so it holds every way drawn as a Trail or a Bike route, and a Route
 in Hiking still runs over the Trails' edges alone. The base files' growth is measured in phases 7a
 and 7b.
+
+## Amendment — 2026-11-02: the Bike routes' edges are built in phase 7a, and Hiking keeps off them
+
+The second set of edges and its direction are built in phase 7a rather than 7b, because a Bike route's
+sheet reads its length, ascent and profile from them. The network's format goes to version 2, each edge
+saying which sets it is in. From 7a the router keeps a Route in Hiking off an edge without the Trail bit,
+for snapping as well as for walking; from 7b it plans along them in Cycling.

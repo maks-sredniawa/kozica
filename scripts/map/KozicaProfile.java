@@ -55,6 +55,11 @@ public class KozicaProfile implements Profile {
   private static final Set<String> LONG_DISTANCE = Set.of("nwn", "iwn");
   private static final Set<String> ROLES =
       Set.of("forward", "backward", "alternative", "excursion", "approach", "branch");
+  private static final Set<String> HAS_SECTIONS = Set.of("icn", "ncn");
+  private static final Map<String, String> BIKE_KINDS = Map.of("bicycle", "touring", "mtb", "mtb");
+  private static final int FORWARD = 1;
+  private static final int BACKWARD = -1;
+  private static final int TWO_WAY = 0;
 
   record Trail(long id, String colour, String symbol, String ref, long[] ways) implements OsmRelationInfo {}
 
@@ -64,12 +69,22 @@ public class KozicaProfile implements Profile {
 
   record Hiking(long id, String network, boolean marked, Trail marking, List<Member> members) {}
 
+  record BikeRoute(long id, String kind, String colour, String marking, String network, String ref, boolean signed,
+      long[] ways, List<Member> members) implements OsmRelationInfo {}
+
   private static final Comparator<Trail> TRAIL_ORDER =
       Comparator.comparingInt((Trail trail) -> colourRank(trail.colour())).thenComparingLong(Trail::id);
+  private static final Comparator<BikeRoute> BIKE_ROUTE_ORDER =
+      Comparator.comparing((BikeRoute route) -> !route.kind().equals("touring"))
+          .thenComparingInt(route -> colourRank(route.colour()))
+          .thenComparingLong(BikeRoute::id);
 
   private final Map<Long, long[]> wayEnds = new ConcurrentHashMap<>();
   private final Map<Long, Hiking> hiking = new ConcurrentHashMap<>();
+  private final Map<Long, BikeRoute> bikeRoutes = new ConcurrentHashMap<>();
+  private final Map<Long, Map<Long, Integer>> senses = new ConcurrentHashMap<>();
   private volatile Membership membership;
+  private volatile BikeMembership bikeMembership;
 
   public static void main(String[] args) throws IOException {
     var arguments = Arguments.fromArgs(args);
@@ -81,7 +96,9 @@ public class KozicaProfile implements Profile {
         .overwriteOutput(Path.of("region.pmtiles"))
         .run();
     if (trailsPath != null) {
-      Files.write(trailsPath, profile.membership().lines());
+      var lines = new ArrayList<>(profile.membership().lines());
+      lines.addAll(profile.bikeMembership().lines(profile.senses));
+      Files.write(trailsPath, lines);
     }
   }
 
@@ -95,19 +112,65 @@ public class KozicaProfile implements Profile {
 
   @Override
   public List<OsmRelationInfo> preprocessOsmRelation(OsmElement.Relation relation) {
+    if (relation.hasTag("route", "bicycle", "mtb")) {
+      if (notSigned(relation)) {
+        return null;
+      }
+      var route = bikeRouteOf(relation);
+      bikeRoutes.put(relation.id(), route);
+      return List.of(route);
+    }
     if (relation.hasTag("route", "hiking") && relation.hasTag("type", "route", "superroute")) {
+      if (notSigned(relation)) {
+        return null;
+      }
       var trail = trailOf(relation);
-      var members = relation.members().stream()
-          .filter(member -> member.type() != OsmElement.Type.NODE)
-          .map(member -> new Member(member.type() == OsmElement.Type.WAY, member.ref(),
-              ROLES.contains(member.role()) ? member.role() : ""))
-          .toList();
+      var members = membersOf(relation);
       var marked = !relation.getString("osmc:symbol", "").isBlank() || !relation.getString("colour", "").isBlank();
       hiking.put(relation.id(), new Hiking(relation.id(), relation.getString("network", ""), marked, trail, members));
       return relation.hasTag("type", "route") ? List.of(trail) : null;
     }
     var kind = boundaryKind(relation);
     return kind == null ? null : List.of(new Boundary(relation.id(), kind));
+  }
+
+  /** docs/phase-7a.md § 2: planned, or no longer kept up, so no paint to find on the ground. */
+  private static boolean notSigned(OsmElement.Relation relation) {
+    return relation.hasTag("state", "proposed", "abandoned");
+  }
+
+  private static List<Member> membersOf(OsmElement.Relation relation) {
+    return relation.members().stream()
+        .filter(member -> member.type() != OsmElement.Type.NODE)
+        .map(member -> new Member(member.type() == OsmElement.Type.WAY, member.ref(),
+            ROLES.contains(member.role()) ? member.role() : ""))
+        .toList();
+  }
+
+  private static BikeRoute bikeRouteOf(OsmElement.Relation relation) {
+    var written = relation.getString("colour", "").trim().toLowerCase(Locale.ROOT);
+    var colour = colourOf(written);
+    var ways = relation.members().stream()
+        .filter(member -> member.type() == OsmElement.Type.WAY)
+        .mapToLong(OsmElement.Relation.Member::ref)
+        .toArray();
+    return new BikeRoute(relation.id(), BIKE_KINDS.get(relation.getString("route")),
+        colour == null ? NO_COLOUR : colour, colour == null ? written : colour, relation.getString("network", ""),
+        relation.getString("ref"), relation.hasTag("signed_direction", "yes"), ways, membersOf(relation));
+  }
+
+  private BikeMembership bikeMembership() {
+    var built = bikeMembership;
+    if (built == null) {
+      synchronized (this) {
+        built = bikeMembership;
+        if (built == null) {
+          built = new BikeMembership(Map.copyOf(bikeRoutes));
+          bikeMembership = built;
+        }
+      }
+    }
+    return built;
   }
 
   private Membership membership() {
@@ -278,6 +341,126 @@ public class KozicaProfile implements Profile {
     }
   }
 
+  /**
+   * Which relations are Bike routes, and which Bike routes each relation's ways belong to (docs/phase-7a.md § 2):
+   * an {@code icn} or {@code ncn} parent, or one no member carries the marking of, has Sections; any other takes
+   * the members marked as it is as its pieces; a parent's own ways are its own row.
+   */
+  static final class BikeMembership {
+    private final Map<Long, BikeRoute> routes;
+    private final Map<Long, List<Long>> parents = new HashMap<>();
+    private final Map<Long, Set<Long>> owners = new HashMap<>();
+
+    BikeMembership(Map<Long, BikeRoute> routes) {
+      this.routes = routes;
+      for (var route : new TreeMap<>(routes).values()) {
+        for (var piece : piecesOf(route)) {
+          parents.computeIfAbsent(piece.id(), id -> new ArrayList<>()).add(route.id());
+        }
+      }
+      // Filled here, before the tiles are built, because processFeature reads them from many threads.
+      for (var id : routes.keySet()) {
+        owners(id);
+      }
+    }
+
+    private List<BikeRoute> memberRelations(BikeRoute route) {
+      return route.members().stream()
+          .filter(member -> !member.way() && routes.containsKey(member.ref()))
+          .map(member -> routes.get(member.ref()))
+          .toList();
+    }
+
+    private List<BikeRoute> piecesOf(BikeRoute route) {
+      if (HAS_SECTIONS.contains(route.network()) || route.marking().isEmpty()) {
+        return List.of();
+      }
+      return memberRelations(route).stream().filter(member -> member.marking().equals(route.marking())).toList();
+    }
+
+    private boolean isBikeRoute(BikeRoute route) {
+      return !parents.containsKey(route.id()) && (route.ways().length > 0 || !piecesOf(route).isEmpty());
+    }
+
+    private Set<Long> owners(long id) {
+      var found = owners.get(id);
+      if (found == null) {
+        found = new TreeSet<>();
+        owners.put(id, found);
+        var route = routes.get(id);
+        if (route != null && isBikeRoute(route)) {
+          found.add(id);
+        }
+        for (var parent : parents.getOrDefault(id, List.of())) {
+          found.addAll(owners(parent));
+        }
+      }
+      return found;
+    }
+
+    Set<Long> ownersOf(long id) {
+      return owners.getOrDefault(id, Set.of());
+    }
+
+    BikeRoute route(long id) {
+      return routes.get(id);
+    }
+
+    private void members(BikeRoute route, String role, Set<Long> seen, Map<Long, String> out) {
+      if (!seen.add(route.id())) {
+        return;
+      }
+      var pieces = piecesOf(route).stream().map(BikeRoute::id).collect(Collectors.toSet());
+      for (var member : route.members()) {
+        var taken = role.isEmpty() ? member.role() : role;
+        if (member.way()) {
+          out.putIfAbsent(member.ref(), taken.isEmpty() ? String.valueOf(member.ref()) : member.ref() + "/" + taken);
+        } else if (pieces.contains(member.ref())) {
+          members(routes.get(member.ref()), taken, seen, out);
+        }
+      }
+    }
+
+    private List<String> sectionsOf(BikeRoute route) {
+      return !piecesOf(route).isEmpty() ? List.of() : route.members().stream()
+          .filter(member -> !member.way() && member.role().isEmpty() && routes.containsKey(member.ref()))
+          .map(member -> String.valueOf(member.ref()))
+          .distinct()
+          .toList();
+    }
+
+    /**
+     * {@code bike <id> <colour> <kind> <way>[/<role>][@f|@b] ...} with the sense each way is ridden in against its
+     * nodes, then {@code sections <id> <section> ...}: build-network.py's input, sorted as {@link Membership#lines}.
+     */
+    List<String> lines(Map<Long, Map<Long, Integer>> senses) {
+      var out = new ArrayList<String>();
+      for (var route : new TreeMap<>(routes).values()) {
+        if (isBikeRoute(route)) {
+          var ways = new LinkedHashMap<Long, String>();
+          members(route, "", new HashSet<>(), ways);
+          var sensed = senses.getOrDefault(route.id(), Map.of());
+          var listed = ways.entrySet().stream()
+              .map(way -> way.getValue() + switch (sensed.getOrDefault(way.getKey(), TWO_WAY)) {
+                case FORWARD -> "@f";
+                case BACKWARD -> "@b";
+                default -> "";
+              })
+              .toList();
+          out.add(String.join("\t", "bike", String.valueOf(route.id()), route.colour(), route.kind(),
+              String.join(" ", listed)));
+        }
+      }
+      for (var route : new TreeMap<>(routes).values()) {
+        var sections = sectionsOf(route);
+        if (!sections.isEmpty()) {
+          out.add(String.join("\t", "sections", String.valueOf(route.id()), String.join(" ", sections)));
+        }
+      }
+      return out;
+    }
+  }
+
   private static Trail trailOf(OsmElement.Relation relation) {
     var osmcSymbol = relation.getString("osmc:symbol");
     var hasSymbol = osmcSymbol != null && !osmcSymbol.isBlank();
@@ -327,7 +510,7 @@ public class KozicaProfile implements Profile {
     if (feature.canBeLine()) {
       boundaries(feature, features);
       roadsAndPaths(feature, features);
-      trails(feature, features);
+      routes(feature, features);
     }
     poi(feature, features);
     place(feature, features);
@@ -382,36 +565,54 @@ public class KozicaProfile implements Profile {
     }
   }
 
-  /** One feature per Trail per way, each way oriented by its reference relation (docs/phase-2.md § 3). */
-  private void trails(SourceFeature feature, FeatureCollector features) {
-    var relations = feature.relationInfo(Trail.class).stream()
+  /**
+   * One feature per Trail and per Bike route per way, in one order over both, the way oriented by the first's
+   * relation (docs/phase-2.md § 3, docs/phase-7a.md § 2).
+   */
+  private void routes(SourceFeature feature, FeatureCollector features) {
+    var trailRelations = feature.relationInfo(Trail.class).stream()
         .map(OsmReader.RelationMember::relation)
         .distinct()
         .sorted(TRAIL_ORDER)
         .toList();
-    if (relations.isEmpty()) {
+    var bikeRelations = feature.relationInfo(BikeRoute.class).stream()
+        .sorted(Comparator.comparing(member -> member.relation(), BIKE_ROUTE_ORDER))
+        .toList();
+    if (trailRelations.isEmpty() && bikeRelations.isEmpty()) {
       return;
     }
     var membership = membership();
-    var trails = relations.stream()
+    var trails = trailRelations.stream()
         .flatMap(relation -> membership.ownersOf(relation.id()).stream())
         .distinct()
         .map(membership::trail)
         .sorted(TRAIL_ORDER)
         .toList();
-    if (trails.isEmpty()) {
+    var bikeMembership = bikeMembership();
+    var routeSenses = new HashMap<Long, Integer>();
+    for (var member : bikeRelations) {
+      var sense = sense(feature, member.relation(), member.role());
+      for (var owner : bikeMembership.ownersOf(member.relation().id())) {
+        routeSenses.putIfAbsent(owner, sense);
+      }
+    }
+    var bikes = routeSenses.keySet().stream().map(bikeMembership::route).sorted(BIKE_ROUTE_ORDER).toList();
+    if (trails.isEmpty() && bikes.isEmpty()) {
       return;
     }
     LineString line;
     try {
       line = (LineString) feature.line();
     } catch (GeometryException e) {
-      e.log("trail way " + feature.id());
+      e.log("route way " + feature.id());
       return;
     }
-    if (reversed(feature.id(), relations.get(0), line)) {
+    var reference = trailRelations.isEmpty() ? bikeRelations.get(0).relation().ways() : trailRelations.get(0).ways();
+    var turned = reversed(feature.id(), reference, line);
+    if (turned) {
       line = line.reverse();
     }
+    var count = trails.size() + bikes.size();
     for (var index = 0; index < trails.size(); index++) {
       var trail = trails.get(index);
       features.geometry("trails", line)
@@ -421,33 +622,83 @@ public class KozicaProfile implements Profile {
           .setAttr("symbol", trail.symbol())
           .setAttr("index", index)
           .setAttr("count", trails.size())
+          .setAttr("union_index", index)
+          .setAttr("union_count", count)
           .setAttr("ref", trail.ref());
+    }
+    for (var index = 0; index < bikes.size(); index++) {
+      var route = bikes.get(index);
+      int sense = routeSenses.get(route.id());
+      senses.computeIfAbsent(route.id(), id -> new ConcurrentHashMap<>()).put(feature.id(), sense);
+      features.geometry("bike_routes", line)
+          .setMinZoom(10)
+          .setAttr("bike_route", route.id())
+          .setAttr("kind", route.kind())
+          .setAttr("colour", route.colour())
+          .setAttr("network", route.network().isEmpty() ? null : route.network())
+          .setAttr("ref", route.ref())
+          .setAttr("index", trails.size() + index)
+          .setAttr("count", count)
+          .setAttr("dir", sense == TWO_WAY ? null : (sense == FORWARD) != turned ? "forward" : "backward");
     }
   }
 
-  private boolean reversed(long way, Trail reference, LineString line) {
-    var ends = wayEnds.get(way);
-    var at = indexOf(reference.ways(), way);
-    if (ends != null && at >= 0) {
-      var previous = at > 0 ? wayEnds.get(reference.ways()[at - 1]) : null;
-      if (touches(previous, ends[0])) {
-        return false;
-      }
-      if (touches(previous, ends[1])) {
-        return true;
-      }
-      var next = at + 1 < reference.ways().length ? wayEnds.get(reference.ways()[at + 1]) : null;
-      if (touches(next, ends[1])) {
-        return false;
-      }
-      if (touches(next, ends[0])) {
-        return true;
-      }
+  /** docs/phase-7a.md § 2: the sense a relation is ridden in on this way, against the way's nodes. */
+  private int sense(SourceFeature feature, BikeRoute route, String role) {
+    var bicycle = feature.getString("oneway:bicycle");
+    var tagged = switch (bicycle != null ? bicycle : feature.getString("oneway", "")) {
+      case "yes", "true", "1" -> FORWARD;
+      case "-1" -> BACKWARD;
+      default -> TWO_WAY;
+    };
+    if (tagged != TWO_WAY) {
+      return tagged;
+    }
+    if (role.equals("forward")) {
+      return FORWARD;
+    }
+    if (role.equals("backward")) {
+      return BACKWARD;
+    }
+    if (!route.signed()) {
+      return TWO_WAY;
+    }
+    var runs = runsWithOrder(feature.id(), route.ways());
+    return runs == null || runs ? FORWARD : BACKWARD;
+  }
+
+  private boolean reversed(long way, long[] reference, LineString line) {
+    var runs = runsWithOrder(way, reference);
+    if (runs != null) {
+      return !runs;
     }
     // World coordinates grow east in x and south in y: west first, or south first on a shared longitude.
     var start = line.getCoordinateN(0);
     var end = line.getCoordinateN(line.getNumPoints() - 1);
     return start.x != end.x ? start.x > end.x : start.y < end.y;
+  }
+
+  /** Whether the way's nodes run on from the member before it or into the one after, null when neither tells. */
+  private Boolean runsWithOrder(long way, long[] order) {
+    var ends = wayEnds.get(way);
+    var at = indexOf(order, way);
+    if (ends != null && at >= 0) {
+      var previous = at > 0 ? wayEnds.get(order[at - 1]) : null;
+      if (touches(previous, ends[0])) {
+        return true;
+      }
+      if (touches(previous, ends[1])) {
+        return false;
+      }
+      var next = at + 1 < order.length ? wayEnds.get(order[at + 1]) : null;
+      if (touches(next, ends[1])) {
+        return true;
+      }
+      if (touches(next, ends[0])) {
+        return false;
+      }
+    }
+    return null;
   }
 
   private static int indexOf(long[] ways, long way) {

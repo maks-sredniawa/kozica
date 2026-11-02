@@ -27,6 +27,10 @@ class TrailNetwork private constructor(
     val pointHeight: ShortArray,
     val edgeOneway: ByteArray,
     val edgeSac: ByteArray,
+    val edgeSets: ByteArray,
+    val edgeRide: ByteArray,
+    val edgeMtb: ByteArray,
+    val edgeMtbUphill: ByteArray,
 ) {
     val nodeCount: Int get() = nodeLat.size
     val edgeCount: Int get() = edgeFrom.size
@@ -48,14 +52,17 @@ class TrailNetwork private constructor(
         }
     }
 
-    fun canWalkForward(edge: Int): Boolean = edgeOneway[edge].toInt() != BACKWARD_ONLY
+    fun isTrail(edge: Int): Boolean = edgeSets[edge].toInt() and SET_TRAIL != 0
 
-    fun canWalkBackward(edge: Int): Boolean = edgeOneway[edge].toInt() != FORWARD_ONLY
+    fun canWalkForward(edge: Int): Boolean = isTrail(edge) && edgeOneway[edge].toInt() != BACKWARD_ONLY
+
+    fun canWalkBackward(edge: Int): Boolean = isTrail(edge) && edgeOneway[edge].toInt() != FORWARD_ONLY
 
     companion object {
-        const val FORMAT_VERSION = 1
+        const val FORMAT_VERSION = 2
         const val FORWARD_ONLY = 1
         const val BACKWARD_ONLY = 2
+        private const val SET_TRAIL = 1
         private val MAGIC = "KZTN".toByteArray(Charsets.US_ASCII)
 
         fun read(bytes: ByteArray): TrailNetwork {
@@ -121,6 +128,10 @@ class TrailNetwork private constructor(
             val pointHeight = shorts(points)
             val edgeOneway = bytes(edges)
             val edgeSac = bytes(edges)
+            val edgeSets = bytes(edges)
+            val edgeRide = bytes(edges)
+            val edgeMtb = bytes(edges)
+            val edgeMtbUphill = bytes(edges)
             require(!buffer.hasRemaining()) { "${buffer.remaining()} bytes past the end of the Trail network" }
             return TrailNetwork(
                 nodeLat,
@@ -141,6 +152,10 @@ class TrailNetwork private constructor(
                 pointHeight,
                 edgeOneway,
                 edgeSac,
+                edgeSets,
+                edgeRide,
+                edgeMtb,
+                edgeMtbUphill,
             )
         }
 

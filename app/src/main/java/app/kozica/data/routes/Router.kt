@@ -49,6 +49,7 @@ class Router(
         for (edge in 0 until network.edgeCount) {
             val first = network.edgeFirstPoint[edge]
             for (point in first until first + network.edgePointCount[edge]) pointEdge[point] = edge
+            if (!network.isTrail(edge)) continue
             for (point in first until first + network.edgePointCount[edge] - 1) {
                 val lat1 = network.pointLat[point]
                 val lat2 = network.pointLat[point + 1]

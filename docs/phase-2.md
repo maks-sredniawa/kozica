@@ -212,7 +212,8 @@ the filter. ADR-0007's amendment written with C records that.
 | `boundaries` | lines: the member ways of `boundary=national_park` relations, `boundary=protected_area` with `protect_class=2`, and `boundary=administrative` with `admin_level=2` | 6 | `kind` |
 | `roads` | `highway=` motorway to `unclassified`, `residential`, `service`, `track` | 8–13 by class | `kind` |
 | `paths` | `highway=path\|footway\|steps\|bridleway`, `sac_scale` | 12 | `kind`, `sac_scale` |
-| `trails` | each `route=hiking` relation's member ways | 10 | `trail` (the Trail's relation id, phase 6c § 2), `colour`, `symbol`, `index`, `count`, `ref` |
+| `trails` | each `route=hiking` relation's member ways, less `state=proposed` and `abandoned` (phase 7a § 2) | 10 | `trail` (the Trail's relation id, phase 6c § 2), `colour`, `symbol`, `index`, `count`, `union_index`, `union_count`, `ref` |
+| `bike_routes` | each `route=bicycle` and `route=mtb` relation's member ways, as phase 7a § 2 reads them | 10 | `bike_route` (the relation id), `kind`, `colour`, `network`, `ref`, `index`, `count` (the union's), `dir` on a one-way way |
 | `pois` | nodes, and a point on the surface of each area: Huts `tourism=alpine_hut`; Shelters `tourism=wilderness_hut`, `amenity=shelter` but not `shelter_type=public_transport`; `natural=peak\|saddle\|spring`, `mountain_pass=yes`, `tourism=viewpoint`; the way in and out: `amenity=parking`, `highway=bus_stop`, `railway=station\|halt` | 11–14 by kind | `kind`, `name`, `ele` |
 | `places` | `place=town\|village\|hamlet` | 8–12 by kind | `kind`, `name` |
 
@@ -221,7 +222,9 @@ the filter. ADR-0007's amendment written with C records that.
   times, each with its own `colour`, `symbol` and `index` in that sorted order. The style offsets
   each by `(index - (count - 1) / 2) × width`, so two Trails sit side by side and three keep the
   middle one on the way. Sorting by colour, then by relation id, keeps the order stable between
-  builds.
+  builds. Phase 7a adds the union: the Trails, then Touring, then MTB Bike routes, each sorted that
+  way, one order over both layers, in `union_index`/`union_count` on a Trail and `index`/`count` on a
+  Bike route. The first of them is the reference relation below.
 - **A shared way's direction follows the stretch, not the compass.** `line-offset` is signed
   against the line's direction, and OSM does not orient the ways of a relation consistently: where
   two ways of one shared stretch point opposite ways, red and blue would swap sides at the node
