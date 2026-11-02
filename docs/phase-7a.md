@@ -12,7 +12,7 @@ with the owner on 2026-11-01, the design advised by a design review of the style
 **What closing this phase means.** Today the map draws Trails and nothing else that is marked; the
 Regions' 1,450 signed cycling routes are dropped by the profile. After this phase a developer build
 has a walker | bike switch under the search row: in Cycling the Bike routes are drawn in their
-marking colours with R-1 plates along them, the Trails faded beneath; a Bike route tapped is seen
+marking colours with R-1 plates along them, the Trails faded; a Bike route tapped is seen
 whole with its title, length, ascent, profile and MTB difficulty, and a one-way descent shows only
 the way it is ridden; search finds Bike routes and offers the other Mode's matches. A release build
 shows Hiking alone, with the Bike routes faded beneath the Trails, until phase 7c opens the switch
@@ -232,6 +232,9 @@ of the renders.
   `kozica:mode-opacity`, the other Mode with nothing selected, 0.4 in light and 0.5 in dark, and
   `kozica:mode-faded-opacity`, the other Mode under a selection, 0.2 in both. `MapStyle.kt` picks
   one per layer; none is derived from another.
+- **The draw order** favours Hiking, the only Mode users have until 7c: the Bike routes' lines lie
+  beneath the Trails' and their chevrons and plates beneath the Trail symbols, so in Cycling a faded
+  Trail can lie over a Bike route where they cross. 7c looks at it again when both Modes reach users.
 - **The switch**: a two-segment button, walker and bike, under the search row at the left; in
   Cycling the chips All · Touring · MTB beside it, filtering the map as the sub-filter will filter
   planning. The Mode is stored and the app opens in the last one, in Hiking on a first launch. In
