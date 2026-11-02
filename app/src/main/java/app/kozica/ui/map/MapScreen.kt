@@ -84,6 +84,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.kozica.R
 import app.kozica.data.MapCamera
+import app.kozica.data.Mode
 import app.kozica.data.routes.FollowFix
 import app.kozica.theme.LocalDarkTheme
 import app.kozica.theme.Spacing
@@ -110,7 +111,9 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.Layer
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -386,7 +389,7 @@ fun MapScreen(
     val fade = remember(state.style) { state.style?.let(::fadeOf) }
     // A selected Trail sets the Route aside: drawn again, as it was, once the Trail is closed.
     val routeAside = state.trail.shown != null
-    LaunchedEffect(loaded, state.route, state.faded, routeAside) {
+    LaunchedEffect(loaded, state.route, state.faded, routeAside, state.mode) {
         val style = loaded ?: return@LaunchedEffect
         (
             style.getSource(
@@ -395,9 +398,15 @@ fun MapScreen(
         )?.setGeoJson(
             if (routeAside) routeGeoJson(emptyList(), null) else routeGeoJson(state.route.points, state.route.planned),
         )
-        val opacity = if (state.faded) fade?.opacity ?: 1f else 1f
         for (id in fade?.layers.orEmpty()) {
-            when (val layer = style.getLayer(id)) {
+            val opacity = fade?.opacityOf(id, state.mode, state.faded) ?: 1f
+            val layer = style.getLayer(id)
+            layer?.setProperties(
+                PropertyFactory.visibility(
+                    if (fade?.isShown(id, state.mode) != false) Property.VISIBLE else Property.NONE,
+                ),
+            )
+            when (layer) {
                 is LineLayer -> layer.setProperties(PropertyFactory.lineOpacity(opacity))
                 is SymbolLayer ->
                     layer.setProperties(
@@ -412,6 +421,18 @@ fun MapScreen(
     LaunchedEffect(loaded, back) {
         val style = loaded ?: return@LaunchedEffect
         (style.getSource(ROUTE_BACK_SOURCE) as? GeoJsonSource)?.setGeoJson(routeGeoJson(emptyList(), back))
+    }
+
+    val bikeRouteKind = state.bikeRouteFilter.kind.takeIf { state.mode == Mode.CYCLING }
+    val styleFilters = remember(loaded) { mutableMapOf<String, Expression?>() }
+    LaunchedEffect(loaded, bikeRouteKind) {
+        val style = loaded ?: return@LaunchedEffect
+        for (layer in style.layers) {
+            if (layer.id.startsWith(BIKE_ROUTE_LAYERS)) {
+                val own = styleFilters.holdFirst(layer.id) { filterOf(layer) }
+                setFilterOf(layer, bikeRouteFilter(own, bikeRouteKind))
+            }
+        }
     }
 
     val highlighted = state.trail.highlighted
@@ -621,6 +642,15 @@ fun MapScreen(
                         FilledTonalIconButton(onClick = onOpenSettings) {
                             Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
                         }
+                    }
+                    if (searchText.isBlank()) {
+                        ModeSwitch(
+                            mode = state.mode,
+                            filter = state.bikeRouteFilter,
+                            onMode = viewModel::setMode,
+                            onFilter = viewModel::setBikeRouteFilter,
+                            modifier = Modifier.padding(horizontal = Spacing.tight),
+                        )
                     }
                     if (searchText.isNotBlank() && state.search.results.isNotEmpty()) {
                         SearchResults(
@@ -1082,3 +1112,32 @@ private fun Location.toFollowFix() =
         ageMillis = (SystemClock.elapsedRealtimeNanos() - elapsedRealtimeNanos) / 1_000_000,
         atMillis = time,
     )
+
+private fun filterOf(layer: Layer): Expression? =
+    when (layer) {
+        is LineLayer -> layer.filter
+        is SymbolLayer -> layer.filter
+        else -> null
+    }
+
+private fun setFilterOf(
+    layer: Layer,
+    filter: Expression,
+) {
+    when (layer) {
+        is LineLayer -> layer.setFilter(filter)
+        is SymbolLayer -> layer.setFilter(filter)
+    }
+}
+
+/** The layer's own filter from the style, narrowed to the chip's kind. */
+private fun bikeRouteFilter(
+    own: Expression?,
+    kind: String?,
+): Expression {
+    val chosen = kind?.let { Expression.eq(Expression.get("kind"), Expression.literal(it)) }
+    return when {
+        own != null && chosen != null -> Expression.all(own, chosen)
+        else -> own ?: chosen ?: Expression.literal(true)
+    }
+}

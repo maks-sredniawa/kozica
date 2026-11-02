@@ -13,9 +13,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
 import app.kozica.data.AppPreferences
+import app.kozica.data.BikeRouteFilter
 import app.kozica.data.HikeEntity
 import app.kozica.data.HikePhotoEntity
 import app.kozica.data.MapCamera
+import app.kozica.data.Mode
 import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
 import app.kozica.data.gpx.hikeGpx
@@ -104,6 +106,8 @@ data class MapUiState(
     val camera: MapCamera? = null,
     val location: LocationRead? = null,
     val fix: Location? = null,
+    val mode: Mode = Mode.HIKING,
+    val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
     val search: SearchUiState = SearchUiState(),
     val route: RouteUiState = RouteUiState(),
     val recording: Recording? = null,
@@ -416,17 +420,28 @@ class MapViewModel(
             hikeKeep,
         ) { hike, keep -> hike?.copy(keep = keep) }
 
+    private val mode =
+        preferences.mapMode
+            .map(::modeOf)
+            .onStart { emit(Mode.HIKING) }
+            .distinctUntilChanged()
+    private val bikeRouteFilter = MutableStateFlow(BikeRouteFilter.ALL)
+
     val state: StateFlow<MapUiState> =
         combine(
             combine(packs, style, camera, location, fix) { packs, style, camera, location, fix ->
                 MapUiState(packs?.first, packs?.second, style, camera, location, fix)
             },
-            combine(search, pace, ::Pair),
+            combine(combine(search, pace, ::Pair), combine(mode, bikeRouteFilter, ::Pair), ::Pair),
             combine(route, hike.onStart { emit(null) }, trail, ::Triple),
             recording,
             track.onStart { emit(emptyList()) },
-        ) { map, (search, pace), (route, hike, trail), recording, track ->
+        ) { map, (found, chosen), (route, hike, trail), recording, track ->
+            val (search, pace) = found
+            val (mode, bikeRouteFilter) = chosen
             map.copy(
+                mode = mode,
+                bikeRouteFilter = bikeRouteFilter,
                 search = search,
                 route = route,
                 recording = recording,
@@ -436,6 +451,14 @@ class MapViewModel(
                 pace = pace,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
+
+    fun setMode(mode: Mode) {
+        applicationScope.launch { preferences.setMapMode(mode) }
+    }
+
+    fun setBikeRouteFilter(filter: BikeRouteFilter) {
+        bikeRouteFilter.value = filter
+    }
 
     init {
         viewModelScope.launch { camera.compareAndSet(null, preferences.mapCamera.first() ?: TATRY) }

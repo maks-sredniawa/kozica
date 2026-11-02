@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Draws the map's sprite sheets: the Trail symbols and the POI icons, light and dark, at 1× and 2×.
+"""Draws the map's sprite sheets: the Trail symbols, the Bike route plates and chevrons and the POI icons, light
+and dark, at 1× and 2×.
 
     python3 scripts/map/sprites.py
 
@@ -16,11 +17,13 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from gen_style import ASSETS, POIS, ROOT, SHAPES, TRAIL, palette  # noqa: E402
+from gen_style import ASSETS, BIKE_KINDS, BIKE_ROUTE, CHEVRONS, POIS, ROOT, SHAPES, TRAIL, palette  # noqa: E402
 
 SUPERSAMPLE = 4
 SYMBOL = (16, 12)
 POI = (17, 17)
+PLATE = (20, 12)
+CHEVRON = (8, 8)
 
 
 def symbol(shape: str, colour: str, c: dict[str, str]):
@@ -45,6 +48,52 @@ def symbol(shape: str, colour: str, c: dict[str, str]):
             d.polygon(((x0, y0), (x1, y0), (x0, y1)), fill=colour)
 
     return SYMBOL, draw
+
+
+def plate(kind: str, colour: str, c: dict[str, str]):
+    """After the Polish R-1 sign (docs/phase-7a.md § 3): Touring thin wheels and a drop bar; MTB heavy wheels, a flat
+    bar and rough ground under them."""
+    mtb = kind == "mtb"
+
+    def draw(d: ImageDraw.ImageDraw, w: float, h: float) -> None:
+        unit = w / PLATE[0]
+        edge = max(1.0, unit)
+        d.rectangle((0, 0, w - 1, h - 1), fill=c["symbol_white"], outline=c["symbol_edge"], width=round(edge))
+        d.rectangle((edge, h - 3.2 * unit, w - 1 - edge, h - 1 - edge), fill=colour)
+
+        def at(x: float, y: float) -> tuple[float, float]:
+            return x * unit, y * unit
+
+        def line(*points: tuple[float, float], width: float = 0.9) -> None:
+            d.line([at(*point) for point in points], fill=TRAIL["black"], width=round(width * unit), joint="curve")
+
+        radius = 2.3
+        back, front, axle = (6.2, 6.4), (13.8, 6.4), 6.4
+        tyre = 1.3 if mtb else 0.7
+        for x, y in (back, front):
+            d.ellipse((*at(x - radius, y - radius), *at(x + radius, y + radius)), outline=TRAIL["black"], width=round(tyre * unit))
+        seat, head, crank = (8.0, 3.4), (12.4, 3.4), (9.6, axle)
+        line(back, crank, head, front)
+        line(back, seat, crank)
+        line(seat, head)
+        line((7.2, 2.8), (8.8, 2.8))
+        if mtb:
+            line((11.2, 2.4), (13.6, 2.4), width=1.1)
+            line((12.4, 3.4), (12.4, 2.4))
+            ground = [(1.6 + 1.7 * step, 9.6 if step % 2 else 8.9) for step in range(11)]
+            line(*ground, width=0.8)
+        else:
+            line((12.4, 3.4), (13.6, 2.6), (14.4, 3.2), (13.6, 3.9), width=0.7)
+
+    return PLATE, draw
+
+
+def chevron(colour: str):
+    def draw(d: ImageDraw.ImageDraw, w: float, h: float) -> None:
+        d.line(((w * 0.25, h * 0.12), (w * 0.72, h * 0.5), (w * 0.25, h * 0.88)), fill=colour,
+               width=round(w * 0.2), joint="curve")
+
+    return CHEVRON, draw
 
 
 def poi(kind: str, c: dict[str, str]):
@@ -94,6 +143,8 @@ def poi(kind: str, c: dict[str, str]):
 def icons(c: dict[str, str]) -> dict[str, tuple]:
     result = {f"{colour}_{shape}": symbol(shape, value, c) for colour, value in TRAIL.items() for shape in SHAPES}
     result["other_bar"] = symbol("bar", c["trail_other"], c)
+    result |= {f"bike_route_{kind}_{colour}": plate(kind, value, c) for kind in BIKE_KINDS for colour, value in BIKE_ROUTE.items()}
+    result |= {f"chevron_{tone_name}": chevron(c[tone_name]) for tone_name in CHEVRONS}
     result |= {f"poi_{kind}": poi(kind, c) for kind in POIS}
     return dict(sorted(result.items()))
 

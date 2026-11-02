@@ -1,5 +1,6 @@
 package app.kozica.ui.map
 
+import app.kozica.data.Mode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -93,11 +94,34 @@ internal fun cameraBoundsOf(style: String): CameraBounds {
     return CameraBounds(west, south, east, north)
 }
 
-/** The layers a shown Route fades, by their expanded ids, and the opacity they fade to. */
+/**
+ * The layers a selection or the other Mode fades, by their expanded ids (docs/phase-5.md § 4, docs/phase-7a.md § 3).
+ * [modes] holds the layers that belong to one Mode, and [modeOnly] those of them hidden in the other, not faded.
+ */
 internal data class Fade(
     val layers: List<String>,
     val opacity: Float,
-)
+    val modes: Map<String, Mode> = emptyMap(),
+    val modeOnly: Set<String> = emptySet(),
+    val modeOpacity: Float = 1f,
+    val modeFadedOpacity: Float = 1f,
+) {
+    fun opacityOf(
+        layer: String,
+        mode: Mode,
+        faded: Boolean,
+    ): Float =
+        when {
+            modes[layer].let { it != null && it != mode } -> if (faded) modeFadedOpacity else modeOpacity
+            faded -> opacity
+            else -> 1f
+        }
+
+    fun isShown(
+        layer: String,
+        mode: Mode,
+    ): Boolean = layer !in modeOnly || modes[layer] == mode
+}
 
 internal fun fadeOf(style: String): Fade {
     val json = Json.parseToJsonElement(style).jsonObject
@@ -109,13 +133,35 @@ internal fun fadeOf(style: String): Fade {
                 ?.jsonPrimitive
                 ?.boolean == true
         }
-    val opacity =
-        json
-            .getValue("metadata")
-            .jsonObject
-            .getValue("kozica:faded-opacity")
-            .jsonPrimitive.float
-    return Fade(layers.map { it.getValue("id").jsonPrimitive.content }, opacity)
+    val metadata = json.getValue("metadata").jsonObject
+
+    fun idOf(layer: JsonObject) = layer.getValue("id").jsonPrimitive.content
+
+    fun tagOf(
+        layer: JsonObject,
+        key: String,
+    ) = layer["metadata"]?.jsonObject?.get(key)?.jsonPrimitive
+    return Fade(
+        layers = layers.map(::idOf),
+        opacity = metadata.getValue("kozica:faded-opacity").jsonPrimitive.float,
+        modes =
+            layers
+                .mapNotNull { layer ->
+                    tagOf(layer, "kozica:mode")?.let { idOf(layer) to Mode.valueOf(it.content.uppercase()) }
+                }.toMap(),
+        modeOnly = layers.filter { tagOf(it, "kozica:mode-only")?.boolean == true }.map(::idOf).toSet(),
+        modeOpacity = metadata["kozica:mode-opacity"]?.jsonPrimitive?.float ?: 1f,
+        modeFadedOpacity = metadata["kozica:mode-faded-opacity"]?.jsonPrimitive?.float ?: 1f,
+    )
+}
+
+/** The first value read for [key] stays, null included, which `getOrPut` would read again as absent. */
+internal fun <K, V : Any> MutableMap<K, V?>.holdFirst(
+    key: K,
+    read: () -> V?,
+): V? {
+    if (key !in this) this[key] = read()
+    return this[key]
 }
 
 private fun pmtiles(
@@ -135,6 +181,9 @@ internal const val TRAIL_WALK_SOURCE = "trail-walk"
 /** The style's layers a tap is checked against, by the id they are expanded from, and those the selection draws. */
 internal const val TRAILS_LAYER = "trails"
 internal const val SELECTED_TRAIL_LAYERS = "trail-selected"
+
+/** The prefix of every Bike route layer, which the chips filter by kind. */
+internal const val BIKE_ROUTE_LAYERS = "bike-route"
 internal const val HIKE_TRACK_SOURCE = "hike-track"
 internal const val HIKE_PHOTOS_SOURCE = "hike-photos"
 
