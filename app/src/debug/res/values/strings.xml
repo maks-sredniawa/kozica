@@ -38,4 +38,9 @@
     <string name="debug_gate_resume" translatable="false">Resume the gate recorder</string>
     <string name="debug_gate_stop" translatable="false">Stop the gate recorder</string>
     <string name="schema_mismatch_continue" translatable="false">Continue and start fresh</string>
+    <string name="mode_hiking" translatable="false">Hiking</string>
+    <string name="mode_cycling" translatable="false">Cycling</string>
+    <string name="filter_all" translatable="false">All</string>
+    <string name="filter_touring" translatable="false">Touring</string>
+    <string name="filter_mtb" translatable="false">MTB</string>
 </resources>

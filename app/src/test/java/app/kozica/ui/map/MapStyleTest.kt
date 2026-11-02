@@ -1,5 +1,6 @@
 package app.kozica.ui.map
 
+import app.kozica.data.Mode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -73,6 +74,36 @@ class MapStyleTest {
         )
         assertTrue("route" in style.getValue("sources").jsonObject)
         assertEquals(Fade(listOf("trails-tatry", "trails-bieszczady"), 0.3f), fadeOf(expanded))
+    }
+
+    @Test
+    fun `the other Mode has its own opacities, and the current one fades only under a selection`() {
+        val fade =
+            fadeOf(
+                """
+                {"version":8,"metadata":{"kozica:faded-opacity":0.3,"kozica:mode-opacity":0.4,
+                 "kozica:mode-faded-opacity":0.2},
+                 "sources":{},
+                 "layers":[
+                  {"id":"trails-tatry","type":"line","metadata":{"kozica:fade":true,"kozica:mode":"hiking"}},
+                  {"id":"bike-routes-tatry","type":"line","metadata":{"kozica:fade":true,"kozica:mode":"cycling"}},
+                  {"id":"bike-route-refs-tatry","type":"symbol",
+                   "metadata":{"kozica:fade":true,"kozica:mode":"cycling","kozica:mode-only":true}},
+                  {"id":"paths-tatry","type":"line","metadata":{"kozica:fade":true}}
+                ]}
+                """.trimIndent(),
+            )
+        assertEquals(1f, fade.opacityOf("trails-tatry", Mode.HIKING, faded = false))
+        assertEquals(0.3f, fade.opacityOf("trails-tatry", Mode.HIKING, faded = true))
+        assertEquals(0.4f, fade.opacityOf("trails-tatry", Mode.CYCLING, faded = false))
+        assertEquals(0.2f, fade.opacityOf("trails-tatry", Mode.CYCLING, faded = true))
+        assertEquals(0.4f, fade.opacityOf("bike-routes-tatry", Mode.HIKING, faded = false))
+        assertEquals(1f, fade.opacityOf("bike-routes-tatry", Mode.CYCLING, faded = false))
+        assertEquals(0.3f, fade.opacityOf("paths-tatry", Mode.CYCLING, faded = true))
+        assertEquals(1f, fade.opacityOf("paths-tatry", Mode.CYCLING, faded = false))
+        assertEquals(false, fade.isShown("bike-route-refs-tatry", Mode.HIKING))
+        assertEquals(true, fade.isShown("bike-route-refs-tatry", Mode.CYCLING))
+        assertEquals(true, fade.isShown("bike-routes-tatry", Mode.HIKING))
     }
 
     @Test

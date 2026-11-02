@@ -51,6 +51,7 @@ class AppPreferences(
 ) {
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val MAP_MODE = stringPreferencesKey("map_mode")
         val MATERIAL_YOU = booleanPreferencesKey("material_you")
         val BACKUP_FOLDER_URI = stringPreferencesKey("backup_folder_uri")
         val MAP_LATITUDE = doublePreferencesKey("map_latitude")
@@ -122,6 +123,14 @@ class AppPreferences(
             if (followed == null) prefs.remove(Keys.FOLLOWED_ROUTE)
         }
         return followed
+    }
+
+    /** Stored by name; Hiking on a first launch or for a name this build does not know. */
+    val mapMode: Flow<Mode> =
+        store.data.map { stored -> Mode.entries.firstOrNull { it.name == stored[Keys.MAP_MODE] } ?: Mode.HIKING }
+
+    suspend fun setMapMode(mode: Mode) {
+        store.edit { it[Keys.MAP_MODE] = mode.name }
     }
 
     /**
