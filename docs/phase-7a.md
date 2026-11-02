@@ -107,7 +107,8 @@ of the renders.
 
 ## 2. The data
 
-- **Kept relations**: `route=bicycle` (Touring) and `route=mtb` (MTB), with `name`, `name:pl`, `ref`,
+- **Kept relations**: `route=bicycle` (Touring) and `route=mtb` (MTB), whatever their `type` (R2
+  found `site` and `network` among them), with `name`, `name:pl`, `ref`,
   `colour`, `network`, `from`/`to`, `mtb:scale`, `mtb:scale:uphill`, `signed_direction`.
 - **Relations of relations**, decided with the owner on 2026-11-02 (19 Bike routes at the current
   pin hold Bike routes), following 6c's per-member reading:
@@ -118,9 +119,11 @@ of the renders.
     ways write the parent's id, and the parent is one Bike route. A member marked otherwise is a
     Bike route of its own. A parent with no member carrying its marking has Sections, as an `icn`
     one does. That is the trail centres: Singltrek pod Smrkem r611323 (`rcn`, ten loops in four
-    colours), Single Track Świeradów r13699712, Babia Góra Trails r13222440 and Bike Park Czarna
-    Góra r3132963 (`lcn`), each line ridden on its own. The marking decides, not `network` alone,
-    because these are `rcn` and `lcn`.
+    colours), Single Track Świeradów r13699712 (`rcn`), Bike Park Czarna Góra r3132963 (`lcn`) and
+    Babia Góra Trails r13222440 (its `network` is its own name), each line ridden on its own. The
+    marking decides, not `network` alone, because these are not `icn` or `ncn`. A parent with no
+    colour has no marking for a member to carry, so all its members are Sections: 6c's fallback to
+    the members' shared colour would make the Saxon network r1705154 one Bike route.
   - **A parent's own ways stay on the map as the parent's**, unlike a Long-distance Trail's
     (6c § 2): `part` and `connection` count as members. A parent with Sections and ways of its own
     gets a row for those ways, titled as the parent, with its own walk and sheet; a tap on them
@@ -311,7 +314,7 @@ build with the Regions hand-pushed.
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | The archives' and base files' growth, per Region and in total, on B's branch before it merges | `build-map-data.py` over B's pin; `ls -l map-data/archives/` against the v0.14.4 release's attachments | |
-| R2 | The title tally for Bike routes, and the largest union `count` on a way | `python3 scripts/map/trail-tally.py` | |
+| R2 | The title tally for Bike routes, and the largest union `count` on a way | `map-data/network-venv/bin/python scripts/map/trail-tally.py` | 2026-11-02, the cuts stamped 2026-10-28 (6c R1's pin, not the committed one): 1,450 Bike routes, 1,040 Touring and 410 MTB; 1,135 by name, 241 by number, 8 by ends, 66 by neither (52 of them coloured), so 95.4 % titled by tags, the lowest Sudety Środkowe's Touring at 89.7 %. Of 19 parents, 7 keep a row for their own ways and none has a piece at this pin, because every parent outside `icn`/`ncn` is uncoloured. **The largest union `count` is 10**, on 2 ways, against 9 for Trails alone, so `symbol_offset()` needs −9..9; B re-reads it at its own pin before setting that |
 | R3 | The plates, the fade, the zoom thresholds and the gaps where strands are hidden (below zoom 12, under each chip) at real size, in both themes | test phone, screencaps at zoom 10–17 over Beskidy Zachodnie and the Sudety | |
 | R4 | Direction: Twister (r5738733) and Rapický okruh (r1636172) draw their chevrons the way they are ridden and their sheets give one direction; Rychlebské stezky (r377944), part directed, draws chevrons on its directed ways and its sheet gives both | test phone, `CameraReceiver` to each, screencaps | |
 | R5 | A tap in Cycling where Trails and Bike routes share a way lists the Bike routes only | test phone, screencap of the chooser | |
