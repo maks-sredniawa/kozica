@@ -43,7 +43,7 @@ either.
   Track goes where no network edge does, so this phase is the first to read the grid on the device.
 - **The backup is the template's basic version**: an agent carrying the database and every
   thumbnail, export at two scopes, and restore. The Backup screen exists, but its row left Settings in
-  phase 0 until this phase. Binky (`maksforge/binky-app`, its ADR-0005) grew the design this phase
+  phase 0 until this phase. Binky (`maks-sredniawa/binky-app`, its ADR-0005) grew the design this phase
   ports.
 - **No tester holds a schema-1 database**, and schema 2 is the saved Routes (phase 5 § 5). Schema 3
   is the second bump since the door, so the whole standing gate applies (`DOD.md`).

@@ -37,6 +37,6 @@ The details are in the
 
 ## The source
 
-Built in the open at **[maksforge/kozica](https://github.com/maksforge/kozica)**. Map data ©
+Built in the open at **[maks-sredniawa/kozica](https://github.com/maks-sredniawa/kozica)**. Map data ©
 [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open
 Database License.

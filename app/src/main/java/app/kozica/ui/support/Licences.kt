@@ -29,7 +29,7 @@ const val CC_BY = "CC-BY-4.0"
  * The ODbL §4.6 offer: every release attaches its Regions' archives to its GitHub release
  * (docs/phase-2b.md § 6), so this version's tag is where the derivative database is.
  */
-const val MAP_DATA_RELEASE = "https://github.com/maksforge/kozica/releases/tag/v"
+const val MAP_DATA_RELEASE = "https://github.com/maks-sredniawa/kozica/releases/tag/v"
 
 /** Where a licence's own text lives, when it is ours to ship — `licences/Apache-2.0.txt`. */
 const val LICENCE_TEXT_DIRECTORY = "licences"

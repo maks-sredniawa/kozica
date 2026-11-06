@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PIN = ROOT / "scripts" / "relief.pin"
 TARGET = ROOT / "relief" / "src" / "main" / "assets"
-RELEASES = "https://github.com/maksforge/kozica/releases/download"
+RELEASES = "https://github.com/maks-sredniawa/kozica/releases/download"
 
 
 def sha256(path: Path) -> str:
