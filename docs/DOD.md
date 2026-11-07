@@ -74,8 +74,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       accepted.
 - [x] **Create the upload keystore, outside the repo.** Recorded in [`RELEASING.md`](RELEASING.md)
       § *The upload key*.
-- [x] **Set up the GitHub repository.** The `main: require CI` ruleset, rebase merges and
-      `RELEASE_PLEASE_TOKEN`.
+- [x] **Set up the GitHub repository.** The `main: require CI` ruleset, rebase merges, Pages and
+      `RELEASE_PLEASE_TOKEN`. Pages was turned off on 2026-11-07.
 - [x] **Set the five Play secrets and create the service account.** All in place; 0.2.0 reached
       internal testing by itself on 2026-10-20.
 - [ ] **Plan the closed test.** A new personal developer account reaches production only after a
