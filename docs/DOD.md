@@ -63,10 +63,11 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       compile in the Gmail itself, so that inbox stays read for as long as either build survives.
 - [x] **Write the listing.** `docs/store-listing.md`, since phase P; phase 3 adds the Safety screen
       to it.
-- [x] **Write the privacy policy** and confirm `maksforge.com/kozica/privacy-policy` serves it.
-      Play requires a *hosted* URL, and an offline app has no server of its own. First served at
+- [x] **Write the privacy policy** and confirm GitHub Pages is serving `docs/`. Play requires a
+      *hosted* URL, and an offline app has no server of its own. First served at
       `https://srednimax.github.io/kozica/privacy-policy.html` on 2026-10-20; that URL was retired
-      on 2026-11-07 and now returns 404.
+      on 2026-11-07 and now returns 404, and the policy is at
+      <https://maksforge.com/kozica/privacy-policy>.
 - [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md)
       in the same sitting.** All ten answered 2026-10-20.
 - [x] **`LICENSE` and `README.md`.** All rights reserved, source-available as the owner's other
