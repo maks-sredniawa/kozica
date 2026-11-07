@@ -63,9 +63,10 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       compile in the Gmail itself, so that inbox stays read for as long as either build survives.
 - [x] **Write the listing.** `docs/store-listing.md`, since phase P; phase 3 adds the Safety screen
       to it.
-- [x] **Write the privacy policy** and confirm GitHub Pages is serving `docs/`. Play requires a
-      *hosted* URL, and an offline app has no server of its own. Served at
-      `https://srednimax.github.io/kozica/privacy-policy.html` since 2026-10-20.
+- [x] **Write the privacy policy** and confirm `maksforge.com/kozica/privacy-policy` serves it.
+      Play requires a *hosted* URL, and an offline app has no server of its own. First served at
+      `https://srednimax.github.io/kozica/privacy-policy.html` on 2026-10-20; that URL was retired
+      on 2026-11-07 and now returns 404.
 - [x] **Answer the Console's App content pages and write [`play-app-content.md`](play-app-content.md)
       in the same sitting.** All ten answered 2026-10-20.
 - [x] **`LICENSE` and `README.md`.** All rights reserved, source-available as the owner's other
@@ -73,7 +74,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       accepted.
 - [x] **Create the upload keystore, outside the repo.** Recorded in [`RELEASING.md`](RELEASING.md)
       § *The upload key*.
-- [x] **Set up the GitHub repository.** The `main: require CI` ruleset, rebase merges, Pages and
+- [x] **Set up the GitHub repository.** The `main: require CI` ruleset, rebase merges and
       `RELEASE_PLEASE_TOKEN`.
 - [x] **Set the five Play secrets and create the service account.** All in place; 0.2.0 reached
       internal testing by itself on 2026-10-20.

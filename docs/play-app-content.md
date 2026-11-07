@@ -181,9 +181,9 @@ Each foreground service the app gains is recorded here with its type and the dec
 the `maksforge` organization took the `maksforge.com` domain; before that it was
 `https://maksforge.github.io/kozica/privacy-policy.html`, set earlier the same day when the repo moved
 to the `maksforge` organization, and before that `https://srednimax.github.io/kozica/privacy-policy.html`,
-set 2026-10-20. Both still redirect here. Served from `docs/` by Pages, so it updates on a merge to
-`main` with no release, which is why it has to be right before the app it describes ships rather than
-after.
+set 2026-10-20. Both were retired on 2026-11-07 and now return 404. Served from `docs/` by
+maksforge.com, so it updates within about 15 minutes of a merge to `main` with no release, which is
+why it has to be right before the app it describes ships rather than after.
 
 ## Store settings (not App content, recorded here because it is asked for the same reason)
 
@@ -246,7 +246,7 @@ listing links to. Read this before adding one, because the policy text and its e
   a cut, a project is not a person), but the distinction has to survive a reviewer skimming for
   "external payment link", and a pre-launch rejection costs the closed-test window.
 - **The reach is one level out.** The first app built from this template moved its tip from the app to
-  the repository and the Pages site, then noticed that the listing's *Website* field and the last line
+  the repository and the app's site, then noticed that the listing's *Website* field and the last line
   of its full description point at exactly those pages. So "nothing the app links to" includes what
   the **listing** links to.
 - **When to revisit:** once the app is live, with a track record to appeal from. The cheapest shape
