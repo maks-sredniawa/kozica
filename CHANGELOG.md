@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.15.0](https://github.com/maks-sredniawa/kozica/compare/v0.14.4...v0.15.0) (2026-11-07)
+
+
+### Features
+
+* put Bike routes in the tiles, the network and the name index, and drop routes that are not signed ([b8747a6](https://github.com/maks-sredniawa/kozica/commit/b8747a6e1ad4676586ff47d2f52b68f6de23bcf1))
+
+
+### Bug Fixes
+
+* decide a route's walk over its own kind's ways, and keep a Bike route's backward stretches on it ([09b5f8c](https://github.com/maks-sredniawa/kozica/commit/09b5f8c9ce7874f3f3b9f90a2e869844982f5bda))
+* take a ring on a one-way Bike route round with the ride ([149eb5c](https://github.com/maks-sredniawa/kozica/commit/149eb5c236f5c7f43fd0516912d38f7e98912198))
+
 ## [0.14.4](https://github.com/maksforge/kozica/compare/v0.14.3...v0.14.4) (2026-11-01)
 
 
