@@ -26,9 +26,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -46,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -98,6 +101,7 @@ import app.kozica.ui.hikes.PhotoViewer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdate
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -467,7 +471,7 @@ fun MapScreen(
     val planned = state.route.planned
     // Clear of the search row above and the position button and credit below.
     val sidePadding = with(LocalDensity.current) { Spacing.block.roundToPx() }
-    val topPadding = sidePadding * 3
+    val topPadding = sidePadding * 3 + with(LocalDensity.current) { MODE_ROW_HEIGHT.roundToPx() }
     val bottomPadding = sidePadding * 5
     // Each return to the map brings a new MapLibreMap, and these two would otherwise move the camera
     // away from where the user left it; so each Route is fitted to, and each place centred on, once.
@@ -492,11 +496,13 @@ fun MapScreen(
     }
 
     // Not saved: a ViewModel rebuilt after process death counts its fits from 0 again.
+    val keyboard = WindowInsets.ime
     val selectionFits = state.trail.fits + state.bikeRoute.fits
     var fittedSelection by remember { mutableIntStateOf(selectionFits) }
     LaunchedEffect(map, selectionFits, regions, placed) {
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed || selectionFits == fittedSelection) return@LaunchedEffect
+        awaitLayoutSettled(height = { mapHeight }, keyboard = { keyboard.getBottom(density) })
         val boxes =
             (state.trail.highlighted.map { it.facts } + state.bikeRoute.highlighted.map { it.facts })
                 .ifEmpty { return@LaunchedEffect }
@@ -676,22 +682,25 @@ fun MapScreen(
                     }
                     val searchFoundAny = state.search.results.isNotEmpty() || state.search.otherModeMatches > 0
                     if (searchText.isNotBlank() && searchFoundAny) {
-                        SearchResults(
-                            results = state.search.results,
-                            onPick = {
-                                searchText = ""
-                                focus.clearFocus()
-                                viewModel.pick(it)
-                            },
-                            modifier = Modifier.padding(horizontal = Spacing.tight),
-                            last = {
-                                OtherModeHint(
-                                    mode = state.mode.other,
-                                    matches = state.search.otherModeMatches,
-                                    onSwitch = { viewModel.setMode(state.mode.other) },
-                                )
-                            },
-                        )
+                        // A new Mode's results start at their best match, not at the old list's scroll.
+                        key(state.mode) {
+                            SearchResults(
+                                results = state.search.results,
+                                onPick = {
+                                    searchText = ""
+                                    focus.clearFocus()
+                                    viewModel.pick(it)
+                                },
+                                modifier = Modifier.padding(horizontal = Spacing.tight),
+                                last = {
+                                    OtherModeHint(
+                                        mode = state.mode.other,
+                                        matches = state.search.otherModeMatches,
+                                        onSwitch = { viewModel.setMode(state.mode.other) },
+                                    )
+                                },
+                            )
+                        }
                     }
                     offered?.let {
                         OfferedPlace(
@@ -862,6 +871,28 @@ private fun MapLibreMap.routesAt(
         .mapNotNull { it.getNumberProperty(idProperty)?.toLong() }
         .distinct()
 }
+
+/**
+ * Until the map stops changing size and the keyboard has gone: a bounds fit is worked out from the map's
+ * size at that moment, and a search pick closes the keyboard and opens a sheet as it asks for one.
+ */
+private suspend fun awaitLayoutSettled(
+    height: () -> Int,
+    keyboard: () -> Int,
+) {
+    withTimeoutOrNull(LAYOUT_SETTLE_LIMIT_MS) {
+        var last = height()
+        while (true) {
+            delay(LAYOUT_SETTLE_STEP_MS)
+            val now = height()
+            if (now == last && keyboard() == 0) break
+            last = now
+        }
+    }
+}
+
+private const val LAYOUT_SETTLE_STEP_MS = 150L
+private const val LAYOUT_SETTLE_LIMIT_MS = 1_500L
 
 /** Matches no feature for no ids, as the style's own filter does until something is selected. */
 private fun selectedFilter(

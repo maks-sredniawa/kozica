@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import app.kozica.R
 import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
@@ -29,6 +30,9 @@ import app.kozica.theme.Spacing
 
 /** The Mode this build opens in: the stored one, while the switch is developer-only (docs/phase-7a.md § 3). */
 fun modeOf(stored: Mode): Mode = stored
+
+/** What the switch's row takes from the top of the map, which a camera fit must leave clear. */
+val MODE_ROW_HEIGHT = 56.dp
 
 /** Counts the other Mode's matches in this build; the release half never queries them (docs/phase-7a.md § 5). */
 fun otherModeMatches(count: () -> Int): Int = count()
