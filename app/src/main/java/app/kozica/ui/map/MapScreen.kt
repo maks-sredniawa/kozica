@@ -478,7 +478,7 @@ fun MapScreen(
     var fitted by rememberSaveable { mutableStateOf<Int?>(null) }
     val keyboard = WindowInsets.ime
     // After the Regions' bounds are set, since setting them ends a fit already under way.
-    LaunchedEffect(map, planned, regions, placed) {
+    LaunchedEffect(map, planned, state.route.opening, regions, placed) {
         if (planned == null) fitted = null
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed) return@LaunchedEffect
@@ -522,13 +522,14 @@ fun MapScreen(
 
     val hike = state.hike
     var fittedHike by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(map, hike?.id, hike?.track, regions, placed) {
+    LaunchedEffect(map, hike?.id, hike?.opening, hike?.track, regions, placed) {
         if (hike == null) fittedHike = null
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed) return@LaunchedEffect
         val points = hike?.track?.flatten()?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
-        if (hike.id == fittedHike) return@LaunchedEffect
-        fittedHike = hike.id
+        val opened = "${hike.id}#${hike.opening}"
+        if (opened == fittedHike) return@LaunchedEffect
+        fittedHike = opened
         val bounds =
             LatLngBounds
                 .Builder()
