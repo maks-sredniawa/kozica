@@ -24,7 +24,6 @@ import app.kozica.theme.Spacing
 /** The Mode this build opens in: the stored one, while the switch is developer-only (docs/phase-7a.md § 3). */
 fun modeOf(stored: Mode): Mode = stored
 
-/** The walker | bike switch, and in Cycling the chips beside it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSwitch(
