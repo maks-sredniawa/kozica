@@ -436,6 +436,8 @@
     <string name="search_section_of">Section of %1$s</string>
     <string name="search_kind_long_distance">Long-distance Trail</string>
     <string name="trail_plan_route">Plan a Route along it</string>
+    <!-- A search result's kind: a Bike route made of Sections, found by its own name. -->
+    <string name="search_kind_bike_route_parent">Bike route with Sections</string>
     <!-- Over the list a tap on several Bike routes at once opens (docs/phase-7a.md § 4). -->
     <string name="bike_route_chooser_title">Bike routes here</string>
     <string name="bike_route_close">Close Bike route</string>

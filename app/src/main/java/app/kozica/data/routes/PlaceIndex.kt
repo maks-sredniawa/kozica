@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import app.kozica.data.Mode
 import java.io.File
 import java.io.IOException
 import kotlin.math.cos
@@ -41,7 +42,7 @@ data class Place(
     val matched: String = name,
 )
 
-/** One search result, a place or a Trail, ranked together (docs/phase-6c.md § 4). */
+/** One search result, a place or the current Mode's route, ranked together (docs/phase-6c.md § 4, docs/phase-7a.md § 5). */
 sealed interface SearchResult {
     /** The name the search matched, which may be another language's or an older one. */
     val matched: String
@@ -64,6 +65,19 @@ sealed interface SearchResult {
         val sections: Int,
         override val matched: String,
     ) : SearchResult
+
+    data class OnBikeRoute(
+        val facts: BikeRouteFacts,
+        override val matched: String,
+    ) : SearchResult
+
+    /** A Bike route with Sections and no row of its own, found by its own name. */
+    data class BikeRouteParent(
+        val id: Long,
+        val name: String,
+        val sections: Int,
+        override val matched: String,
+    ) : SearchResult
 }
 
 interface PlaceSearch {
@@ -79,13 +93,20 @@ interface PlaceSearch {
         longitude: Double,
     ): Place?
 
-    /** Places, Trails and Long-distance Trails, ranked by [search]'s rule; a build without Trails finds places alone. */
+    /** Places and [mode]'s routes, ranked by [search]'s rule; a build without routes finds places alone. */
     fun searchAll(
         text: String,
         latitude: Double,
         longitude: Double,
         limit: Int = 20,
+        mode: Mode = Mode.HIKING,
     ): List<SearchResult> = search(text, latitude, longitude, limit).map(SearchResult::AtPlace)
+
+    /** How many routes [mode]'s search would find for [text], parents with no row of their own included. */
+    fun matchesIn(
+        mode: Mode,
+        text: String,
+    ): Int = 0
 
     /** A Trail's row, null for an id the index does not hold (docs/phase-6c.md § 2). */
     fun trail(id: Long): TrailFacts? = null
@@ -204,19 +225,19 @@ class PlaceIndex(
         }
 
     /**
-     * [search]'s places, the Trails whose names match by the same fold and the Long-distance Trails
-     * whose own names do, together: a match at a name's start first, then nearest the centre, a Trail
-     * measured to its bounding box and nought inside it.
+     * [search]'s places with the current [mode]'s routes whose names match by the same fold and its
+     * parents whose own names do, together: a match at a name's start first, then nearest the centre,
+     * a route measured to its bounding box and nought inside it.
      */
     override fun searchAll(
         text: String,
         latitude: Double,
         longitude: Double,
         limit: Int,
+        mode: Mode,
     ): List<SearchResult> {
         val folded = fold(text)
         if (folded.isEmpty()) return emptyList()
-        val squeeze = cos(Math.toRadians(latitude)).let { it * it }
         val ranked = mutableListOf<Triple<Boolean, Double, SearchResult>>()
         for (place in search(text, latitude, longitude, limit)) {
             ranked +=
@@ -226,12 +247,62 @@ class PlaceIndex(
                     SearchResult.AtPlace(place),
                 )
         }
-        val trails = mutableSetOf<Long>()
+        if (mode == Mode.CYCLING) {
+            rankRoutes(BIKE_ROUTES, folded, latitude, longitude, limit, ranked, ::bikeRouteFacts) { facts, matched ->
+                SearchResult.OnBikeRoute(facts, matched)
+            }
+            rankParents(BIKE_ROUTES, folded, latitude, longitude, ranked) { id, name, sections ->
+                SearchResult.BikeRouteParent(id, name, sections, name)
+            }
+        } else {
+            rankRoutes(TRAILS, folded, latitude, longitude, limit, ranked, ::trailFacts) { facts, matched ->
+                SearchResult.OnTrail(facts, matched)
+            }
+            rankParents(TRAILS, folded, latitude, longitude, ranked) { id, name, sections ->
+                SearchResult.LongDistance(id, name, sections, name)
+            }
+        }
+        return ranked
+            .sortedWith(compareBy({ !it.first }, { it.second }))
+            .take(limit)
+            .map { it.third }
+    }
+
+    override fun matchesIn(
+        mode: Mode,
+        text: String,
+    ): Int {
+        val folded = fold(text)
+        if (folded.isEmpty()) return 0
+        val routes = if (mode == Mode.CYCLING) BIKE_ROUTES else TRAILS
+        val named =
+            db
+                .rawQuery(
+                    "SELECT COUNT(DISTINCT ${routes.nameKey}) FROM ${routes.names} WHERE folded MATCH ?",
+                    arrayOf("\"$folded*\""),
+                ).use { rows -> if (rows.moveToFirst()) rows.getInt(0) else 0 }
+        var parents = 0
+        readParents(routes) { rows -> if (nameMatches(fold(rows.getString(1)), folded)) parents++ }
+        return named + parents
+    }
+
+    private fun <F : Bounded> rankRoutes(
+        routes: RouteTable,
+        folded: String,
+        latitude: Double,
+        longitude: Double,
+        limit: Int,
+        ranked: MutableList<Triple<Boolean, Double, SearchResult>>,
+        read: (Cursor) -> F,
+        result: (F, String) -> SearchResult,
+    ) {
+        val squeeze = cos(Math.toRadians(latitude)).let { it * it }
+        val seen = mutableSetOf<Long>()
         db
             .rawQuery(
                 """
-                SELECT ${TRAIL_COLUMNS.split(", ").joinToString { "t.${it.trim()}" }}, n.name
-                FROM trail_names n JOIN trails t ON t.id = n.trail
+                SELECT ${routes.columns.split(", ").joinToString { "t.${it.trim()}" }}, n.name
+                FROM ${routes.names} n JOIN ${routes.table} t ON t.id = n.${routes.nameKey}
                 WHERE n.folded MATCH ?1
                 ORDER BY substr(n.folded, 1, ?2) = ?3 DESC,
                     max(t.min_lat - ?4, 0, ?4 - t.max_lat) * max(t.min_lat - ?4, 0, ?4 - t.max_lat) +
@@ -249,48 +320,67 @@ class PlaceIndex(
                 ),
             ).use { rows ->
                 while (rows.moveToNext()) {
-                    val facts = trailFacts(rows)
-                    if (!trails.add(facts.id)) continue
-                    val matched = rows.getString(TRAIL_COLUMN_COUNT)
+                    if (!seen.add(rows.getLong(0))) continue
+                    val facts = read(rows)
+                    val matched = rows.getString(routes.columns.split(", ").size)
                     ranked +=
                         Triple(
                             fold(matched).startsWith(folded),
                             boxAway(latitude, longitude, facts.south, facts.west, facts.north, facts.east),
-                            SearchResult.OnTrail(facts, matched),
+                            result(facts, matched),
                         )
                 }
             }
+    }
+
+    private fun rankParents(
+        routes: RouteTable,
+        folded: String,
+        latitude: Double,
+        longitude: Double,
+        ranked: MutableList<Triple<Boolean, Double, SearchResult>>,
+        result: (id: Long, name: String, sections: Int) -> SearchResult,
+    ) {
+        readParents(routes) { rows ->
+            val name = rows.getString(1)
+            val words = fold(name)
+            if (nameMatches(words, folded)) {
+                ranked +=
+                    Triple(
+                        words.startsWith(folded),
+                        boxAway(
+                            latitude,
+                            longitude,
+                            rows.getDouble(3),
+                            rows.getDouble(4),
+                            rows.getDouble(5),
+                            rows.getDouble(6),
+                        ),
+                        result(rows.getLong(0), name, rows.getInt(2)),
+                    )
+            }
+        }
+    }
+
+    /** Parents known only through their Sections: one with a row of its own is found as that row. */
+    private fun readParents(
+        routes: RouteTable,
+        each: (Cursor) -> Unit,
+    ) {
         db
             .rawQuery(
                 "SELECT long_distance, long_distance_name, COUNT(*), " +
                     "MIN(min_lat), MIN(min_lon), MAX(max_lat), MAX(max_lon) " +
-                    "FROM trails WHERE long_distance_name IS NOT NULL GROUP BY long_distance",
+                    "FROM ${routes.table} WHERE long_distance_name IS NOT NULL " +
+                    "AND long_distance NOT IN (SELECT id FROM ${routes.table}) GROUP BY long_distance",
                 null,
-            ).use { rows ->
-                while (rows.moveToNext()) {
-                    val name = rows.getString(1)
-                    val words = fold(name)
-                    if (!words.startsWith(folded) && " $folded" !in " $words") continue
-                    ranked +=
-                        Triple(
-                            words.startsWith(folded),
-                            boxAway(
-                                latitude,
-                                longitude,
-                                rows.getDouble(3),
-                                rows.getDouble(4),
-                                rows.getDouble(5),
-                                rows.getDouble(6),
-                            ),
-                            SearchResult.LongDistance(rows.getLong(0), name, rows.getInt(2), name),
-                        )
-                }
-            }
-        return ranked
-            .sortedWith(compareBy({ !it.first }, { it.second }))
-            .take(limit)
-            .map { it.third }
+            ).use { rows -> while (rows.moveToNext()) each(rows) }
     }
+
+    private fun nameMatches(
+        words: String,
+        folded: String,
+    ) = words.startsWith(folded) || " $folded" in " $words"
 
     private fun trailFacts(rows: Cursor): TrailFacts {
         fun text(column: Int) = if (rows.isNull(column)) null else rows.getString(column)
@@ -370,6 +460,13 @@ class PlaceIndex(
                 arrayOf(parent.toString()),
             ).use { rows -> buildList { while (rows.moveToNext()) add(rows.getLong(0)) } }
 
+    private class RouteTable(
+        val table: String,
+        val names: String,
+        val nameKey: String,
+        val columns: String,
+    )
+
     private companion object {
         const val BIKE_ROUTE_COLUMNS =
             "id, name, name_pl, ref, colour, from_place, to_place, long_distance, long_distance_name, " +
@@ -378,10 +475,11 @@ class PlaceIndex(
         const val TRAIL_COLUMNS =
             "id, name, name_pl, ref, colour, symbol, from_place, to_place, long_distance, long_distance_name, " +
                 "start_lat, start_lon, end_lat, end_lon, length, ascent, descent, gaps, min_lat, min_lon, max_lat, max_lon"
-        const val TRAIL_COLUMN_COUNT = 22
         const val NAMING_METRES = 500.0
         const val METRES_PER_DEGREE = 111_320.0
         val LANDMARKS = setOf(PlaceKind.PEAK, PlaceKind.PASS, PlaceKind.HUT)
+        val TRAILS = RouteTable("trails", "trail_names", "trail", TRAIL_COLUMNS)
+        val BIKE_ROUTES = RouteTable("bike_routes", "bike_route_names", "bike_route", BIKE_ROUTE_COLUMNS)
     }
 }
 

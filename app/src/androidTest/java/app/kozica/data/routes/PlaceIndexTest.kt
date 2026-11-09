@@ -3,6 +3,7 @@ package app.kozica.data.routes
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.kozica.data.Mode
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -60,6 +61,24 @@ class PlaceIndexTest {
                     "mtb_scale_uphill INTEGER)",
             )
             db.execSQL(
+                "CREATE VIRTUAL TABLE bike_route_names USING fts4(bike_route, name, folded, " +
+                    "notindexed=bike_route, notindexed=name)",
+            )
+            for ((id, name) in listOf(7L to "Twister", 11L to "Twardy zjazd", 900L to "Enduro")) {
+                db.execSQL(
+                    "INSERT INTO bike_route_names (bike_route, name, folded) VALUES (?, ?, ?)",
+                    arrayOf<Any>(id, name, fold(name)),
+                )
+            }
+            db.execSQL(
+                "INSERT INTO bike_routes VALUES (11, 'Twardy zjazd', NULL, NULL, 'red', NULL, NULL, NULL, NULL, " +
+                    "49.1, 19.1, 49.2, 19.2, 1.0, 0.0, 0.0, 0, 49.1, 19.1, 49.2, 19.2, 'mtb', NULL, 0, NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO bike_routes VALUES (12, NULL, NULL, NULL, 'red', NULL, NULL, 950, 'Twarde Enduro', " +
+                    "49.1, 19.1, 49.2, 19.2, 1.0, 0.0, 0.0, 0, 49.1, 19.1, 49.2, 19.2, 'mtb', NULL, 0, NULL, NULL)",
+            )
+            db.execSQL(
                 "INSERT INTO bike_routes VALUES (7, 'Twister', 'Skręt', 'T1', 'black', 'Dół', 'Góra', 900, 'Enduro', " +
                     "49.1, 19.1, 49.2, 19.2, 3000.5, 10.5, 400.5, 1, 49.05, 19.05, 49.25, 19.25, 'mtb', 'lcn', 1, 3, 2)",
             )
@@ -78,6 +97,39 @@ class PlaceIndexTest {
     @After
     fun tearDown() {
         file.delete()
+    }
+
+    @Test
+    fun cyclingFindsBikeRoutesAndNoTrails() {
+        val found = index.searchAll("twa", 49.15, 19.15, mode = Mode.CYCLING)
+
+        assertEquals(
+            listOf<Any>(11L, 950L),
+            found.map {
+                when (it) {
+                    is SearchResult.OnBikeRoute -> it.facts.id
+                    is SearchResult.BikeRouteParent -> it.id
+                    else -> error("not a Cycling result: $it")
+                }
+            },
+        )
+        assertEquals(1, (found[1] as SearchResult.BikeRouteParent).sections)
+    }
+
+    @Test
+    fun aParentWithARowOfItsOwnIsFoundOnceAsThatRow() {
+        val found = index.searchAll("enduro", 49.15, 19.15, mode = Mode.CYCLING)
+
+        assertEquals(1, found.count { it is SearchResult.OnBikeRoute && it.facts.id == 900L })
+        assertEquals(0, found.count { it is SearchResult.BikeRouteParent && it.id == 900L })
+    }
+
+    @Test
+    fun hikingFindsNoBikeRoutesAndEachModeCountsItsOwn() {
+        assertEquals(emptyList<SearchResult>(), index.searchAll("twardy", 49.15, 19.15))
+        assertEquals(2, index.matchesIn(Mode.CYCLING, "twa"))
+        assertEquals(2, index.matchesIn(Mode.HIKING, "szlak"))
+        assertEquals(0, index.matchesIn(Mode.CYCLING, "polan"))
     }
 
     @Test
@@ -154,6 +206,7 @@ class PlaceIndexTest {
                     is SearchResult.AtPlace -> "place ${it.place.name}"
                     is SearchResult.OnTrail -> "trail ${it.facts.id}"
                     is SearchResult.LongDistance -> "long-distance ${it.id}"
+                    else -> error("not a Hiking result: $it")
                 }
             },
         )

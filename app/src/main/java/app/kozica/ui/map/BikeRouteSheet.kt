@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import app.kozica.R
 import app.kozica.data.hikes.ProfilePoint
 import app.kozica.data.routes.BikeRouteDetail
+import app.kozica.data.routes.BikeRouteFacts
 import app.kozica.data.routes.BikeRouteKind
 import app.kozica.data.routes.MtbGrade
 import app.kozica.data.routes.TrailColour
@@ -54,7 +55,7 @@ internal fun BikeRouteSheet(
     val heading = bikeRouteHeading(route, words)
     SheetSurface(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
-            BikeRoutePlate(route, words)
+            BikeRoutePlate(facts, words)
             HeadingText(
                 heading,
                 MaterialTheme.typography.titleMedium,
@@ -185,7 +186,7 @@ internal fun BikeRouteChooser(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().clickable { onPick(choice) }.padding(vertical = Spacing.tight),
             ) {
-                BikeRoutePlate(choice, words)
+                BikeRoutePlate(choice.facts, words)
                 HeadingText(
                     bikeRouteHeading(choice, words),
                     MaterialTheme.typography.bodyLarge,
@@ -201,26 +202,26 @@ internal fun BikeRouteChooser(
  * description gives the colour the bar shows, which a title that is a name does not.
  */
 @Composable
-private fun BikeRoutePlate(
-    route: BikeRouteDetail,
+internal fun BikeRoutePlate(
+    facts: BikeRouteFacts,
     words: BikeRouteWords,
 ) {
-    val mtb = route.facts.kind == BikeRouteKind.MTB
-    val bar = BIKE_ROUTE_COLOURS.getValue(route.facts.colour)
+    val mtb = facts.kind == BikeRouteKind.MTB
+    val bar = BIKE_ROUTE_COLOURS.getValue(facts.colour)
     val ground = MaterialTheme.colorScheme.surfaceBright
     val edge = MaterialTheme.colorScheme.outline
     val ink = MaterialTheme.colorScheme.onSurface
     val black = BIKE_ROUTE_COLOURS.getValue(TrailColour.BLACK)
     // Black on the bar for every colour but black, where the lighter of the theme's two holds in both themes.
     val roughGround =
-        if (route.facts.colour ==
+        if (facts.colour ==
             TrailColour.BLACK
         ) {
             maxOf(ground, ink, compareBy(Color::luminance))
         } else {
             black
         }
-    val description = words.colourOnly(route.facts)
+    val description = words.colourOnly(facts)
     Canvas(Modifier.size(width = 40.dp, height = 24.dp).semantics { contentDescription = description }) {
         val unit = size.width / PLATE_WIDTH
         val border = 1.dp.toPx()

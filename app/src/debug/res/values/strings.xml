@@ -43,4 +43,12 @@
     <string name="filter_all" translatable="false">All</string>
     <string name="filter_touring" translatable="false">Touring</string>
     <string name="filter_mtb" translatable="false">MTB</string>
+    <plurals name="search_hint_trails" translatable="false">
+        <item quantity="one">%d Trail matches: show it in Hiking</item>
+        <item quantity="other">%d Trails match: show them in Hiking</item>
+    </plurals>
+    <plurals name="search_hint_bike_routes" translatable="false">
+        <item quantity="one">%d Bike route matches: show it in Cycling</item>
+        <item quantity="other">%d Bike routes match: show them in Cycling</item>
+    </plurals>
 </resources>

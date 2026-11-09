@@ -674,7 +674,8 @@ fun MapScreen(
                             modifier = Modifier.padding(horizontal = Spacing.tight),
                         )
                     }
-                    if (searchText.isNotBlank() && state.search.results.isNotEmpty()) {
+                    val searchFoundAny = state.search.results.isNotEmpty() || state.search.otherModeMatches > 0
+                    if (searchText.isNotBlank() && searchFoundAny) {
                         SearchResults(
                             results = state.search.results,
                             onPick = {
@@ -683,6 +684,13 @@ fun MapScreen(
                                 viewModel.pick(it)
                             },
                             modifier = Modifier.padding(horizontal = Spacing.tight),
+                            last = {
+                                OtherModeHint(
+                                    mode = state.mode.other,
+                                    matches = state.search.otherModeMatches,
+                                    onSwitch = { viewModel.setMode(state.mode.other) },
+                                )
+                            },
                         )
                     }
                     offered?.let {

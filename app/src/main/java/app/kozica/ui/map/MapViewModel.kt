@@ -69,6 +69,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -221,11 +222,13 @@ internal fun shownClimb(
 /**
  * @param available null until the name index has been looked for, false in a build without one.
  * @param offered the result picked, centred on the map and offered as a point.
+ * @param otherModeMatches how many routes the other Mode would find for the same text, behind the switch's seam.
  */
 data class SearchUiState(
     val available: Boolean? = null,
     val results: List<SearchResult> = emptyList(),
     val offered: Place? = null,
+    val otherModeMatches: Int = 0,
 )
 
 /**
@@ -440,11 +443,12 @@ class MapViewModel(
             hikeKeep,
         ) { hike, keep -> hike?.copy(keep = keep) }
 
-    private val mode =
+    private val mode: StateFlow<Mode> =
         preferences.mapMode
             .map(::modeOf)
-            .onStart { emit(Mode.HIKING) }
-            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, Mode.HIKING)
+
+    private var searchText = ""
     private val bikeRouteFilter = MutableStateFlow(BikeRouteFilter.ALL)
 
     val state: StateFlow<MapUiState> =
@@ -475,7 +479,7 @@ class MapViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
     fun setMode(mode: Mode) {
-        if (mode != state.value.mode) closeSelection()
+        if (mode != this.mode.value) closeSelection()
         applicationScope.launch { preferences.setMapMode(mode) }
     }
 
@@ -484,6 +488,7 @@ class MapViewModel(
     }
 
     init {
+        viewModelScope.launch { mode.drop(1).collect { if (searchText.isNotBlank()) search(searchText) } }
         viewModelScope.launch { camera.compareAndSet(null, preferences.mapCamera.first() ?: TATRY) }
         viewModelScope.launch {
             val found = withContext(io) { places() } != null
@@ -558,18 +563,22 @@ class MapViewModel(
     /** Results nearest the map's centre first, so the newest text wins over a slower older one. */
     fun search(text: String) {
         searching?.cancel()
+        searchText = text
         val centre = camera.value ?: TATRY
+        val current = mode.value
         searching =
             viewModelScope.launch {
-                val results =
+                val (results, otherMode) =
                     if (text.isBlank()) {
-                        emptyList()
+                        emptyList<SearchResult>() to 0
                     } else {
-                        withContext(
-                            io,
-                        ) { places()?.searchAll(text, centre.latitude, centre.longitude) }.orEmpty()
+                        withContext(io) {
+                            val index = places()
+                            index?.searchAll(text, centre.latitude, centre.longitude, mode = current).orEmpty() to
+                                (index?.let { otherModeMatches { it.matchesIn(current.other, text) } } ?: 0)
+                        }
                     }
-                search.update { it.copy(results = results) }
+                search.update { it.copy(results = results, otherModeMatches = otherMode) }
             }
     }
 
@@ -580,7 +589,8 @@ class MapViewModel(
      */
     fun pick(result: SearchResult) {
         searching?.cancel()
-        search.update { it.copy(results = emptyList()) }
+        searchText = ""
+        search.update { it.copy(results = emptyList(), otherModeMatches = 0) }
         when (result) {
             is SearchResult.AtPlace -> {
                 closeSelection()
@@ -588,6 +598,8 @@ class MapViewModel(
             }
             is SearchResult.OnTrail -> pickTrail(result.facts.id)
             is SearchResult.LongDistance -> pickLongDistance(result.id)
+            is SearchResult.OnBikeRoute -> pickBikeRoute(result.facts.id)
+            is SearchResult.BikeRouteParent -> pickBikeRouteParent(result.id)
         }
     }
 
@@ -598,6 +610,31 @@ class MapViewModel(
                 val found = withContext(io) { loadTrail(id) } ?: return@launch
                 showTrail(found)
                 trail.update { it.copy(fits = it.fits + 1) }
+            }
+    }
+
+    private fun pickBikeRoute(id: Long) {
+        tapping?.cancel()
+        tapping =
+            viewModelScope.launch {
+                val found = withContext(io) { loadBikeRoute(id) } ?: return@launch
+                showBikeRoute(found)
+                bikeRoute.update { it.copy(fits = it.fits + 1) }
+            }
+    }
+
+    private fun pickBikeRouteParent(id: Long) {
+        val centre = camera.value ?: TATRY
+        tapping?.cancel()
+        tapping =
+            viewModelScope.launch {
+                val sections = withContext(io) { bikeRouteWhole(id).mapNotNull(loadBikeRoute) }
+                val nearest =
+                    sections.minByOrNull {
+                        with(it.facts) { boxAway(centre.latitude, centre.longitude, south, west, north, east) }
+                    } ?: return@launch
+                showBikeRoute(nearest)
+                bikeRoute.update { it.copy(whole = sections, fits = it.fits + 1) }
             }
     }
 

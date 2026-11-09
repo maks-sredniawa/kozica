@@ -902,6 +902,59 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `search follows the Mode, counts the other Mode's matches and keeps the text across a switch`() =
+        runTest {
+            val index = ModeSearch()
+            val viewModel = routingViewModel(places = { index })
+            settled(viewModel) { it.mode == Mode.HIKING }
+
+            viewModel.search("wisla")
+            val hiking = settled(viewModel) { it.search.otherModeMatches == 3 }.search
+            assertEquals(listOf(Mode.HIKING), index.modes)
+            assertEquals(1, hiking.results.size)
+
+            viewModel.setMode(Mode.CYCLING)
+            val cycling = settled(viewModel) { it.mode == Mode.CYCLING && it.search.otherModeMatches == 7 }
+            assertEquals(listOf(Mode.HIKING, Mode.CYCLING), index.modes)
+            assertEquals("wisla", index.texts.last())
+            assertEquals(1, cycling.search.results.size)
+        }
+
+    @Test
+    fun `a pick clears the other Mode's count, and a later switch brings nothing back`() =
+        runTest {
+            val index = ModeSearch()
+            val viewModel = routingViewModel(places = { index }, loadBikeRoute = ::bikeRouteDetail)
+            settled(viewModel) { it.mode == Mode.HIKING }
+
+            viewModel.search("wisla")
+            val found = settled(viewModel) { it.search.otherModeMatches == 3 }.search.results.single()
+            viewModel.pick(found)
+            assertEquals(0, settled(viewModel) { it.search.results.isEmpty() }.search.otherModeMatches)
+
+            val before = index.modes.size
+            viewModel.setMode(Mode.CYCLING)
+            settled(viewModel) { it.mode == Mode.CYCLING }
+            assertEquals(before, index.modes.size)
+        }
+
+    @Test
+    fun `a Bike route found is selected and fitted, and a parent shows its nearest Section with the whole`() =
+        runTest {
+            val viewModel =
+                routingViewModel(loadBikeRoute = ::bikeRouteDetail, bikeRouteWhole = { listOf(7, 8) })
+
+            viewModel.pick(SearchResult.OnBikeRoute(bikeRouteFacts().copy(id = 7), "Twister"))
+            val picked = settled(viewModel) { it.bikeRoute.shown?.id == 7L && it.bikeRoute.fits == 1 }.bikeRoute
+            assertEquals(1, picked.fits)
+
+            viewModel.pick(SearchResult.BikeRouteParent(100, "Enduro", 2, "Enduro"))
+            val parent = settled(viewModel) { it.bikeRoute.whole.size == 2 }.bikeRoute
+            assertEquals(listOf(7L, 8L), parent.highlighted.map { it.id })
+            assertEquals(2, parent.fits)
+        }
+
+    @Test
     fun `a selected Bike route sets the Route aside, and a long press brings the Route back`() =
         runTest {
             val viewModel = routingViewModel(loadBikeRoute = ::bikeRouteDetail)
@@ -1137,6 +1190,40 @@ private object NearbyNames : PlaceSearch {
         latitude: Double,
         longitude: Double,
     ) = Place(0, PlaceKind.PLACE, latitude, longitude, "tatry", "Near $latitude")
+}
+
+private class ModeSearch : PlaceSearch {
+    val modes = mutableListOf<Mode>()
+    val texts = mutableListOf<String>()
+
+    override fun search(
+        text: String,
+        latitude: Double,
+        longitude: Double,
+        limit: Int,
+    ) = emptyList<Place>()
+
+    override fun nearest(
+        latitude: Double,
+        longitude: Double,
+    ): Place? = null
+
+    override fun searchAll(
+        text: String,
+        latitude: Double,
+        longitude: Double,
+        limit: Int,
+        mode: Mode,
+    ): List<SearchResult> {
+        modes += mode
+        texts += text
+        return listOf(SearchResult.AtPlace(Place(1, PlaceKind.TOWN, latitude, longitude, "tatry", text)))
+    }
+
+    override fun matchesIn(
+        mode: Mode,
+        text: String,
+    ) = if (mode == Mode.CYCLING) 3 else 7
 }
 
 private fun routingViewModel(

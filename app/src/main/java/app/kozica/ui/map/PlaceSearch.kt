@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import app.kozica.R
 import app.kozica.data.regions.REGION_NAMES
+import app.kozica.data.routes.BikeRouteKind
 import app.kozica.data.routes.Place
 import app.kozica.data.routes.PlaceKind
 import app.kozica.data.routes.SearchResult
@@ -83,8 +84,10 @@ internal fun SearchResults(
     results: List<SearchResult>,
     onPick: (SearchResult) -> Unit,
     modifier: Modifier = Modifier,
+    last: @Composable () -> Unit = {},
 ) {
     val words = rememberTrailWords()
+    val bikeRouteWords = rememberBikeRouteWords()
     val locale = LocalConfiguration.current.locales[0]
     Surface(shape = MaterialTheme.shapes.large, tonalElevation = 3.dp, modifier = modifier) {
         LazyColumn(Modifier.heightIn(max = 360.dp)) {
@@ -104,9 +107,17 @@ internal fun SearchResults(
                             Column(Modifier.padding(start = Spacing.tight)) { TrailLines(result, words, locale) }
                         }
                         is SearchResult.LongDistance -> Column { LongDistanceLines(result) }
+                        is SearchResult.OnBikeRoute -> {
+                            BikeRoutePlate(result.facts, bikeRouteWords)
+                            Column(Modifier.padding(start = Spacing.tight)) {
+                                BikeRouteLines(result, bikeRouteWords, locale)
+                            }
+                        }
+                        is SearchResult.BikeRouteParent -> Column { BikeRouteParentLines(result) }
                     }
                 }
             }
+            item(key = "last") { last() }
         }
     }
 }
@@ -117,6 +128,8 @@ private val SearchResult.key: String
             is SearchResult.AtPlace -> "place ${place.id}"
             is SearchResult.OnTrail -> "trail ${facts.id}"
             is SearchResult.LongDistance -> "long-distance $id"
+            is SearchResult.OnBikeRoute -> "bike route ${facts.id}"
+            is SearchResult.BikeRouteParent -> "bike route parent $id"
         }
 
 /** Its title, the name that matched where that differs, then "Trail" or the Long-distance Trail it is a Section of, and its length. */
@@ -146,6 +159,46 @@ private fun LongDistanceLines(result: SearchResult.LongDistance) {
     Text(result.name, style = MaterialTheme.typography.bodyLarge)
     Text(
         stringResource(R.string.search_kind_long_distance),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** Its title, the name that matched where that differs, then its kind or the parent it is a Section of, and its length. */
+@Composable
+private fun BikeRouteLines(
+    result: SearchResult.OnBikeRoute,
+    words: BikeRouteWords,
+    locale: Locale,
+) {
+    val title = bikeRouteTitle(result.facts, null, null, words)
+    Text(title, style = MaterialTheme.typography.bodyLarge)
+    if (result.matched != title) {
+        Text(result.matched, style = MaterialTheme.typography.bodyMedium)
+    }
+    val kind =
+        result.facts.longDistanceName?.let { stringResource(R.string.search_section_of, it) }
+            ?: stringResource(
+                if (result.facts.kind ==
+                    BikeRouteKind.MTB
+                ) {
+                    R.string.bike_route_kind_mtb
+                } else {
+                    R.string.bike_route_kind_touring
+                },
+            )
+    Text(
+        listOf(kind, length(result.facts.metres, locale)).joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun BikeRouteParentLines(result: SearchResult.BikeRouteParent) {
+    Text(result.name, style = MaterialTheme.typography.bodyLarge)
+    Text(
+        stringResource(R.string.search_kind_bike_route_parent),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
