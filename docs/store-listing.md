@@ -429,3 +429,17 @@ The map's OpenStreetMap data is refreshed to 1 November 2026. Trails mapped as p
 ```
 Dane OpenStreetMap na mapie są odświeżone do 1 listopada 2026. Szlaki opisane w danych jako proponowane lub porzucone zniknęły, bo w terenie może nie być znaków. Niektóre długie szlaki, jak Drabina Wałbrzyska, po dotknięciu pokazują teraz pełną długość i podejścia.
 ```
+
+### 0.16.0 — Bike routes on the map
+
+**English** — 134/500:
+
+```
+The map now also shows Bike routes and MTB routes, faded beneath the Trails so the Trails stay easy to read. They can't be tapped yet.
+```
+
+**Polish** — 162/500:
+
+```
+Mapa pokazuje teraz także szlaki rowerowe i szlaki MTB, przygaszone pod szlakami pieszymi, żeby te pozostały czytelne. Na razie nie da się ich wybrać dotknięciem.
+```
