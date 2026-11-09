@@ -54,6 +54,7 @@ def plate(kind: str, colour: str, c: dict[str, str]):
     """After the Polish R-1 sign (docs/phase-7a.md § 3): Touring thin wheels and a drop bar; MTB heavy wheels, a flat
     bar and rough ground under them."""
     mtb = kind == "mtb"
+    ground_ink = c["symbol_white"] if colour == TRAIL["black"] else TRAIL["black"]
 
     def draw(d: ImageDraw.ImageDraw, w: float, h: float) -> None:
         unit = w / PLATE[0]
@@ -64,8 +65,8 @@ def plate(kind: str, colour: str, c: dict[str, str]):
         def at(x: float, y: float) -> tuple[float, float]:
             return x * unit, y * unit
 
-        def line(*points: tuple[float, float], width: float = 0.9) -> None:
-            d.line([at(*point) for point in points], fill=TRAIL["black"], width=round(width * unit), joint="curve")
+        def line(*points: tuple[float, float], width: float = 0.9, fill: str = TRAIL["black"]) -> None:
+            d.line([at(*point) for point in points], fill=fill, width=round(width * unit), joint="curve")
 
         radius = 2.3
         back, front, axle = (6.2, 6.4), (13.8, 6.4), 6.4
@@ -81,7 +82,7 @@ def plate(kind: str, colour: str, c: dict[str, str]):
             line((11.2, 2.4), (13.6, 2.4), width=1.1)
             line((12.4, 3.4), (12.4, 2.4))
             ground = [(1.6 + 1.7 * step, 9.6 if step % 2 else 8.9) for step in range(11)]
-            line(*ground, width=0.8)
+            line(*ground, width=0.8, fill=ground_ink)
         else:
             line((12.4, 3.4), (13.6, 2.6), (14.4, 3.2), (13.6, 3.9), width=0.7)
 
