@@ -535,10 +535,10 @@ fun MapScreen(
     BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeHike() }
     // After the Hike's, which a chooser opens over: the handler composed last wins.
     BackHandler(enabled = state.bikeRoute.shown != null || state.bikeRoute.choices.isNotEmpty()) {
-        if (state.bikeRoute.choices.isNotEmpty()) viewModel.dismissBikeRouteChoices() else viewModel.closeTrail()
+        if (state.bikeRoute.choices.isNotEmpty()) viewModel.dismissBikeRouteChoices() else viewModel.closeSelection()
     }
     BackHandler(enabled = state.trail.shown != null || state.trail.choices.isNotEmpty()) {
-        if (state.trail.choices.isNotEmpty()) viewModel.dismissTrailChoices() else viewModel.closeTrail()
+        if (state.trail.choices.isNotEmpty()) viewModel.dismissTrailChoices() else viewModel.closeSelection()
     }
 
     val offered = state.search.offered
@@ -767,7 +767,7 @@ fun MapScreen(
                 BikeRouteSheet(
                     route = shownBikeRoute,
                     words = bikeRouteWords,
-                    onClose = viewModel::closeTrail,
+                    onClose = viewModel::closeSelection,
                     onShowWhole = viewModel::showWholeBikeRoute,
                     onShowSections = viewModel::showBikeRouteSections,
                     modifier = Modifier.heightIn(max = sheetHeight),
@@ -784,7 +784,7 @@ fun MapScreen(
                 TrailSheet(
                     trail = shownTrail,
                     words = trailWords,
-                    onClose = viewModel::closeTrail,
+                    onClose = viewModel::closeSelection,
                     onShowWhole = viewModel::showWholeTrail,
                     onShowLongDistance = viewModel::showLongDistance,
                     planningRoute = state.trail.planningRoute,

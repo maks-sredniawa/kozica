@@ -977,7 +977,7 @@ class MapViewModelTest {
 
             viewModel.tapTrails(listOf(7))
             assertEquals(2, settled(viewModel) { it.trail.shown != null }.route.points.size)
-            viewModel.closeTrail()
+            viewModel.closeSelection()
             assertEquals(2, settled(viewModel) { it.trail.shown == null }.route.points.size)
 
             viewModel.tapTrails(listOf(7))
@@ -1027,7 +1027,7 @@ class MapViewModelTest {
             settled(viewModel) { it.trail.shown?.id == 7L }
             viewModel.planAlongTrail("Trail 7")
 
-            viewModel.closeTrail()
+            viewModel.closeSelection()
             assertTrue(stopped.isCompleted)
             assertFalse(settled(viewModel) { it.trail.shown == null }.trail.planningRoute)
         }
@@ -1063,7 +1063,7 @@ class MapViewModelTest {
             assertEquals(1, settled(viewModel) { it.trail.shown?.id == 8L }.trail.fits)
             viewModel.chooseTrail(trailDetail(9))
             assertEquals(1, settled(viewModel) { it.trail.shown?.id == 9L }.trail.fits)
-            viewModel.closeTrail()
+            viewModel.closeSelection()
             assertEquals(1, settled(viewModel) { it.trail.shown == null }.trail.fits)
         }
 
@@ -1071,7 +1071,11 @@ class MapViewModelTest {
     fun `a Long-distance Trail that loads after its Section is closed or replaced is dropped`() =
         runTest {
             Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { io ->
-                for (leave in listOf<(MapViewModel) -> Unit>({ it.closeTrail() }, { it.chooseTrail(trailDetail(8)) })) {
+                for (leave in listOf<
+                    (
+                        MapViewModel,
+                    ) -> Unit,
+                >({ it.closeSelection() }, { it.chooseTrail(trailDetail(8)) })) {
                     val release = CountDownLatch(1)
                     val viewModel =
                         routingViewModel(

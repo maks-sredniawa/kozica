@@ -474,9 +474,8 @@ class MapViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
-    /** Only the current Mode's routes can be selected, so a change of Mode closes what is. */
     fun setMode(mode: Mode) {
-        if (mode != state.value.mode) closeTrail()
+        if (mode != state.value.mode) closeSelection()
         applicationScope.launch { preferences.setMapMode(mode) }
     }
 
@@ -584,7 +583,7 @@ class MapViewModel(
         search.update { it.copy(results = emptyList()) }
         when (result) {
             is SearchResult.AtPlace -> {
-                closeTrail()
+                closeSelection()
                 search.update { it.copy(offered = result.place) }
             }
             is SearchResult.OnTrail -> pickTrail(result.facts.id)
@@ -635,7 +634,7 @@ class MapViewModel(
     ) {
         val point = RoutePoint(latitude, longitude)
         closeHike()
-        closeTrail()
+        closeSelection()
         changePoints { it + point }
         viewModelScope.launch {
             val label = withContext(io) { places()?.nearest(latitude, longitude)?.name } ?: return@launch
@@ -700,7 +699,7 @@ class MapViewModel(
         route.value = RouteUiState()
         hikeKeep.value = null
         readHeights = null
-        closeTrail()
+        closeSelection()
         shownHike.value = id
     }
 
@@ -713,7 +712,7 @@ class MapViewModel(
         planningAlong?.cancel()
         loadingLongDistance?.cancel()
         if (ids.isEmpty()) {
-            closeTrail()
+            closeSelection()
             return
         }
         tapping =
@@ -733,7 +732,7 @@ class MapViewModel(
         planningAlong?.cancel()
         loadingLongDistance?.cancel()
         if (ids.isEmpty()) {
-            closeTrail()
+            closeSelection()
             return
         }
         tapping =
@@ -788,12 +787,12 @@ class MapViewModel(
         trail.update { TrailUiState(shown = picked, fits = it.fits) }
     }
 
-    fun closeTrail() {
+    fun closeSelection() {
         planningAlong?.cancel()
-        clearTrail()
+        clearSelection()
     }
 
-    private fun clearTrail() {
+    private fun clearSelection() {
         tapping?.cancel()
         loadingLongDistance?.cancel()
         trail.update { TrailUiState(fits = it.fits) }
@@ -814,7 +813,7 @@ class MapViewModel(
                 try {
                     val points = withContext(compute) { routeAlong(shown) }?.takeIf { it.size >= 2 }
                     if (points == null || trail.value.shown?.id != shown.id) return@launch
-                    clearTrail()
+                    clearSelection()
                     planning?.cancel()
                     routeGeneration++
                     route.value = RouteUiState(suggestedName = title)
