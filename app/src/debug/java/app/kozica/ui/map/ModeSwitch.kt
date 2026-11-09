@@ -1,7 +1,7 @@
 package app.kozica.ui.map
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -33,9 +33,10 @@ fun ModeSwitch(
     onFilter: (BikeRouteFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(Spacing.tight),
+        itemVerticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
     ) {
         SingleChoiceSegmentedButtonRow {
@@ -60,23 +61,31 @@ fun ModeSwitch(
             }
         }
         if (mode == Mode.CYCLING) {
-            BikeRouteFilter.entries.forEach { each ->
-                FilterChip(
-                    selected = filter == each,
-                    onClick = { onFilter(each) },
-                    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
-                    label = {
-                        Text(
-                            stringResource(
-                                when (each) {
-                                    BikeRouteFilter.ALL -> R.string.filter_all
-                                    BikeRouteFilter.TOURING -> R.string.filter_touring
-                                    BikeRouteFilter.MTB -> R.string.filter_mtb
-                                },
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
+                verticalArrangement = Arrangement.spacedBy(Spacing.tight),
+            ) {
+                BikeRouteFilter.entries.forEach { each ->
+                    FilterChip(
+                        selected = filter == each,
+                        onClick = { onFilter(each) },
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
                             ),
-                        )
-                    },
-                )
+                        label = {
+                            Text(
+                                stringResource(
+                                    when (each) {
+                                        BikeRouteFilter.ALL -> R.string.filter_all
+                                        BikeRouteFilter.TOURING -> R.string.filter_touring
+                                        BikeRouteFilter.MTB -> R.string.filter_mtb
+                                    },
+                                ),
+                            )
+                        },
+                    )
+                }
             }
         }
     }
