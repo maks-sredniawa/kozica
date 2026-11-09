@@ -725,6 +725,31 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `each opening of a saved Route is told apart, while a change to it keeps the count`() =
+        runTest {
+            val asked = MutableStateFlow<String?>(null)
+            val saved = SavedRoute("r", "Kopa", listOf(RoutePoint(49.0, 20.0, "A"), RoutePoint(49.0, 20.02, "C")))
+            val viewModel = routingViewModel(routeToShow = asked, loadRoute = { saved })
+
+            asked.value = "r"
+            val first = settled(viewModel) { it.route.savedId == "r" && it.route.planned != null }.route.opening
+
+            asked.value = "r"
+            val again = settled(viewModel) { it.route.opening != first && it.route.planned != null }.route.opening
+            assertEquals(first + 1, again)
+
+            viewModel.reverse()
+            assertEquals(
+                again,
+                settled(viewModel) {
+                    it.route.points
+                        .first()
+                        .label == "C"
+                }.route.opening,
+            )
+        }
+
+    @Test
     fun `saving again writes over the Route it was opened from`() =
         runTest {
             val writes = mutableListOf<Pair<String?, String>>()

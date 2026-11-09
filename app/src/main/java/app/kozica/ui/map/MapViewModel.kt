@@ -235,6 +235,7 @@ data class SearchUiState(
  * @param planned the Route last planned, null under two points or in a build with no network
  *   ([unavailable]). While [planning] it is the one before the latest change, kept so the map does not
  *   flash back to unfaded between the two, but it no longer matches [points].
+ * @param opening counts the times a saved Route was opened, so re-opening the same one is still fitted to.
  * @param naming whether the Save dialog is open. Held here rather than in the sheet's saved state, so
  *   it goes with the Route when a dead process comes back without one.
  */
@@ -250,6 +251,7 @@ data class RouteUiState(
     val suggestedName: String? = null,
     val following: FollowingUiState? = null,
     val followingNote: FollowingNote? = null,
+    val opening: Int = 0,
 )
 
 /**
@@ -700,12 +702,14 @@ class MapViewModel(
     }
 
     /** Replaces whatever is on the map with a saved Route, planned again from today's network. */
+    private var routeOpenings = 0
+
     private fun show(saved: SavedRoute) {
         dismissOffer()
         closeHike()
         routeGeneration++
         unfollow()
-        route.update { RouteUiState(savedId = saved.id, name = saved.name) }
+        route.update { RouteUiState(savedId = saved.id, name = saved.name, opening = ++routeOpenings) }
         changePoints { saved.points }
     }
 
