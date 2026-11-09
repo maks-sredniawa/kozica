@@ -136,12 +136,13 @@ def symbol_offset() -> list:
                      for zoom, width in TRAIL_WIDTHS if zoom >= 13))
 
 
-def chevron_offset() -> list:
-    # icon-offset turns with icon-rotate, so a backward chevron's slot is on the other side.
+def chevron_offset(icon_size: float = 1) -> list:
+    # icon-offset turns with icon-rotate, so a backward chevron's slot is on the other side,
+    # and is multiplied by icon-size.
     def at(width: float) -> list:
         return ["case", ["==", ["get", "dir"], "backward"],
-                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, -slot * width]),
-                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, slot * width])]
+                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, -slot * width / icon_size]),
+                by_slot(BIKE_INDEX, BIKE_COUNT, lambda slot: [0, slot * width / icon_size])]
 
     return by_zoom(*((zoom, at(width)) for zoom, width in TRAIL_WIDTHS if zoom >= 13))
 
@@ -384,7 +385,7 @@ def style(dark: bool) -> dict:
                 "icon-keep-upright": False,
                 "icon-allow-overlap": True,
                 "icon-ignore-placement": True,
-                "icon-offset": chevron_offset(),
+                "icon-offset": chevron_offset(SELECTED_CHEVRON_SIZE),
             },
         ),
         {"id": "trail-walk-casing", "type": "line", "source": "trail-walk", "maxzoom": 10,

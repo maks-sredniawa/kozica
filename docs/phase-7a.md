@@ -264,7 +264,8 @@ Copy: "Hiking", "Cycling" (the switch's descriptions), "All", "Touring", "MTB".
   ground, as a Trail's mark is, its description naming the colour its bar shows.
 - **A change of Mode closes the selection**, since only the current Mode's routes can be selected.
 - **"Show the whole"** is `bike_routes` where `long_distance` or `id` is the parent, so a parent's own row comes
-  with its Sections, and a tap on that row offers the button under the parent's own title.
+  with its Sections, and a tap on that row offers the button under the parent's own title. A Section whose parent
+  has no name offers no button, as a Trail's sheet does not.
 
 Copy: "Bike route *n*", "MTB route *n*", "*colour* Bike route: *from* – *to*", "*colour* MTB route:
 *from* – *to*", "*colour* Bike route", "*colour* MTB route", with "marked" among the colours; "S*n*"

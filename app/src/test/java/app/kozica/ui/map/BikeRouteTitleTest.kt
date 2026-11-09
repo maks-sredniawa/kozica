@@ -67,6 +67,17 @@ class BikeRouteTitleTest {
         )
     }
 
+    @Test
+    fun `the Sections button names the parent, a parent's own row its title, and an unnamed parent has none`() {
+        val named = mtb.copy(longDistanceId = 9, longDistanceName = "Enduro Trails")
+        assertEquals("Enduro Trails", bikeRouteSectionsSubject(BikeRouteDetail(named, line = emptyList()), "Twister"))
+        val unnamed = mtb.copy(longDistanceId = 9, longDistanceName = null)
+        assertEquals(null, bikeRouteSectionsSubject(BikeRouteDetail(unnamed, line = emptyList()), "Twister"))
+        val ownRow = BikeRouteDetail(mtb, line = emptyList(), wholeId = 7)
+        assertEquals("Twister", bikeRouteSectionsSubject(ownRow, "Twister"))
+        assertEquals(null, bikeRouteSectionsSubject(BikeRouteDetail(mtb, line = emptyList()), "Twister"))
+    }
+
     private fun words(
         path: String,
         polish: Boolean,

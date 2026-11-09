@@ -26,11 +26,7 @@ internal data class BikeRouteWords(
         kinds.getValue(facts.kind).colourOnly.format(colours.getValue(facts.colour))
 }
 
-/**
- * docs/phase-7a.md § 4's title: the name, the Polish one first in Polish; else the number and kind;
- * else the colour and kind with the ends a mapper wrote or the places nearest the walk's two ends;
- * else the colour and kind alone.
- */
+/** The title rule of docs/phase-7a.md § 4. */
 internal fun bikeRouteTitle(
     facts: BikeRouteFacts,
     nearestFrom: String?,
@@ -64,6 +60,16 @@ internal fun bikeRouteHeading(
         below = facts.ref?.takeIf { facts.name != null || facts.namePl != null },
     )
 }
+
+internal fun bikeRouteSectionsSubject(
+    route: BikeRouteDetail,
+    title: String,
+): String? =
+    when {
+        route.wholeId == null -> null
+        route.facts.longDistanceId == null -> title
+        else -> route.facts.longDistanceName
+    }
 
 @Composable
 internal fun rememberBikeRouteWords(): BikeRouteWords =

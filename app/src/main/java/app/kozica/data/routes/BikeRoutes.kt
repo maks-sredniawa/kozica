@@ -67,7 +67,6 @@ data class BikeRouteDetail(
     val id: Long get() = facts.id
 }
 
-/** A stretch of a walk between two distances along it, of one `mtb:scale` digit. */
 data class GradedSpan(
     val fromMetres: Double,
     val toMetres: Double,

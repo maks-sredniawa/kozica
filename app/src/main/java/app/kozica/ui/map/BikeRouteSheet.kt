@@ -126,9 +126,9 @@ internal fun BikeRouteSheet(
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.tight)) {
             TextButton(onClick = onShowWhole) { Text(stringResource(R.string.bike_route_show_whole)) }
-            if (route.wholeId != null) {
+            bikeRouteSectionsSubject(route, heading.title)?.let { subject ->
                 TextButton(onClick = onShowSections) {
-                    Text(stringResource(R.string.trail_show_long_distance, facts.longDistanceName ?: heading.title))
+                    Text(stringResource(R.string.trail_show_long_distance, subject))
                 }
             }
         }
