@@ -476,6 +476,7 @@ fun MapScreen(
     // Each return to the map brings a new MapLibreMap, and these two would otherwise move the camera
     // away from where the user left it; so each Route is fitted to, and each place centred on, once.
     var fitted by rememberSaveable { mutableStateOf<Int?>(null) }
+    val keyboard = WindowInsets.ime
     // After the Regions' bounds are set, since setting them ends a fit already under way.
     LaunchedEffect(map, planned, regions, placed) {
         if (planned == null) fitted = null
@@ -484,6 +485,7 @@ fun MapScreen(
         val line = planned?.line?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
         val route = planned.hashCode()
         if (route == fitted) return@LaunchedEffect
+        awaitLayoutSettled(height = { mapHeight }, keyboard = { keyboard.getBottom(density) })
         fitted = route
         val bounds =
             LatLngBounds
@@ -496,7 +498,6 @@ fun MapScreen(
     }
 
     // Not saved: a ViewModel rebuilt after process death counts its fits from 0 again.
-    val keyboard = WindowInsets.ime
     val selectionFits = state.trail.fits + state.bikeRoute.fits
     var fittedSelection by remember { mutableIntStateOf(selectionFits) }
     LaunchedEffect(map, selectionFits, regions, placed) {
