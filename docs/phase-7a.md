@@ -371,10 +371,11 @@ merges.
   Below zoom 12 and under Touring or MTB, the drawn strands sit off-centre with gaps where hidden
   ones would be; the other Mode's are faded, not hidden, so a switch of Mode leaves none. R3 looks
   at it; if it reads badly, each zoom tier and chip gets its own slots in the tiles.
-- **On a 360 dp phone at font scale 1.3 the switch crowds a short map**, developer-only until 7c.
-  The search field's placeholder wraps to three lines there, so with the Route sheet up the switch
-  covers the top of Record hike, and while following a stale position's banner can cover the puck.
-  Past about 1.34 the chips drop to a second line, as Polish's longer labels will at 360 dp at every
+- **On a 360 dp phone at font scale 1.3 the Mode row crowds a short map**, developer-only until 7c,
+  accepted with the owner on 2026-11-09. The search field's placeholder wraps to three lines there,
+  so with the Route sheet up the switch and the All and Touring chips overlap Record hike, the MTB
+  chip overlaps Show my position, and while following a stale position's banner can cover the puck.
+  Just past 1.3 the chips drop to a second line, as Polish's longer labels will at 360 dp at every
   scale. 7c settles it when the switch reaches release users, and with it the placeholder, which is
   release copy this checkpoint leaves alone.
 
