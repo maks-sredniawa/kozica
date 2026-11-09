@@ -14,13 +14,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
 import app.kozica.data.hikes.ProfilePoint
+import app.kozica.data.routes.GradedSpan
 import java.util.Locale
 
 /**
  * Height against distance, broken where [ProfilePoint.breakBefore] says. With [kept], the metres
- * outside it are covered, for Trim's handles below it.
+ * outside it are covered, for Trim's handles below it. With [graded], those stretches are inked
+ * more the harder they are.
  */
 @Composable
 internal fun Profile(
@@ -28,6 +31,7 @@ internal fun Profile(
     locale: Locale,
     modifier: Modifier = Modifier,
     kept: ClosedFloatingPointRange<Double>? = null,
+    graded: List<GradedSpan> = emptyList(),
 ) {
     val low = line.minOf { it.heightMetres }
     val high = line.maxOf { it.heightMetres }
@@ -65,6 +69,17 @@ internal fun Profile(
             area.lineTo(at(line.last()).x, size.height)
             area.close()
             drawPath(area, fill)
+            clipPath(area) {
+                for (span in graded) {
+                    val start = (span.fromMetres / total * size.width).toFloat()
+                    val end = (span.toMetres / total * size.width).toFloat()
+                    drawRect(
+                        stroke.copy(alpha = GRADE_INK[span.scale.coerceIn(GRADE_INK.indices)]),
+                        topLeft = Offset(start, 0f),
+                        size = Size(end - start, size.height),
+                    )
+                }
+            }
             drawPath(outline, stroke, style = Stroke(width = 2.dp.toPx()))
             if (kept != null) {
                 val start = (kept.start / total * size.width).toFloat()
@@ -78,3 +93,6 @@ internal fun Profile(
 }
 
 private const val PROFILE_MIN_SPAN_METRES = 50.0
+
+// S0 to S6. As ink over the fill, since a dark theme's fill has too few tones left to darken through.
+private val GRADE_INK = floatArrayOf(0.10f, 0.22f, 0.36f, 0.52f, 0.68f, 0.84f, 1f)

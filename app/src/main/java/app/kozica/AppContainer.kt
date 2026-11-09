@@ -29,6 +29,7 @@ import app.kozica.data.regions.RegionOutline
 import app.kozica.data.regions.RegionState
 import app.kozica.data.regions.regionStates
 import app.kozica.data.regions.reliefState
+import app.kozica.data.routes.BikeRouteDetail
 import app.kozica.data.routes.PlaceSearch
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePlanner
@@ -37,6 +38,8 @@ import app.kozica.data.routes.RouteTotals
 import app.kozica.data.routes.Router
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.TrailNetworks
+import app.kozica.data.routes.bikeRouteDifficulty
+import app.kozica.data.routes.gradedSpans
 import app.kozica.data.routes.openPlaces
 import app.kozica.data.routes.placesFile
 import app.kozica.data.routes.pointsAlong
@@ -207,6 +210,37 @@ class AppContainer(
             nearestTo = if (named) null else index.nearest(facts.endLatitude, facts.endLongitude)?.name,
         )
     }
+
+    /** A Bike route as the map shows it (docs/phase-7a.md § 4); reads the index and the network, so off the main thread. */
+    fun bikeRoute(id: Long): BikeRouteDetail? {
+        val index = placeIndex ?: return null
+        val facts = index.bikeRoute(id) ?: return null
+        val network = TrailNetworks.load(appContext)
+        val steps = TrailNetworks.walks(appContext)?.steps(id)
+        val line = if (network != null && steps != null) network.walkLine(steps) else emptyList()
+        val graded = if (network != null && steps != null) network.gradedSpans(steps, line) else emptyList()
+        val gradedUphill =
+            if (network != null &&
+                steps != null
+            ) {
+                network.gradedSpans(steps, line, network.edgeMtbUphill)
+            } else {
+                emptyList()
+            }
+        val named =
+            facts.name != null || facts.namePl != null || facts.ref != null || (facts.from != null && facts.to != null)
+        return BikeRouteDetail(
+            facts,
+            line,
+            nearestFrom = if (named) null else index.nearest(facts.startLatitude, facts.startLongitude)?.name,
+            nearestTo = if (named) null else index.nearest(facts.endLatitude, facts.endLongitude)?.name,
+            graded = graded,
+            difficulty = bikeRouteDifficulty(facts, line.lastOrNull()?.metres ?: 0.0, graded, gradedUphill),
+            wholeId = facts.longDistanceId ?: id.takeIf { index.bikeRouteWhole(id).size > 1 },
+        )
+    }
+
+    fun bikeRouteWhole(parent: Long): List<Long> = placeIndex?.bikeRouteWhole(parent).orEmpty()
 
     /** The points that hold a Route on the Trail's walk (docs/phase-6c.md § 5), null in a build without them. */
     suspend fun routeAlong(trail: TrailDetail): List<RoutePoint>? =

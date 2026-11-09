@@ -181,6 +181,8 @@ internal const val TRAIL_WALK_SOURCE = "trail-walk"
 /** The style's layers a tap is checked against, by the id they are expanded from, and those the selection draws. */
 internal const val TRAILS_LAYER = "trails"
 internal const val SELECTED_TRAIL_LAYERS = "trail-selected"
+internal const val BIKE_ROUTES_LAYER = "bike-routes"
+internal const val SELECTED_BIKE_ROUTE_LAYERS = "selected-bike-route"
 
 /** The prefix of every Bike route layer, which the chips filter by kind. */
 internal const val BIKE_ROUTE_LAYERS = "bike-route"

@@ -80,16 +80,16 @@ class TrailTitleTest {
                 longDistanceName = "Główny Szlak Beskidzki",
             )
         assertEquals(
-            TrailHeading(above = "Główny Szlak Beskidzki", title = "Red Trail: Ustroń – Wołosate"),
+            SheetHeading(above = "Główny Szlak Beskidzki", title = "Red Trail: Ustroń – Wołosate"),
             trailHeading(TrailDetail(section, line = emptyList()), english),
         )
         assertEquals(
-            TrailHeading(above = null, title = "Czerwony szlak"),
+            SheetHeading(above = null, title = "Czerwony szlak"),
             trailHeading(TrailDetail(unnamed, line = emptyList()), polish),
         )
         val sameName = section.copy(namePl = "Magistrala Tatrzańska", longDistanceName = "Magistrala Tatrzańska")
         assertEquals(
-            TrailHeading(above = null, title = "Magistrala Tatrzańska"),
+            SheetHeading(above = null, title = "Magistrala Tatrzańska"),
             trailHeading(TrailDetail(sameName, line = emptyList()), polish),
         )
     }

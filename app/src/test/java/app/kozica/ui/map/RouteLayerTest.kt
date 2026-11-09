@@ -1,6 +1,7 @@
 package app.kozica.ui.map
 
 import app.kozica.data.routes.Approach
+import app.kozica.data.routes.BikeRouteDetail
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.RouteSample
@@ -8,6 +9,7 @@ import app.kozica.data.routes.TrailColour
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.TrailFacts
 import app.kozica.data.routes.TrailPoint
+import app.kozica.data.routes.bikeRouteFacts
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -85,6 +87,28 @@ class RouteLayerTest {
                         .jsonPrimitive.long
                 }
         assertEquals(listOf(7L, 7L), ids)
+    }
+
+    @Test
+    fun `a Bike route's walk has its id for a tap, its violet, and chevrons only when ridden one way`() {
+        val line = (0..1).map { TrailPoint(49.0, 20.0 + it / 1000.0, it * 100.0, 0.0, breakBefore = false) }
+        val facts = bikeRouteFacts().copy(id = 7, colour = TrailColour.OTHER)
+
+        fun properties(oneWay: Boolean) =
+            Json
+                .parseToJsonElement(bikeRouteWalkGeoJson(listOf(BikeRouteDetail(facts.copy(oneWay = oneWay), line))))
+                .jsonObject
+                .getValue("features")
+                .jsonArray
+                .single()
+                .jsonObject
+                .getValue("properties")
+                .jsonObject
+
+        assertEquals(setOf("colour", "bike_route"), properties(oneWay = false).keys)
+        assertEquals(setOf("colour", "bike_route", "one_way"), properties(oneWay = true).keys)
+        assertEquals("violet", properties(oneWay = false).getValue("colour").jsonPrimitive.content)
+        assertEquals(7L, properties(oneWay = false).getValue("bike_route").jsonPrimitive.long)
     }
 
     private fun features(geoJson: String) =

@@ -2,8 +2,10 @@ package app.kozica.ui.map
 
 import app.kozica.data.hikes.Track
 import app.kozica.data.routes.Approach
+import app.kozica.data.routes.BikeRouteDetail
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePoint
+import app.kozica.data.routes.TrailColour
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.TrailPoint
 import kotlinx.serialization.json.JsonArray
@@ -53,28 +55,50 @@ internal fun routeGeoJson(
 }
 
 /** The style's `trail-walk` source, below zoom 10: each highlighted Trail's walk, one line per stretch, by its colour and with its id for a tap. */
-internal fun trailWalkGeoJson(trails: List<TrailDetail>): String {
-    val features =
+internal fun trailWalkGeoJson(trails: List<TrailDetail>): String =
+    walkGeoJson(
         trails.flatMap { trail ->
-            val stretches = mutableListOf<MutableList<TrailPoint>>()
-            for (point in trail.line) {
-                if (point.breakBefore || stretches.isEmpty()) stretches += mutableListOf<TrailPoint>()
-                stretches.last() += point
-            }
-            stretches.filter { it.size >= 2 }.map { stretch ->
-                feature(
-                    "LineString",
-                    JsonArray(stretch.map { position(it.longitude, it.latitude) }),
-                    "colour" to JsonPrimitive(trail.facts.colour.stored),
-                    "trail" to JsonPrimitive(trail.id),
-                )
-            }
-        }
-    return buildJsonObject {
+            stretchFeatures(
+                trail.line,
+                "colour" to JsonPrimitive(trail.facts.colour.stored),
+                "trail" to JsonPrimitive(trail.id),
+            )
+        },
+    )
+
+/** The same source for a selected Bike route, whose walk runs the way it is ridden, so a one-way one carries chevrons along it. */
+internal fun bikeRouteWalkGeoJson(routes: List<BikeRouteDetail>): String =
+    walkGeoJson(
+        routes.flatMap { route ->
+            val colour = if (route.facts.colour == TrailColour.OTHER) "violet" else route.facts.colour.stored
+            stretchFeatures(
+                route.line,
+                "colour" to JsonPrimitive(colour),
+                "bike_route" to JsonPrimitive(route.id),
+                *(if (route.facts.oneWay) arrayOf("one_way" to JsonPrimitive(true)) else emptyArray()),
+            )
+        },
+    )
+
+private fun stretchFeatures(
+    line: List<TrailPoint>,
+    vararg properties: Pair<String, JsonPrimitive>,
+): List<JsonObject> {
+    val stretches = mutableListOf<MutableList<TrailPoint>>()
+    for (point in line) {
+        if (point.breakBefore || stretches.isEmpty()) stretches += mutableListOf<TrailPoint>()
+        stretches.last() += point
+    }
+    return stretches.filter { it.size >= 2 }.map { stretch ->
+        feature("LineString", JsonArray(stretch.map { position(it.longitude, it.latitude) }), *properties)
+    }
+}
+
+private fun walkGeoJson(features: List<JsonObject>): String =
+    buildJsonObject {
         put("type", "FeatureCollection")
         put("features", JsonArray(features))
     }.toString()
-}
 
 /** The style's `hike-track` source: one line per stretch, so nothing joins two across a pause. */
 internal fun trackGeoJson(track: Track): String =

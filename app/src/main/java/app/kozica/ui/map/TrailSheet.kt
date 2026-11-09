@@ -115,8 +115,8 @@ internal fun TrailSheet(
 }
 
 @Composable
-private fun HeadingText(
-    heading: TrailHeading,
+internal fun HeadingText(
+    heading: SheetHeading,
     titleStyle: TextStyle,
     modifier: Modifier,
 ) {
@@ -129,6 +129,13 @@ private fun HeadingText(
             )
         }
         Text(heading.title, style = titleStyle)
+        heading.below?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -169,7 +176,7 @@ internal fun TrailChooser(
 }
 
 @Composable
-private fun SheetSurface(
+internal fun SheetSurface(
     modifier: Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -188,7 +195,7 @@ private fun SheetSurface(
 }
 
 @Composable
-private fun Total(
+internal fun Total(
     label: String,
     value: String,
 ) {
@@ -257,8 +264,8 @@ internal fun TrailMark(
 
 private val SHAPES = setOf("bar", "dot", "cross", "triangle", "corner")
 
-// The map style's five Trail colours, the house rule's exception to colours from the theme; their
-// source is TRAIL in scripts/map/gen_style.py.
+// The map style's five Trail colours and a Bike route's violet, the house rule's exceptions to colours
+// from the theme; their source is TRAIL and BIKE_ROUTE in scripts/map/gen_style.py.
 private val TRAIL_COLOURS =
     mapOf(
         TrailColour.RED to Color(0xFFD62828),
@@ -267,3 +274,5 @@ private val TRAIL_COLOURS =
         TrailColour.YELLOW to Color(0xFFE6B800),
         TrailColour.BLACK to Color(0xFF1A1A1A),
     )
+
+internal val BIKE_ROUTE_COLOURS = TRAIL_COLOURS + (TrailColour.OTHER to Color(0xFF7F3FBF))

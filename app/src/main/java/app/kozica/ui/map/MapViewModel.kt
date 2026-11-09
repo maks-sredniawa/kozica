@@ -35,6 +35,7 @@ import app.kozica.data.hikes.profileOf
 import app.kozica.data.hikes.trim
 import app.kozica.data.regions.Region
 import app.kozica.data.regions.RegionState
+import app.kozica.data.routes.BikeRouteDetail
 import app.kozica.data.routes.DemandingStretch
 import app.kozica.data.routes.FOLLOWED_KEPT_MILLIS
 import app.kozica.data.routes.FollowFix
@@ -98,6 +99,7 @@ import java.time.ZoneId
  * @param track the recording Hike's Track so far, drawn live (docs/phase-6.md § 2).
  * @param hike the Hike the Hikes tab asked the map to show, null when none is (docs/phase-6.md § 4).
  * @param trail the Trail picked on the map, or the Trails a tap offers (docs/phase-6c.md § 3).
+ * @param bikeRoute the same for Bike routes, in Cycling (docs/phase-7a.md § 4); at most one of the two is selected.
  */
 data class MapUiState(
     val regions: List<Region>? = null,
@@ -114,6 +116,7 @@ data class MapUiState(
     val track: Track = emptyList(),
     val hike: HikeUiState? = null,
     val trail: TrailUiState = TrailUiState(),
+    val bikeRoute: BikeRouteUiState = BikeRouteUiState(),
     val pace: Pace? = null,
 ) {
     private val ready: List<RegionState.Ready> get() = regions.orEmpty().mapNotNull { it.state as? RegionState.Ready }
@@ -131,8 +134,11 @@ data class MapUiState(
     /** The recording's Track and the shown Hike's, each stretch its own line. */
     val drawnTrack: Track get() = track + hike?.drawn.orEmpty()
 
-    /** A planned Route, a shown Hike or a selected Trail fades the rest of the map (docs/phase-5.md § 4). */
-    val faded: Boolean get() = route.planned != null || hike != null || trail.shown != null
+    /** A selected Trail or Bike route sets a planned Route aside until it is closed. */
+    val selection: Boolean get() = trail.shown != null || bikeRoute.shown != null
+
+    /** A planned Route, a shown Hike or a selection fades the rest of the map (docs/phase-5.md § 4). */
+    val faded: Boolean get() = route.planned != null || hike != null || selection
 }
 
 /**
@@ -285,6 +291,16 @@ data class TrailUiState(
     val highlighted: List<TrailDetail> get() = whole.ifEmpty { listOfNotNull(shown) }
 }
 
+/** [TrailUiState] for Bike routes, which have no Route to plan along them until phase 7b. */
+data class BikeRouteUiState(
+    val shown: BikeRouteDetail? = null,
+    val choices: List<BikeRouteDetail> = emptyList(),
+    val whole: List<BikeRouteDetail> = emptyList(),
+    val fits: Int = 0,
+) {
+    val highlighted: List<BikeRouteDetail> get() = whole.ifEmpty { listOfNotNull(shown) }
+}
+
 /** A demanding stretch with the places that name its two ends, either null where nothing is near. */
 data class NamedStretch(
     val stretch: DemandingStretch,
@@ -329,6 +345,8 @@ class MapViewModel(
     private val loadTrail: (id: Long) -> TrailDetail? = { null },
     private val sectionsOf: (longDistance: Long) -> List<Long> = { emptyList() },
     private val routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
+    private val loadBikeRoute: (id: Long) -> BikeRouteDetail? = { null },
+    private val bikeRouteWhole: (parent: Long) -> List<Long> = { emptyList() },
     pace: Flow<Pace?> = flowOf(null),
     private val now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -397,6 +415,8 @@ class MapViewModel(
 
     private val trail = MutableStateFlow(TrailUiState())
 
+    private val bikeRoute = MutableStateFlow(BikeRouteUiState())
+
     private var tapping: Job? = null
 
     private var planningAlong: Job? = null
@@ -433,11 +453,12 @@ class MapViewModel(
                 MapUiState(packs?.first, packs?.second, style, camera, location, fix)
             },
             combine(combine(search, pace, ::Pair), combine(mode, bikeRouteFilter, ::Pair), ::Pair),
-            combine(route, hike.onStart { emit(null) }, trail, ::Triple),
+            combine(route, hike.onStart { emit(null) }, combine(trail, bikeRoute, ::Pair), ::Triple),
             recording,
             track.onStart { emit(emptyList()) },
-        ) { map, (found, chosen), (route, hike, trail), recording, track ->
+        ) { map, (found, chosen), (route, hike, selection), recording, track ->
             val (search, pace) = found
+            val (trail, bikeRoute) = selection
             val (mode, bikeRouteFilter) = chosen
             map.copy(
                 mode = mode,
@@ -448,11 +469,14 @@ class MapViewModel(
                 track = track,
                 hike = hike,
                 trail = trail,
+                bikeRoute = bikeRoute,
                 pace = pace,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
+    /** Only the current Mode's routes can be selected, so a change of Mode closes what is. */
     fun setMode(mode: Mode) {
+        if (mode != state.value.mode) closeTrail()
         applicationScope.launch { preferences.setMapMode(mode) }
     }
 
@@ -703,6 +727,53 @@ class MapViewModel(
             }
     }
 
+    /** The same for Bike routes in Cycling (docs/phase-7a.md § 4). */
+    fun tapBikeRoutes(ids: List<Long>) {
+        tapping?.cancel()
+        planningAlong?.cancel()
+        loadingLongDistance?.cancel()
+        if (ids.isEmpty()) {
+            closeTrail()
+            return
+        }
+        tapping =
+            viewModelScope.launch {
+                val found = withContext(io) { ids.mapNotNull(loadBikeRoute) }
+                when (found.size) {
+                    0 -> Unit
+                    1 -> showBikeRoute(found.single())
+                    else -> bikeRoute.update { it.copy(choices = found) }
+                }
+            }
+    }
+
+    fun chooseBikeRoute(picked: BikeRouteDetail) = showBikeRoute(picked)
+
+    fun dismissBikeRouteChoices() = bikeRoute.update { it.copy(choices = emptyList()) }
+
+    private fun showBikeRoute(picked: BikeRouteDetail) {
+        if (shownHike.value != null) closeHike()
+        dismissOffer()
+        loadingLongDistance?.cancel()
+        planningAlong?.cancel()
+        trail.update { TrailUiState(fits = it.fits) }
+        bikeRoute.update { BikeRouteUiState(shown = picked, fits = it.fits) }
+    }
+
+    fun showWholeBikeRoute() = bikeRoute.update { it.copy(whole = emptyList(), fits = it.fits + 1) }
+
+    /** Every Section of the selected one's parent, or of the selected parent, highlighted together. */
+    fun showBikeRouteSections() {
+        val shown = bikeRoute.value.shown ?: return
+        val parent = shown.wholeId ?: return
+        loadingLongDistance?.cancel()
+        loadingLongDistance =
+            viewModelScope.launch {
+                val sections = withContext(io) { bikeRouteWhole(parent).mapNotNull(loadBikeRoute) }
+                bikeRoute.update { if (it.shown?.id != shown.id) it else it.copy(whole = sections, fits = it.fits + 1) }
+            }
+    }
+
     fun chooseTrail(picked: TrailDetail) = showTrail(picked)
 
     fun dismissTrailChoices() = trail.update { it.copy(choices = emptyList()) }
@@ -713,6 +784,7 @@ class MapViewModel(
         dismissOffer()
         loadingLongDistance?.cancel()
         planningAlong?.cancel()
+        bikeRoute.update { BikeRouteUiState(fits = it.fits) }
         trail.update { TrailUiState(shown = picked, fits = it.fits) }
     }
 
@@ -725,6 +797,7 @@ class MapViewModel(
         tapping?.cancel()
         loadingLongDistance?.cancel()
         trail.update { TrailUiState(fits = it.fits) }
+        bikeRoute.update { BikeRouteUiState(fits = it.fits) }
     }
 
     /**
@@ -1199,6 +1272,8 @@ class MapViewModel(
                         loadTrail = app.container::trail,
                         sectionsOf = app.container::sections,
                         routeAlong = app.container::routeAlong,
+                        loadBikeRoute = app.container::bikeRoute,
+                        bikeRouteWhole = app.container::bikeRouteWhole,
                         pace = app.container.pace,
                     )
                 }

@@ -49,6 +49,28 @@ class PlaceIndexTest {
             trail(db, 100, "Polanami na Turbacz", null, null, 49.50, 20.05, 49.60, 20.15)
             trail(db, 101, "Przez Polany", null, null, 49.80, 20.50, 49.90, 20.60)
             trail(db, 102, "Szlak nad Popradem", 900, "Główny Szlak Beskidzki", 49.30, 20.60, 49.40, 20.70)
+            db.execSQL(
+                "CREATE TABLE bike_routes (id INTEGER PRIMARY KEY, name TEXT, name_pl TEXT, ref TEXT, " +
+                    "colour TEXT NOT NULL, " +
+                    "from_place TEXT, to_place TEXT, long_distance INTEGER, long_distance_name TEXT, " +
+                    "start_lat REAL NOT NULL, start_lon REAL NOT NULL, end_lat REAL NOT NULL, end_lon REAL NOT NULL, " +
+                    "length REAL NOT NULL, ascent REAL NOT NULL, descent REAL NOT NULL, gaps INTEGER NOT NULL, " +
+                    "min_lat REAL NOT NULL, min_lon REAL NOT NULL, max_lat REAL NOT NULL, max_lon REAL NOT NULL, " +
+                    "kind TEXT NOT NULL, network TEXT, one_way INTEGER NOT NULL, mtb_scale INTEGER, " +
+                    "mtb_scale_uphill INTEGER)",
+            )
+            db.execSQL(
+                "INSERT INTO bike_routes VALUES (7, 'Twister', 'Skręt', 'T1', 'black', 'Dół', 'Góra', 900, 'Enduro', " +
+                    "49.1, 19.1, 49.2, 19.2, 3000.5, 10.5, 400.5, 1, 49.05, 19.05, 49.25, 19.25, 'mtb', 'lcn', 1, 3, 2)",
+            )
+            db.execSQL(
+                "INSERT INTO bike_routes VALUES (900, NULL, NULL, NULL, 'other', NULL, NULL, NULL, NULL, " +
+                    "49.1, 19.1, 49.2, 19.2, 1.0, 0.0, 0.0, 0, 49.1, 19.1, 49.2, 19.2, 'touring', NULL, 0, NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO bike_routes VALUES (8, NULL, NULL, NULL, 'red', NULL, NULL, 900, NULL, " +
+                    "49.1, 19.1, 49.2, 19.2, 1.0, 0.0, 0.0, 0, 49.1, 19.1, 49.2, 19.2, 'touring', NULL, 0, NULL, NULL)",
+            )
         }
         index = PlaceIndex(file)
     }
@@ -56,6 +78,50 @@ class PlaceIndexTest {
     @After
     fun tearDown() {
         file.delete()
+    }
+
+    @Test
+    fun aBikeRoutesRowIsReadColumnForColumn() {
+        val expected =
+            BikeRouteFacts(
+                id = 7,
+                name = "Twister",
+                namePl = "Skręt",
+                ref = "T1",
+                colour = TrailColour.BLACK,
+                from = "Dół",
+                to = "Góra",
+                longDistanceId = 900,
+                longDistanceName = "Enduro",
+                startLatitude = 49.1,
+                startLongitude = 19.1,
+                endLatitude = 49.2,
+                endLongitude = 19.2,
+                metres = 3000.5,
+                ascent = 10.5,
+                descent = 400.5,
+                gaps = 1,
+                south = 49.05,
+                west = 19.05,
+                north = 49.25,
+                east = 19.25,
+                kind = BikeRouteKind.MTB,
+                oneWay = true,
+                mtbScale = 3,
+                mtbScaleUphill = 2,
+            )
+        assertEquals(expected, index.bikeRoute(7))
+        val bare = index.bikeRoute(900)!!
+        assertEquals(TrailColour.OTHER to BikeRouteKind.TOURING, bare.colour to bare.kind)
+        assertEquals(null, bare.mtbScale)
+        assertEquals(false, bare.oneWay)
+        assertEquals(null, index.bikeRoute(1))
+    }
+
+    @Test
+    fun theWholeOfAParentIsItsSectionsAndItsOwnRow() {
+        assertEquals(listOf(7L, 8L, 900L), index.bikeRouteWhole(900))
+        assertEquals(listOf(7L), index.bikeRouteWhole(7))
     }
 
     @Test

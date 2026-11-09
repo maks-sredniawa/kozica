@@ -329,4 +329,21 @@
     <string name="search_section_of">Odcinek: %1$s</string>
     <string name="search_kind_long_distance">Szlak długodystansowy</string>
     <string name="trail_plan_route">Zaplanuj trasę wzdłuż szlaku</string>
+    <string name="bike_route_chooser_title">Szlaki rowerowe w tym miejscu</string>
+    <string name="bike_route_close">Zamknij szlak rowerowy</string>
+    <string name="bike_route_show_whole">Pokaż cały szlak rowerowy</string>
+    <string name="bike_route_kind_touring">Szlak rowerowy</string>
+    <string name="bike_route_kind_mtb">Szlak MTB</string>
+    <string name="bike_route_numbered">Szlak rowerowy %1$s</string>
+    <string name="mtb_route_numbered">Szlak MTB %1$s</string>
+    <string name="bike_route_with_ends">%1$s szlak rowerowy: %2$s – %3$s</string>
+    <string name="mtb_route_with_ends">%1$s szlak MTB: %2$s – %3$s</string>
+    <string name="bike_route_colour_only">%1$s szlak rowerowy</string>
+    <string name="mtb_route_colour_only">%1$s szlak MTB</string>
+    <string name="bike_route_for_mountain_bikes">Dla rowerów górskich</string>
+    <string name="bike_route_one_way">Jazda w jedną stronę</string>
+    <string name="mtb_grade">S%1$d</string>
+    <string name="mtb_grade_uphill">Pod górę S%1$d</string>
+    <string name="mtb_grade_hardest">Najtrudniej S%1$d · skala podana dla %2$d %% długości</string>
+    <string name="mtb_grade_hardest_uphill">Pod górę najtrudniej S%1$d</string>
 </resources>
