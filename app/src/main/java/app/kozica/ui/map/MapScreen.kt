@@ -303,8 +303,14 @@ fun MapScreen(
                     .firstNotNullOfOrNull { feature -> feature.getStringProperty("id") }
             photo?.let { id -> viewingPhoto = id }
             if (photo != null) return@addOnMapClickListener true
-            val tapped = map.trailsAt(it, loaded, trailTouchPx)
-            viewModel.tapTrails(tapped)
+            val cycling = state.mode == Mode.CYCLING
+            val tapped =
+                if (cycling) {
+                    map.routesAt(it, loaded, trailTouchPx, BIKE_ROUTES_LAYER, BIKE_ROUTE_ID)
+                } else {
+                    map.routesAt(it, loaded, trailTouchPx, TRAILS_LAYER, TRAIL_ID)
+                }
+            if (cycling) viewModel.tapBikeRoutes(tapped) else viewModel.tapTrails(tapped)
             tapped.isNotEmpty()
         }
         val start = shown ?: viewModel.state.mapNotNull { it.camera }.first()
@@ -387,8 +393,8 @@ fun MapScreen(
     }
 
     val fade = remember(state.style) { state.style?.let(::fadeOf) }
-    // A selected Trail sets the Route aside: drawn again, as it was, once the Trail is closed.
-    val routeAside = state.trail.shown != null
+    // A selection sets the Route aside: drawn again, as it was, once it is closed.
+    val routeAside = state.selection
     LaunchedEffect(loaded, state.route, state.faded, routeAside, state.mode) {
         val style = loaded ?: return@LaunchedEffect
         (
@@ -435,13 +441,26 @@ fun MapScreen(
         }
     }
 
-    val highlighted = state.trail.highlighted
-    LaunchedEffect(loaded, highlighted) {
+    val highlightedTrails = state.trail.highlighted
+    val highlightedBikeRoutes = state.bikeRoute.highlighted
+    LaunchedEffect(loaded, highlightedTrails, highlightedBikeRoutes) {
         val style = loaded ?: return@LaunchedEffect
-        (style.getSource(TRAIL_WALK_SOURCE) as? GeoJsonSource)?.setGeoJson(trailWalkGeoJson(highlighted))
-        val filter = selectedTrailFilter(highlighted.map { it.id })
+        (style.getSource(TRAIL_WALK_SOURCE) as? GeoJsonSource)?.setGeoJson(
+            if (highlightedBikeRoutes.isNotEmpty()) {
+                bikeRouteWalkGeoJson(highlightedBikeRoutes)
+            } else {
+                trailWalkGeoJson(highlightedTrails)
+            },
+        )
+        val trails = selectedFilter(TRAIL_ID, highlightedTrails.map { it.id })
+        val bikeRoutes = selectedFilter(BIKE_ROUTE_ID, highlightedBikeRoutes.map { it.id })
         for (layer in style.layers) {
-            if (layer.id.startsWith(SELECTED_TRAIL_LAYERS) && layer is LineLayer) layer.setFilter(filter)
+            when {
+                layer.id.startsWith(SELECTED_TRAIL_LAYERS) && layer is LineLayer -> layer.setFilter(trails)
+                layer.id.startsWith(SELECTED_BIKE_ROUTE_LAYERS) && layer is LineLayer -> layer.setFilter(bikeRoutes)
+                layer.id.startsWith(SELECTED_BIKE_ROUTE_LAYERS) && layer is SymbolLayer ->
+                    layer.setFilter(Expression.all(Expression.has("dir"), bikeRoutes))
+            }
         }
     }
 
@@ -473,15 +492,15 @@ fun MapScreen(
     }
 
     // Not saved: a ViewModel rebuilt after process death counts its fits from 0 again.
-    var fittedTrail by remember { mutableIntStateOf(state.trail.fits) }
-    LaunchedEffect(map, state.trail.fits, regions, placed) {
+    val selectionFits = state.trail.fits + state.bikeRoute.fits
+    var fittedSelection by remember { mutableIntStateOf(selectionFits) }
+    LaunchedEffect(map, selectionFits, regions, placed) {
         val map = map ?: return@LaunchedEffect
-        if (regions == null || !placed || state.trail.fits == fittedTrail) return@LaunchedEffect
+        if (regions == null || !placed || selectionFits == fittedSelection) return@LaunchedEffect
         val boxes =
-            state.trail.highlighted
-                .map { it.facts }
+            (state.trail.highlighted.map { it.facts } + state.bikeRoute.highlighted.map { it.facts })
                 .ifEmpty { return@LaunchedEffect }
-        fittedTrail = state.trail.fits
+        fittedSelection = selectionFits
         val bounds =
             LatLngBounds.from(
                 boxes.maxOf { it.north },
@@ -515,6 +534,9 @@ fun MapScreen(
     }
     BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeHike() }
     // After the Hike's, which a chooser opens over: the handler composed last wins.
+    BackHandler(enabled = state.bikeRoute.shown != null || state.bikeRoute.choices.isNotEmpty()) {
+        if (state.bikeRoute.choices.isNotEmpty()) viewModel.dismissBikeRouteChoices() else viewModel.closeTrail()
+    }
     BackHandler(enabled = state.trail.shown != null || state.trail.choices.isNotEmpty()) {
         if (state.trail.choices.isNotEmpty()) viewModel.dismissTrailChoices() else viewModel.closeTrail()
     }
@@ -730,8 +752,27 @@ fun MapScreen(
                 }
             }
             val trailWords = rememberTrailWords()
+            val bikeRouteWords = rememberBikeRouteWords()
+            val shownBikeRoute = state.bikeRoute.shown
             val shownTrail = state.trail.shown
-            if (state.trail.choices.isNotEmpty()) {
+            if (state.bikeRoute.choices.isNotEmpty()) {
+                BikeRouteChooser(
+                    choices = state.bikeRoute.choices,
+                    words = bikeRouteWords,
+                    onPick = viewModel::chooseBikeRoute,
+                    onDismiss = viewModel::dismissBikeRouteChoices,
+                    modifier = Modifier.heightIn(max = sheetHeight),
+                )
+            } else if (shownBikeRoute != null) {
+                BikeRouteSheet(
+                    route = shownBikeRoute,
+                    words = bikeRouteWords,
+                    onClose = viewModel::closeTrail,
+                    onShowWhole = viewModel::showWholeBikeRoute,
+                    onShowSections = viewModel::showBikeRouteSections,
+                    modifier = Modifier.heightIn(max = sheetHeight),
+                )
+            } else if (state.trail.choices.isNotEmpty()) {
                 TrailChooser(
                     choices = state.trail.choices,
                     words = trailWords,
@@ -794,33 +835,41 @@ fun MapScreen(
     }
 }
 
-/** The Trail ids drawn under a finger's width around [at], from every Region's `trails` layer and, below zoom 10, the highlighted walk. */
-private fun MapLibreMap.trailsAt(
+/** The ids drawn under a finger's width around [at], from every Region's [layer] and, below zoom 10, the highlighted walk. */
+private fun MapLibreMap.routesAt(
     at: LatLng,
     style: Style?,
     radius: Float,
+    layer: String,
+    idProperty: String,
 ): List<Long> {
     val layers =
         style
             ?.layers
             ?.map { it.id }
-            ?.filter { it.startsWith("$TRAILS_LAYER-") || it == TRAIL_WALK_LAYER } ?: return emptyList()
+            ?.filter { it.startsWith("$layer-") || it == TRAIL_WALK_LAYER } ?: return emptyList()
     val point = projection.toScreenLocation(at)
     val box = RectF(point.x - radius, point.y - radius, point.x + radius, point.y + radius)
     return queryRenderedFeatures(box, *layers.toTypedArray())
-        .mapNotNull { it.getNumberProperty("trail")?.toLong() }
+        .mapNotNull { it.getNumberProperty(idProperty)?.toLong() }
         .distinct()
 }
 
-/** Matches no feature for no ids, as the style's own filter does until a Trail is selected. */
-private fun selectedTrailFilter(ids: List<Long>): Expression =
+/** Matches no feature for no ids, as the style's own filter does until something is selected. */
+private fun selectedFilter(
+    idProperty: String,
+    ids: List<Long>,
+): Expression =
     if (ids.isEmpty()) {
-        Expression.eq(Expression.get("trail"), Expression.literal(-1))
+        Expression.eq(Expression.get(idProperty), Expression.literal(-1))
     } else {
         Expression.any(
-            *ids.distinct().map { Expression.eq(Expression.get("trail"), Expression.literal(it)) }.toTypedArray(),
+            *ids.distinct().map { Expression.eq(Expression.get(idProperty), Expression.literal(it)) }.toTypedArray(),
         )
     }
+
+private const val TRAIL_ID = "trail"
+private const val BIKE_ROUTE_ID = "bike_route"
 
 private fun CameraBounds.latLngBounds() = LatLngBounds.from(north, east, south, west)
 

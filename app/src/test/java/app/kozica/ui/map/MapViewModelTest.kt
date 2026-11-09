@@ -9,10 +9,12 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import app.kozica.data.AppPreferences
 import app.kozica.data.MapCamera
+import app.kozica.data.Mode
 import app.kozica.data.SavedRoute
 import app.kozica.data.regions.GeoBounds
 import app.kozica.data.regions.Region
 import app.kozica.data.regions.RegionState
+import app.kozica.data.routes.BikeRouteDetail
 import app.kozica.data.routes.FOLLOWED_KEPT_MILLIS
 import app.kozica.data.routes.FollowFix
 import app.kozica.data.routes.FollowedRoute
@@ -28,6 +30,7 @@ import app.kozica.data.routes.TrailColour
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.TrailFacts
 import app.kozica.data.routes.TrailNetwork
+import app.kozica.data.routes.bikeRouteFacts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -879,6 +882,92 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `a tap on one Bike route selects it, on several offers them, and on none closes it`() =
+        runTest {
+            val viewModel = routingViewModel(loadBikeRoute = ::bikeRouteDetail)
+
+            viewModel.tapBikeRoutes(listOf(7))
+            assertTrue(settled(viewModel) { it.bikeRoute.shown?.id == 7L }.faded)
+
+            viewModel.tapBikeRoutes(listOf(7, 8))
+            val offered = settled(viewModel) { it.bikeRoute.choices.size == 2 }.bikeRoute.choices
+            viewModel.chooseBikeRoute(offered[1])
+            assertEquals(
+                emptyList<BikeRouteDetail>(),
+                settled(viewModel) { it.bikeRoute.shown?.id == 8L }.bikeRoute.choices,
+            )
+
+            viewModel.tapBikeRoutes(emptyList())
+            assertFalse(settled(viewModel) { it.bikeRoute.shown == null }.faded)
+        }
+
+    @Test
+    fun `a selected Bike route sets the Route aside, and a long press brings the Route back`() =
+        runTest {
+            val viewModel = routingViewModel(loadBikeRoute = ::bikeRouteDetail)
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned != null }
+
+            viewModel.tapBikeRoutes(listOf(7))
+            assertTrue(settled(viewModel) { it.bikeRoute.shown != null }.selection)
+            viewModel.addPoint(49.01, 20.01)
+            assertEquals(3, settled(viewModel) { it.bikeRoute.shown == null }.route.points.size)
+        }
+
+    @Test
+    fun `a Trail and a Bike route are never selected together`() =
+        runTest {
+            val viewModel = routingViewModel(loadTrail = ::trailDetail, loadBikeRoute = ::bikeRouteDetail)
+
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+            viewModel.tapTrails(listOf(8))
+            assertNull(settled(viewModel) { it.trail.shown != null }.bikeRoute.shown)
+
+            viewModel.tapBikeRoutes(listOf(7))
+            assertNull(settled(viewModel) { it.bikeRoute.shown != null }.trail.shown)
+        }
+
+    @Test
+    fun `a change of Mode closes the selection, and picking the Mode already on does not`() =
+        runTest {
+            val viewModel = routingViewModel(loadBikeRoute = ::bikeRouteDetail)
+            settled(viewModel) { it.mode == Mode.HIKING }
+
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+            viewModel.setMode(Mode.HIKING)
+            assertEquals(7L, settled(viewModel) { it.bikeRoute.shown != null }.bikeRoute.shown?.id)
+
+            viewModel.setMode(Mode.CYCLING)
+            settled(viewModel) { it.mode == Mode.CYCLING && it.bikeRoute.shown == null }
+        }
+
+    @Test
+    fun `the whole of a parent highlights what its index lists, and fits once for each ask`() =
+        runTest {
+            val viewModel =
+                routingViewModel(
+                    loadBikeRoute = { bikeRouteDetail(it, wholeId = 100) },
+                    bikeRouteWhole = { listOf(7, 8, 100) },
+                )
+
+            viewModel.tapBikeRoutes(listOf(7))
+            val before = settled(viewModel) { it.bikeRoute.shown != null }.bikeRoute.fits
+            viewModel.showBikeRouteSections()
+            val whole = settled(viewModel) { it.bikeRoute.whole.size == 3 }.bikeRoute
+            assertEquals(listOf(7L, 8L, 100L), whole.highlighted.map { it.id })
+            assertEquals(before + 1, whole.fits)
+
+            viewModel.showWholeBikeRoute()
+            assertEquals(
+                listOf(7L),
+                settled(viewModel) { it.bikeRoute.whole.isEmpty() }.bikeRoute.highlighted.map { it.id },
+            )
+        }
+
+    @Test
     fun `a selected Trail sets the Route aside, and closing it or a long press brings the Route back`() =
         runTest {
             val viewModel = routingViewModel(loadTrail = ::trailDetail)
@@ -1058,6 +1147,8 @@ private fun routingViewModel(
     loadTrail: (Long) -> TrailDetail? = { null },
     sectionsOf: (Long) -> List<Long> = { emptyList() },
     routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
+    loadBikeRoute: (Long) -> BikeRouteDetail? = { null },
+    bikeRouteWhole: (Long) -> List<Long> = { emptyList() },
     io: CoroutineDispatcher = Dispatchers.Main,
     preferences: AppPreferences = AppPreferences(MemoryPreferences()),
     now: () -> Long = System::currentTimeMillis,
@@ -1080,8 +1171,15 @@ private fun routingViewModel(
     loadTrail = loadTrail,
     sectionsOf = sectionsOf,
     routeAlong = routeAlong,
+    loadBikeRoute = loadBikeRoute,
+    bikeRouteWhole = bikeRouteWhole,
     now = now,
 ).tracked()
+
+private fun bikeRouteDetail(
+    id: Long,
+    wholeId: Long? = null,
+) = BikeRouteDetail(bikeRouteFacts().copy(id = id), line = emptyList(), wholeId = wholeId)
 
 private fun trailDetail(
     id: Long,

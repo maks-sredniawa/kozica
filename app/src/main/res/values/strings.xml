@@ -418,7 +418,7 @@
     <string name="trail_with_ends">%1$s Trail: %2$s – %3$s</string>
     <!-- A Trail's title with no name and no place at its ends; %1$s is one of the trail_colour_ adjectives. -->
     <string name="trail_colour_only">%1$s Trail</string>
-    <!-- The six adjectives, each formed for trail_with_ends and trail_colour_only, the only two strings they go into. -->
+    <!-- The six adjectives, each formed for the masculine noun of trail_with_ends, trail_colour_only and the bike_route_ and mtb_route_ titles, the only strings they go into. -->
     <string name="trail_colour_red">Red</string>
     <string name="trail_colour_blue">Blue</string>
     <string name="trail_colour_green">Green</string>
@@ -436,4 +436,29 @@
     <string name="search_section_of">Section of %1$s</string>
     <string name="search_kind_long_distance">Long-distance Trail</string>
     <string name="trail_plan_route">Plan a Route along it</string>
+    <!-- Over the list a tap on several Bike routes at once opens (docs/phase-7a.md § 4). -->
+    <string name="bike_route_chooser_title">Bike routes here</string>
+    <string name="bike_route_close">Close Bike route</string>
+    <string name="bike_route_show_whole">Show whole Bike route</string>
+    <!-- Under a named route's title: what kind of route it is. -->
+    <string name="bike_route_kind_touring">Bike route</string>
+    <string name="bike_route_kind_mtb">MTB route</string>
+    <!-- A Bike route's title with no name; %1$s is its number as OSM writes it, e.g. "R10". -->
+    <string name="bike_route_numbered">Bike route %1$s</string>
+    <string name="mtb_route_numbered">MTB route %1$s</string>
+    <!-- A title with no name and no number; %1$s is one of the trail_colour_ adjectives, %2$s and %3$s its two ends' place names. -->
+    <string name="bike_route_with_ends">%1$s Bike route: %2$s – %3$s</string>
+    <string name="mtb_route_with_ends">%1$s MTB route: %2$s – %3$s</string>
+    <!-- A title with only its colour to go on; %1$s is one of the trail_colour_ adjectives. -->
+    <string name="bike_route_colour_only">%1$s Bike route</string>
+    <string name="mtb_route_colour_only">%1$s MTB route</string>
+    <string name="bike_route_for_mountain_bikes">For mountain bikes</string>
+    <!-- In place of the other way's climb, on a route that is only ridden in the direction its figures give. -->
+    <string name="bike_route_one_way">Ridden one way</string>
+    <!-- The route's own mtb:scale grade; %1$d is its digit. The S is the scale's own letter and stays S. -->
+    <string name="mtb_grade">S%1$d</string>
+    <string name="mtb_grade_uphill">Uphill S%1$d</string>
+    <!-- From the grades on the route's ways; %1$d is the hardest digit, %2$d the percentage of its length that carries any grade, so the rest is unknown, not easy. -->
+    <string name="mtb_grade_hardest">S%1$d at its hardest · graded over %2$d %% of its length</string>
+    <string name="mtb_grade_hardest_uphill">Uphill S%1$d at its hardest</string>
 </resources>

@@ -92,6 +92,12 @@ interface PlaceSearch {
 
     /** The Sections of a Long-distance Trail, by id. */
     fun sections(longDistance: Long): List<Long> = emptyList()
+
+    /** A Bike route's row, null for an id the index does not hold (docs/phase-7a.md § 2). */
+    fun bikeRoute(id: Long): BikeRouteFacts? = null
+
+    /** What "Show the whole" of [parent] shows: its Sections, and its own row where its own ways have one. */
+    fun bikeRouteWhole(parent: Long): List<Long> = emptyList()
 }
 
 /** `places.sqlite`, opened read-only. */
@@ -319,7 +325,56 @@ class PlaceIndex(
             .rawQuery("SELECT id FROM trails WHERE long_distance = ? ORDER BY id", arrayOf(longDistance.toString()))
             .use { rows -> buildList { while (rows.moveToNext()) add(rows.getLong(0)) } }
 
+    override fun bikeRoute(id: Long): BikeRouteFacts? =
+        db.rawQuery("SELECT $BIKE_ROUTE_COLUMNS FROM bike_routes WHERE id = ?", arrayOf(id.toString())).use { rows ->
+            if (rows.moveToFirst()) bikeRouteFacts(rows) else null
+        }
+
+    private fun bikeRouteFacts(rows: Cursor): BikeRouteFacts {
+        fun text(column: Int) = if (rows.isNull(column)) null else rows.getString(column)
+
+        fun whole(column: Int) = if (rows.isNull(column)) null else rows.getInt(column)
+        return BikeRouteFacts(
+            id = rows.getLong(0),
+            name = text(1),
+            namePl = text(2),
+            ref = text(3),
+            colour = TrailColour.of(rows.getString(4)),
+            from = text(5),
+            to = text(6),
+            longDistanceId = if (rows.isNull(7)) null else rows.getLong(7),
+            longDistanceName = text(8),
+            startLatitude = rows.getDouble(9),
+            startLongitude = rows.getDouble(10),
+            endLatitude = rows.getDouble(11),
+            endLongitude = rows.getDouble(12),
+            metres = rows.getDouble(13),
+            ascent = rows.getDouble(14),
+            descent = rows.getDouble(15),
+            gaps = rows.getInt(16),
+            south = rows.getDouble(17),
+            west = rows.getDouble(18),
+            north = rows.getDouble(19),
+            east = rows.getDouble(20),
+            kind = BikeRouteKind.of(rows.getString(21)),
+            oneWay = rows.getInt(22) != 0,
+            mtbScale = whole(23),
+            mtbScaleUphill = whole(24),
+        )
+    }
+
+    override fun bikeRouteWhole(parent: Long): List<Long> =
+        db
+            .rawQuery(
+                "SELECT id FROM bike_routes WHERE long_distance = ?1 OR id = ?1 ORDER BY id",
+                arrayOf(parent.toString()),
+            ).use { rows -> buildList { while (rows.moveToNext()) add(rows.getLong(0)) } }
+
     private companion object {
+        const val BIKE_ROUTE_COLUMNS =
+            "id, name, name_pl, ref, colour, from_place, to_place, long_distance, long_distance_name, " +
+                "start_lat, start_lon, end_lat, end_lon, length, ascent, descent, gaps, " +
+                "min_lat, min_lon, max_lat, max_lon, kind, one_way, mtb_scale, mtb_scale_uphill"
         const val TRAIL_COLUMNS =
             "id, name, name_pl, ref, colour, symbol, from_place, to_place, long_distance, long_distance_name, " +
                 "start_lat, start_lon, end_lat, end_lon, length, ascent, descent, gaps, min_lat, min_lon, max_lat, max_lon"

@@ -107,6 +107,35 @@ class MapStyleTest {
     }
 
     @Test
+    fun `a selected Bike route is out of the chips' reach and never faded`() {
+        for (style in listOf("light", "dark")) {
+            val layers =
+                Json
+                    .parseToJsonElement(File("src/main/assets/map/style-$style.json").readText())
+                    .jsonObject
+                    .getValue("layers")
+                    .jsonArray
+                    .map { it.jsonObject }
+                    .filter {
+                        it
+                            .getValue("id")
+                            .jsonPrimitive.content
+                            .startsWith(SELECTED_BIKE_ROUTE_LAYERS)
+                    }
+            assertEquals(3, layers.size)
+            for (layer in layers) {
+                assertFalse(
+                    layer
+                        .getValue("id")
+                        .jsonPrimitive.content
+                        .startsWith(BIKE_ROUTE_LAYERS),
+                )
+                assertEquals(null, layer["metadata"])
+            }
+        }
+    }
+
+    @Test
     fun `a layer with no filter of its own keeps none after a chip has set one on it`() {
         val held = mutableMapOf<String, String?>()
         var onTheLayer: String? = null

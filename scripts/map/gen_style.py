@@ -98,6 +98,7 @@ SYMBOL_STEP = 18
 FADED_OPACITY = 0.3
 MODE_FADED_OPACITY = 0.2
 NO_TRAIL = ["==", ["get", "trail"], -1]
+NO_BIKE_ROUTE = ["==", ["get", "bike_route"], -1]
 # phase 7a § 2: the largest union `count` on a way at B's pin is 10, so a twice-slot runs −9..9.
 LARGEST_COUNT = 10
 PLATE_STEP = 13
@@ -151,6 +152,7 @@ def ref_offset() -> list:
 
 
 REF_SIZE = 10
+SELECTED_CHEVRON_SIZE = 1.2
 # docs/phase-7a.md § 3's thresholds, the same in both Modes.
 BIKE_ROUTE_SHOWN = ["case",
                     ["==", ["get", "kind"], "mtb"], [">=", ["zoom"], 12],
@@ -183,6 +185,11 @@ def style(dark: bool) -> dict:
     casing = "black" if dark else "yellow"
     trail_colour = ["match", ["get", "colour"], *(v for pair in TRAIL.items() for v in pair), c["trail_other"]]
     bike_colour = ["match", ["get", "colour"], *(v for pair in TRAIL.items() for v in pair), BIKE_ROUTE["other"]]
+    # A selected Bike route with no marking colour keeps its violet on the walk, which Trails' "other" would grey.
+    walk_colour = ["match", ["get", "colour"], *(v for pair in TRAIL.items() for v in pair),
+                   "violet", BIKE_ROUTE["other"], c["trail_other"]]
+    chevron_image = ["match", ["get", "colour"], "yellow", "chevron_yellow_casing",
+                     "black", "chevron_black_casing", "chevron_route_casing"]
 
     def text_layout(size, **more):
         return {"text-font": FONT, "text-size": size, **more}
@@ -267,8 +274,7 @@ def style(dark: bool) -> dict:
             layout={
                 "symbol-placement": "line",
                 "symbol-spacing": by_zoom((13, 120), (16, 80)),
-                "icon-image": ["match", ["get", "colour"], "yellow", "chevron_yellow_casing",
-                               "black", "chevron_black_casing", "chevron_route_casing"],
+                "icon-image": chevron_image,
                 "icon-rotate": ["match", ["get", "dir"], "backward", 180, 0],
                 "icon-rotation-alignment": "map",
                 "icon-keep-upright": False,
@@ -357,12 +363,40 @@ def style(dark: bool) -> dict:
               layout={"line-join": "round", "line-cap": "round"},
               paint={"line-color": trail_colour, "line-width": trail_width(2.0),
                      "line-offset": line_offset(TRAIL_INDEX, TRAIL_COUNT)}),
+        # The selected Bike route (docs/phase-7a.md § 3), as the selected Trail is: named so the chips leave it alone.
+        layer("selected-bike-route-casing", "line", "bike_routes", minzoom=10, filter=NO_BIKE_ROUTE,
+              layout={"line-join": "round", "line-cap": "round"},
+              paint={"line-color": c["route_casing"], "line-width": trail_width(5.0),
+                     "line-offset": line_offset(BIKE_INDEX, BIKE_COUNT)}),
+        layer("selected-bike-route", "line", "bike_routes", minzoom=10, filter=NO_BIKE_ROUTE,
+              layout={"line-join": "round", "line-cap": "round"},
+              paint={"line-color": bike_colour, "line-width": trail_width(2.0),
+                     "line-offset": line_offset(BIKE_INDEX, BIKE_COUNT)}),
+        layer(
+            "selected-bike-route-chevrons", "symbol", "bike_routes", minzoom=13, filter=NO_BIKE_ROUTE,
+            layout={
+                "symbol-placement": "line",
+                "symbol-spacing": by_zoom((13, 120), (16, 80)),
+                "icon-image": chevron_image,
+                "icon-size": SELECTED_CHEVRON_SIZE,
+                "icon-rotate": ["match", ["get", "dir"], "backward", 180, 0],
+                "icon-rotation-alignment": "map",
+                "icon-keep-upright": False,
+                "icon-allow-overlap": True,
+                "icon-ignore-placement": True,
+                "icon-offset": chevron_offset(),
+            },
+        ),
         {"id": "trail-walk-casing", "type": "line", "source": "trail-walk", "maxzoom": 10,
          "layout": {"line-join": "round", "line-cap": "round"},
          "paint": {"line-color": c["route_casing"], "line-width": 6.0}},
         {"id": "trail-walk", "type": "line", "source": "trail-walk", "maxzoom": 10,
          "layout": {"line-join": "round", "line-cap": "round"},
-         "paint": {"line-color": trail_colour, "line-width": 3.0}},
+         "paint": {"line-color": walk_colour, "line-width": 3.0}},
+        {"id": "trail-walk-chevrons", "type": "symbol", "source": "trail-walk", "maxzoom": 10, "filter": ["has", "one_way"],
+         "layout": {"symbol-placement": "line", "symbol-spacing": 120, "icon-image": chevron_image,
+                    "icon-size": SELECTED_CHEVRON_SIZE, "icon-rotation-alignment": "map", "icon-keep-upright": False,
+                    "icon-allow-overlap": True, "icon-ignore-placement": True}},
         # The planned Route (docs/phase-5.md § 4), drawn from MapScreen.kt's GeoJSON over everything.
         {"id": "route-casing", "type": "line", "source": "route", "filter": ["==", ["get", "approach"], "trail"],
          "layout": {"line-join": "round", "line-cap": "round"},

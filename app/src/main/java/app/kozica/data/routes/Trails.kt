@@ -20,6 +20,14 @@ enum class TrailColour(
     }
 }
 
+/** What the camera is fitted to when a selection is shown whole. */
+interface Bounded {
+    val south: Double
+    val west: Double
+    val north: Double
+    val east: Double
+}
+
 /**
  * A row of `places.sqlite`'s `trails` table (docs/phase-6c.md § 2). [ascent] and [descent] are along the
  * walk, from its start to its end; walked the other way, the two swap.
@@ -45,11 +53,11 @@ data class TrailFacts(
     val ascent: Double,
     val descent: Double,
     val gaps: Int,
-    val south: Double,
-    val west: Double,
-    val north: Double,
-    val east: Double,
-)
+    override val south: Double,
+    override val west: Double,
+    override val north: Double,
+    override val east: Double,
+) : Bounded
 
 /**
  * A Trail as the map shows it: its row, its walk as a line, and where it has neither a name nor ends a

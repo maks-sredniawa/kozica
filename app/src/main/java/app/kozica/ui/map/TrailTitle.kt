@@ -49,36 +49,38 @@ internal fun trailTitle(
     }
 }
 
-/** What names a Trail on its sheet and in the chooser: its [title], and a Section's Long-distance Trail [above] it. */
-internal data class TrailHeading(
+/** What names a Trail or Bike route on its sheet and in the chooser: its [title], a Section's parent [above] it, and a named Bike route's number [below]. */
+internal data class SheetHeading(
     val above: String?,
     val title: String,
+    val below: String? = null,
 )
 
 /** A Section named as its Long-distance Trail, as the Tatranská magistrála's are, shows the name once. */
 internal fun trailHeading(
     trail: TrailDetail,
     words: TrailWords,
-): TrailHeading {
+): SheetHeading {
     val title = trailTitle(trail.facts, trail.nearestFrom, trail.nearestTo, words)
-    return TrailHeading(above = trail.facts.longDistanceName?.takeIf { it != title }, title = title)
+    return SheetHeading(above = trail.facts.longDistanceName?.takeIf { it != title }, title = title)
 }
 
 @Composable
-internal fun rememberTrailWords(): TrailWords {
-    val colours =
-        mapOf(
-            TrailColour.RED to stringResource(R.string.trail_colour_red),
-            TrailColour.BLUE to stringResource(R.string.trail_colour_blue),
-            TrailColour.GREEN to stringResource(R.string.trail_colour_green),
-            TrailColour.YELLOW to stringResource(R.string.trail_colour_yellow),
-            TrailColour.BLACK to stringResource(R.string.trail_colour_black),
-            TrailColour.OTHER to stringResource(R.string.trail_colour_other),
-        )
-    return TrailWords(
-        colours = colours,
+internal fun rememberTrailWords(): TrailWords =
+    TrailWords(
+        colours = trailColourWords(),
         withEnds = stringResource(R.string.trail_with_ends),
         colourOnly = stringResource(R.string.trail_colour_only),
         polish = LocalConfiguration.current.locales[0].language == "pl",
     )
-}
+
+@Composable
+internal fun trailColourWords(): Map<TrailColour, String> =
+    mapOf(
+        TrailColour.RED to stringResource(R.string.trail_colour_red),
+        TrailColour.BLUE to stringResource(R.string.trail_colour_blue),
+        TrailColour.GREEN to stringResource(R.string.trail_colour_green),
+        TrailColour.YELLOW to stringResource(R.string.trail_colour_yellow),
+        TrailColour.BLACK to stringResource(R.string.trail_colour_black),
+        TrailColour.OTHER to stringResource(R.string.trail_colour_other),
+    )
