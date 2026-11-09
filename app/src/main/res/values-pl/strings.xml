@@ -329,6 +329,7 @@
     <string name="search_section_of">Odcinek: %1$s</string>
     <string name="search_kind_long_distance">Szlak długodystansowy</string>
     <string name="trail_plan_route">Zaplanuj trasę wzdłuż szlaku</string>
+    <string name="search_kind_bike_route_parent">Szlak rowerowy z odcinkami</string>
     <string name="bike_route_chooser_title">Szlaki rowerowe w tym miejscu</string>
     <string name="bike_route_close">Zamknij szlak rowerowy</string>
     <string name="bike_route_show_whole">Pokaż cały szlak rowerowy</string>
