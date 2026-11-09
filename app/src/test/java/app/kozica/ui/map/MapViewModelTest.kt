@@ -8,9 +8,12 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import app.kozica.data.AppPreferences
+import app.kozica.data.HikeEntity
 import app.kozica.data.MapCamera
 import app.kozica.data.Mode
 import app.kozica.data.SavedRoute
+import app.kozica.data.hikes.TrackPoint
+import app.kozica.data.hikes.encodeTrack
 import app.kozica.data.regions.GeoBounds
 import app.kozica.data.regions.Region
 import app.kozica.data.regions.RegionState
@@ -65,6 +68,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.time.Instant
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.seconds
@@ -750,6 +754,35 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `each opening of a Hike is told apart, while a change to it keeps the count`() =
+        runTest {
+            val asked = MutableStateFlow<String?>(null)
+            val stored =
+                MutableStateFlow(
+                    HikeEntity(
+                        id = "h",
+                        name = "Kopa",
+                        startedAt = Instant.EPOCH,
+                        endedAt = Instant.EPOCH,
+                        track =
+                            encodeTrack(
+                                listOf(listOf(TrackPoint(0, 49.0, 20.0, null), TrackPoint(1_000, 49.0, 20.02, null))),
+                            ),
+                    ),
+                )
+            val viewModel = routingViewModel(hikeToShow = asked, observeHike = { stored })
+
+            asked.value = "h"
+            val first = settled(viewModel) { it.hike?.id == "h" }.hike!!.opening
+
+            asked.value = "h"
+            settled(viewModel) { it.hike?.opening == first + 1 }
+
+            stored.value = stored.value.copy(note = "Mgła")
+            assertEquals(first + 1, settled(viewModel) { it.hike?.note == "Mgła" }.hike?.opening)
+        }
+
+    @Test
     fun `saving again writes over the Route it was opened from`() =
         runTest {
             val writes = mutableListOf<Pair<String?, String>>()
@@ -1268,6 +1301,8 @@ private fun routingViewModel(
     io: CoroutineDispatcher = Dispatchers.Main,
     preferences: AppPreferences = AppPreferences(MemoryPreferences()),
     now: () -> Long = System::currentTimeMillis,
+    hikeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
+    observeHike: (String) -> Flow<HikeEntity?> = { flowOf(null) },
 ) = MapViewModel(
     regions = flowOf(emptyList()),
     preferences = preferences,
@@ -1284,6 +1319,8 @@ private fun routingViewModel(
     loadRoute = loadRoute,
     saveRoute = saveRoute,
     observeName = observeName,
+    hikeToShow = hikeToShow,
+    observeHike = observeHike,
     loadTrail = loadTrail,
     sectionsOf = sectionsOf,
     routeAlong = routeAlong,

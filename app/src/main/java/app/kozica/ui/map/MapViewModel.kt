@@ -149,6 +149,7 @@ data class MapUiState(
  * @param climb null when no ascent is stored and no height could be read, so none is shown.
  * @param keep the metres Trim keeps, null while not trimming.
  * @param photos in the order they were taken (docs/phase-6.md § 6).
+ * @param opening counts the times a Hike was opened, so re-opening the same one is still fitted to.
  */
 data class HikeUiState(
     val id: String,
@@ -165,6 +166,7 @@ data class HikeUiState(
     val note: String? = null,
     val photos: List<HikePhoto> = emptyList(),
     val keep: ClosedFloatingPointRange<Double>? = null,
+    val opening: Int = 0,
 ) {
     val photoCount: Int get() = photos.size
 
@@ -409,6 +411,8 @@ class MapViewModel(
     // Changes whenever the map's Route is replaced, so a Save that returns late lands only on its own.
     private var routeGeneration = 0
 
+    private var routeOpenings = 0
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val track: Flow<Track> =
         recording
@@ -430,6 +434,8 @@ class MapViewModel(
 
     private val hikeKeep = MutableStateFlow<ClosedFloatingPointRange<Double>?>(null)
 
+    private val hikeOpenings = MutableStateFlow(0)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val hike: Flow<HikeUiState?> =
         combine(
@@ -443,7 +449,8 @@ class MapViewModel(
                 }
             },
             hikeKeep,
-        ) { hike, keep -> hike?.copy(keep = keep) }
+            hikeOpenings,
+        ) { hike, keep, opening -> hike?.copy(keep = keep, opening = opening) }
 
     private val mode: StateFlow<Mode> =
         preferences.mapMode
@@ -702,8 +709,6 @@ class MapViewModel(
     }
 
     /** Replaces whatever is on the map with a saved Route, planned again from today's network. */
-    private var routeOpenings = 0
-
     private fun show(saved: SavedRoute) {
         dismissOffer()
         closeHike()
@@ -741,6 +746,7 @@ class MapViewModel(
         hikeKeep.value = null
         readHeights = null
         closeSelection()
+        hikeOpenings.update { it + 1 }
         shownHike.value = id
     }
 
