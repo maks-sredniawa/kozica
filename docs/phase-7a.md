@@ -346,7 +346,9 @@ merges.
 - **`docs/phase-5.md` § 2–3**: the network's format version 2 (`sets`, `ride`, `mtb`, `mtb_up`), and
   `oneway()` staying the walker's beside the rider's.
 - **`art/README.md`**: the second mark and `--cycling`, until 7c.
-- **`docs/store-listing.md`** and the release notes: not until 7c, when release users can switch.
+- **`docs/store-listing.md`**: its descriptions not until 7c, when release users can switch. Its
+  release notes describe what each release really shows, under the heading `docs/RELEASING.md`'s
+  gate requires for every version.
 
 ## Known gaps, deliberately
 
