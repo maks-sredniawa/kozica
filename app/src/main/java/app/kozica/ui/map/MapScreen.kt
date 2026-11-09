@@ -483,7 +483,7 @@ fun MapScreen(
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed) return@LaunchedEffect
         val line = planned?.line?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
-        val route = planned.hashCode()
+        val route = 31 * planned.hashCode() + state.route.opening
         if (route == fitted) return@LaunchedEffect
         awaitLayoutSettled(height = { mapHeight }, keyboard = { keyboard.getBottom(density) })
         fitted = route
