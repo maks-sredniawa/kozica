@@ -1130,7 +1130,6 @@ private fun setFilterOf(
     }
 }
 
-/** The layer's own filter from the style, narrowed to the chip's kind. */
 private fun bikeRouteFilter(
     own: Expression?,
     kind: String?,

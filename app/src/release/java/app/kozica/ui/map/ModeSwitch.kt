@@ -8,7 +8,6 @@ import app.kozica.data.Mode
 /** The release half of the switch, until phase 7c opens it to everyone: Hiking, whatever is stored. */
 fun modeOf(stored: Mode): Mode = Mode.HIKING
 
-/** The release half of the switch: nothing. */
 @Composable
 fun ModeSwitch(
     mode: Mode,
