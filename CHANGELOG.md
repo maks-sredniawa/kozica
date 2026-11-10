@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.16.0](https://github.com/maks-sredniawa/kozica/compare/v0.15.0...v0.16.0) (2026-11-10)
+
+
+### Features
+
+* draw the Bike routes on the map, with a developer-only switch to Cycling ([4d234f1](https://github.com/maks-sredniawa/kozica/commit/4d234f13a4cf9688127a943a7fd1d27658d5c1cc))
+* give the debug build's mark wheels under its crag ([2b64b16](https://github.com/maks-sredniawa/kozica/commit/2b64b16d245d4f3fc5f8f0859ca42892e9286d72))
+* search Bike routes in Cycling, with a row offering the other Mode's matches ([503757a](https://github.com/maks-sredniawa/kozica/commit/503757a5af581522266e23f6fcbba3b01cf11683))
+* tap a Bike route in Cycling for its highlight and its sheet ([da22159](https://github.com/maks-sredniawa/kozica/commit/da22159d76a7192a59eac5aaad56c95a4b72c579))
+
+
+### Bug Fixes
+
+* a Bike route layer with no filter of its own stays without one between chips ([5f7c7c5](https://github.com/maks-sredniawa/kozica/commit/5f7c7c5f1332a59fb646ec42185dad58ab22dfcc))
+* draw the Bike routes beneath the Trails, which is all a release user sees until 7c ([0be7b08](https://github.com/maks-sredniawa/kozica/commit/0be7b0861dc97aefd4f146454de637f03937e9b9))
+* draw the MTB plate's rough ground in white on the black bar ([bbfe3ee](https://github.com/maks-sredniawa/kozica/commit/bbfe3ee9aa3f7e2db5c0eccf5ec4b9f1bfe7dccb))
+* draw the plates' bicycle in the Trails' black, not a new literal ([0ee227b](https://github.com/maks-sredniawa/kozica/commit/0ee227b10bb05ef23d732cd4186b5cb6aaf283ab))
+* drop the KDocs that only restate their signatures ([7d6883c](https://github.com/maks-sredniawa/kozica/commit/7d6883cbc4d1de64f9faabdb6a7468d0edbddd82))
+* fit a Hike opened again while it is already on the map ([8b0e960](https://github.com/maks-sredniawa/kozica/commit/8b0e960b91eb9f7dc999bea000cb9e9372af09a3))
+* fit a route picked from search once the keyboard has closed ([a563b54](https://github.com/maks-sredniawa/kozica/commit/a563b543044d5e5bf16dc1632d3c587dbda626c5))
+* fit a saved Route opened from the Routes tab ([81c69e5](https://github.com/maks-sredniawa/kozica/commit/81c69e5a955bf3b032c41c49bdccc0f79525a590))
+* fit a saved Route when it is opened again ([b0bc651](https://github.com/maks-sredniawa/kozica/commit/b0bc65144fc8a2dd1ac4910f7d87e22eb1cebf6b))
+* hide the Sections button under an unnamed parent and keep selected chevrons on their strands ([55466fd](https://github.com/maks-sredniawa/kozica/commit/55466fdf0c347d0a1945c9c60fd5e1b8e5f79594))
+* narrow the Mode switch's segments so the row stays on one line at 360 dp ([d49a0c8](https://github.com/maks-sredniawa/kozica/commit/d49a0c836f486d1936c1c12cfa34749f874e8fe0))
+* wrap the Mode switch's chips under it where the row runs out of width ([f43c445](https://github.com/maks-sredniawa/kozica/commit/f43c44520ce092f81a2864b1725aba62b599a201))
+
 ## [0.15.0](https://github.com/maks-sredniawa/kozica/compare/v0.14.4...v0.15.0) (2026-11-07)
 
 
