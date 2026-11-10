@@ -143,7 +143,7 @@ without the number, and `quantity="one"` in Polish means *exactly* one, not "the
 
 ## 8. What a language ships on
 
-**An audit against §2, a look at it on a phone, and a route back — a native speaker's read-through
+**An audit against §2, a look at it on a device, and a route back — a native speaker's read-through
 when you can get one, but not as the gate.** The first app built from this template promised a
 native read-through per language and shipped nine languages; seven reviewers never materialised, and
 the promise had one outcome — mechanically green drafts sitting unshipped while they rotted against
