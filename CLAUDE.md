@@ -65,7 +65,7 @@ let us do otherwise".">
   proves the rows survive. `scripts/schema-gate.py` enforces the mechanical half in CI.
   **Every migration test opens the database directly and so walks past the launch gate** — that is
   how an app ships a refusal screen to every existing install with a green test run behind it.
-  Verify an upgrade on the phone, not only in a test.
+  Verify an upgrade on a device, not only in a test.
 - **A branch merges with every shipped language complete.** Adding an English string does *not*
   redden your build — completeness is a merge gate (`scripts/translation-gate.py`), not a test, so
   copy is translated **once** rather than against draft wording and again after review. Everything
