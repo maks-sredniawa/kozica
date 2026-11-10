@@ -19,7 +19,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 4. A migration test proving the **rows survive** — read values back, do not merely assert nothing
    threw. `runMigrationsAndValidate` compares *shapes* and is blind to a table emptied by a cascading
    `DROP`.
-5. **An actual upgrade watched on a phone**: install the previous build, put real data in it, install
+5. **An actual upgrade watched on a device**: install the previous build, put real data in it, install
    the new one over the top, confirm the app opens and the data is there.
    `./gradlew assembleDebug -PreleaseShapedDebug` is how to do this without touching a Play install —
    it is minified *and* `BuildConfig.DEBUG == false`, so migrations are registered rather than the
