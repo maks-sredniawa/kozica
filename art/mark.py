@@ -2,10 +2,11 @@
 
 A Tatra chamois in profile on a crag, both horns hooked back into crooks, and a short tail. Both
 generators import it, so the launcher icon, the notification icon and the feature graphic cannot
-drift into being different marks. Edit the anchors in `draw-mark.py`, which rewrites MARK and HOLE
-here, never the path data by hand.
+drift into being different marks. Edit the anchors in `draw-mark.py`, which rewrites every path
+literal here, never the path data by hand.
 
-Two subpaths: the silhouette (animal and crag as one contour) and the hole under the belly.
+PARTS is two subpaths: the silhouette (animal and crag as one contour) and the hole under the belly.
+CYCLING_PARTS, the debug build's mark until 7c, adds tyres to the outline and the two wheels.
 Coordinates are in arbitrary units around the mark's centre; callers fit them to their canvas with
 `fit()`. y grows downward, as in SVG and PIL.
 """

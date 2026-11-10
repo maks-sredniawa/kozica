@@ -1,4 +1,4 @@
-"""The mark's drawing tool: anchor points -> cubic path data, written over MARK and HOLE in
+"""The mark's drawing tool: anchor points -> cubic path data, written over every path literal in
 `mark.py` beside this file. Move an anchor, run this, then the two generators.
 """
 import math
