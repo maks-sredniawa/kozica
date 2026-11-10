@@ -144,7 +144,8 @@ app/src/debug/    the developer-only build: the sample-data seeder, Settings' de
                   relief pack, ui/map/FrameLog.kt logs frame times and CameraReceiver sets the
                   camera, for phase 4's readings; a network and a name index hand-pushed to
                   files/network/ stand in for the base assets, and RouteReceiver plans a Route and logs it, for phase 5's
-                  readings
+                  readings; and until 7c the launcher icon's foreground, monochrome and mipmaps with
+                  wheels under the crag, written by art/make-launcher-icon.py --cycling
 app/src/release/  only the other half of each seam, so main/ can call it unconditionally: no debug
                   settings, no continue button, no frame log, no Mode switch and Hiking always, and the Regions, the relief and the
                   real position passed through
