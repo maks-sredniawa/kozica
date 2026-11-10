@@ -1,5 +1,5 @@
 """The mark's drawing tool: anchor points -> cubic path data, written over every path literal in
-`mark.py` beside this file. Move an anchor, run this, then the two generators.
+`mark.py` beside this file. Move an anchor, run this, then the generators `art/README.md` lists.
 """
 import math
 import re
