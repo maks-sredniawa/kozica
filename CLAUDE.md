@@ -172,10 +172,7 @@ with a build to prove it.
 
 ## Environment notes
 
-- **An emulator reading is enough** wherever an emulator can show what it needs, even when a phase
-  document names the test phone: record it as read on the emulator. The phones stay for what an
-  emulator cannot show — MIUI/HyperOS killing background work and autostart, real GPS, real-GPU
-  frame times (phase 4's gate), installs from Play. Owner's rule since 2026-11-10. A headless
+- **An emulator reading is enough** where an emulator can show it: `docs/PLAN.md` rule 3. A headless
   emulator renders in software and draws no symbol layer (plates, labels, chevrons): read those on
   `pixel-api37` started with `-gpu host` and a window.
 - **Two phones, so name one.** Gradle and adb both reach every attached device; set
