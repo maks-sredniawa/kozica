@@ -172,6 +172,12 @@ with a build to prove it.
 
 ## Environment notes
 
+- **An emulator reading is enough** wherever an emulator can show what it needs, even when a phase
+  document names the test phone: record it as read on the emulator. The phones stay for what an
+  emulator cannot show — MIUI/HyperOS killing background work and autostart, real GPS, real-GPU
+  frame times (phase 4's gate), installs from Play. Owner's rule since 2026-11-10. A headless
+  emulator renders in software and draws no symbol layer (plates, labels, chevrons): read those on
+  `pixel-api37` started with `-gpu host` and a window.
 - **Two phones, so name one.** Gradle and adb both reach every attached device; set
   `ANDROID_SERIAL` (both honour it) or pass `adb -s <serial>`.
   - **The test phone**, `mnbm7hw8ivdqzx9l`: a wiped, debloated Redmi Note 8 Pro, Android 11 (API
