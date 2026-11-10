@@ -52,7 +52,7 @@ with Noto Sans on that basis and ships no glyph outlines.
 ## Replacing the mark
 
 ```bash
-# 1. Move the anchors in draw-mark.py, then let it rewrite MARK and HOLE in mark.py.
+# 1. Move the anchors in draw-mark.py, then let it rewrite every path literal in mark.py.
 python3 art/draw-mark.py
 
 # 2. Regenerate everything that derives from it.
