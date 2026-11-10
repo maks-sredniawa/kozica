@@ -59,11 +59,17 @@ The first app built from this template split every one of its middle phases alon
 kind, because in each case a bundle of a cheap item with an expensive one — or a feature with the
 safety work it depends on — hid which half was blocking. However neatly one sentence describes both, two costs are two phases.
 
-### 3. A phase proves itself on the phone, not in a test
+### 3. A phase proves itself on a device, not in a test
 
-Every phase ends with readings taken off a real device and written into its `phase-N.md`, with the
+Every phase ends with readings taken off a device and written into its `phase-N.md`, with the
 command that produced them. A green test run says the code does what the test asked; the phone says
 what the ROM allowed. Vendor ROMs are where those two part company.
+
+**An emulator reading counts wherever an emulator can show what the reading needs**, even where a
+phase document names the test phone: record it as read on the emulator. The phones stay for what no
+emulator can show — MIUI and HyperOS killing background work and the autostart grant, a real GPS fix,
+frame times on a real GPU (phase 4's gate), and an install from Play. The owner's rule since
+2026-11-10.
 
 **But the rule has a second clause, and leaving it out is how a roadmap arrives at no tests at all.**
 Most of the risk in an app this size is device behaviour, and none of that is reachable by a unit
