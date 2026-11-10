@@ -138,6 +138,21 @@ OUTER = [
     (-66, -12, 's'),   # thigh
 ]
 
+WHEEL_RADIUS = 16
+WHEELS = ((-40, 76), (26, 76))
+
+# The slab's underside, right to left: a tyre round each wheel, the gap between them cut up to y=70.
+TYRES = [
+    (50.6, 71.7, 's'), (49.2, 85.2, 's'), (40.9, 96.1, 's'), (28.2, 100.9, 's'),
+    (14.8, 98.3, 's'), (4.7, 89.1, 's'),
+    (1, 70, 'c'), (-15, 70, 'c'),
+    (-18.7, 89.1, 's'), (-28.8, 98.3, 's'), (-42.2, 100.9, 's'), (-54.9, 96.1, 's'),
+    (-63.2, 85.2, 's'), (-64.6, 71.7, 's'),
+]
+_BOTTOM = OUTER.index((57, 88, 'c'))
+assert OUTER[_BOTTOM + 1] == (-70, 88, 'c')
+CYCLING_OUTER = OUTER[:_BOTTOM] + TYRES + OUTER[_BOTTOM + 2:]
+
 HOLE = [
     (-32, -16, 's'),   # belly rear
     (-8, -20, 's'),    # belly
@@ -152,6 +167,21 @@ HOLE = [
     (-41, 14, 's'),    # hind leg front edge
     (-34, -4, 's'),    # stifle
 ]
+
+
+def circle(centre, r):
+    """Clockwise from the top, as four cubics: the standard quarter-arc approximation."""
+    cx, cy = centre
+    k = r * 4 * (math.sqrt(2) - 1) / 3
+    quarters = (
+        ((cx + k, cy - r), (cx + r, cy - k), (cx + r, cy)),
+        ((cx + r, cy + k), (cx + k, cy + r), (cx, cy + r)),
+        ((cx - k, cy + r), (cx - r, cy + k), (cx - r, cy)),
+        ((cx - r, cy - k), (cx - k, cy - r), (cx, cy - r)),
+    )
+    return f"M{fmt((cx, cy - r))}" + "".join(
+        f"C{fmt(c1)} {fmt(c2)} {fmt(end)}" for c1, c2, end in quarters
+    ) + "Z"
 
 
 def cubic(points, k=1.0):
@@ -208,9 +238,16 @@ def source_literal(d, indent="    "):
 
 def write_mark(path):
     text = path.read_text()
-    for name, pts in (("MARK", OUTER), ("HOLE", HOLE)):
+    literals = (
+        ("MARK", path_data(OUTER)),
+        ("HOLE", path_data(HOLE)),
+        ("CYCLING_MARK", path_data(CYCLING_OUTER)),
+        ("REAR_WHEEL", circle(WHEELS[0], WHEEL_RADIUS)),
+        ("FRONT_WHEEL", circle(WHEELS[1], WHEEL_RADIUS)),
+    )
+    for name, d in literals:
         text, n = re.subn(
-            rf"^{name} = \(\n.*?\n\)", f"{name} = (\n    {source_literal(path_data(pts))}\n)",
+            rf"^{name} = \(\n.*?\n\)", f"{name} = (\n    {source_literal(d)}\n)",
             text, count=1, flags=re.S | re.M,
         )
         assert n == 1, name

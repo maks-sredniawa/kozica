@@ -285,12 +285,16 @@ with its plural forms.
 
 ## 6. The mark
 
-The crag becomes the bike the chamois stands on: the slab deepened by 12 units, with two round holes
-of radius 17 at (−30, 76) and (18, 76) as wheels; the chamois untouched. A third hole, the frame
-diamond (−12, 58) (6, 58) (−3, 78), stays only if it reads at 44 dp.
+The crag becomes the bike the chamois stands on: two round holes of radius 16 at (−40, 76) and
+(26, 76) as wheels, and the slab's underside following them as a tyre of outer radius 25 round each,
+the gap between the wheels cut up to y = 70; the chamois untouched. `draw-mark.py`'s `TYRES` holds the
+anchors. **Amended at R8, 2026-11-10, by the owner:** the plan was the slab deepened by 12 units with
+holes of radius 17 at (−30, 76) and (18, 76) in it, and at 44 dp that read as a rock with two holes;
+only a tyre the ground shows round reads as a wheel. The frame diamond (−12, 58) (6, 58) (−3, 78),
+kept only if it read at 44 dp, did not: about 3 px there, and the three holes an owl's face at 512 px.
 
 **Two marks in one identity until 7c.** `PARTS` stays the shipped mark. `mark.py` gains
-`CYCLING_PARTS`: `CYCLING_MARK`, the outline with the deepened slab, the same `HOLE`, and the wheels
+`CYCLING_PARTS`: `CYCLING_MARK`, the outline with the tyres, the same `HOLE`, and the wheels
 as `Subpath(hole=True)`. `draw-mark.py` writes `CYCLING_MARK` and the wheels beside `MARK` and
 `HOLE`, or its next run loses them. `make-launcher-icon.py --cycling` writes the foreground, the
 monochrome and the mipmaps from `CYCLING_PARTS` into `app/src/debug/res/`, which the debug build's
@@ -403,4 +407,4 @@ build with the Regions hand-pushed.
 | R5 | A tap in Cycling where Trails and Bike routes share a way lists the Bike routes only | test phone, screencap of the chooser | 2026-11-09, emulator `pixel-api37` with the test phone absent: at (50.83329, 15.55385), on a way with Trails r375392 and r13272306 and two MTB routes, "Bike routes here" lists Artystyczna and Mała Szklarska Pętla and no Trail |
 | R6 | The frame time at zoom 11 and 13 in Cycling with every Bike route drawn, against the same pan with v0.14.4's Region archives hand-pushed instead, taken straight before it. Pass: p95 within 25 % of the baseline's, and no frame over 100 ms beyond the baseline's | phase 4's R1 apparatus and pan as 6c's R3 reread it, all nine Regions and the relief hand-pushed; `CameraReceiver` to Bielsko-Biała's Enduro Trails on Twister (49.77, 19.05), the town's Touring routes in the same frame at zoom 11; `logcat -d -s KozicaFrames \| python3 scripts/map/frame-stats.py` | 2026-11-02, test phone, debug build, Cycling, relief hand-pushed. p95 against v0.14.4's archives, with none over 100 ms in any run: zoom 11, 24.2 ms against 24.1 and 25.2; zoom 13, 20.2 ms against 20.7 and 20.6; the longest frame 44 ms against 41. Read again after the Bike routes moved beneath the Trails: 25.8 ms at 11, 20.6 ms at 13, longest 43 ms. **Pass** |
 | R7 | The hint row switches the Mode and keeps the text | test phone, screencaps | 2026-11-09, emulator `pixel-api37` with the test phone absent: in Cycling "vrbatova" finds only "2 Trails match: show them in Hiking", and a tap on it leaves the text and lists the two Trails; in Hiking "twister" finds only "1 Bike route matches: show it in Cycling", and a tap lists Twister |
-| R8 | The mark at 44 dp, 24 dp and 512 px | renders, the owner's verdict | |
+| R8 | The mark at 44 dp, 24 dp and 512 px | renders, the owner's verdict | 2026-11-10, renders at density 2.75, round-masked, cream and a themed dark tint: § 6's plan, wider holes, tyres and larger tyred wheels side by side. The frame diamond is a 3 px nick at 44 dp and dropped. The owner chose the tyres, the only one that reads as wheeled at 44 and 24 dp; § 6 amended. The art reaches 31.0 dp of the 33 dp safe radius |

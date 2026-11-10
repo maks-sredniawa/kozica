@@ -8,6 +8,7 @@ the `VectorDrawable`s.
 | --- | --- | --- |
 | `mark.py`'s MARK and HOLE curves | anchor points in `draw-mark.py` → `mark.py`, in place | drawn — provenance below |
 | `drawable/ic_launcher_{background,foreground,monochrome}.xml`, `drawable/ic_notification.xml`, `mipmap-*`, `play-icon-512.png` | `mark.py` → `make-launcher-icon.py` | generated |
+| `app/src/debug/res/`'s `drawable/ic_launcher_{foreground,monochrome}.xml` and `mipmap-*`: the mark with wheels in its crag, the debug build's until 7c | `mark.py`'s `CYCLING_PARTS` → `make-launcher-icon.py --cycling` | generated |
 | `play-feature-graphic.png`, `play-feature-graphic-pl.png` (1024×500, English and Polish) | `mark.py` (+ `feature-background.png` if present) → `make-feature-graphic.py` | generated |
 | `play-screenshots/<n>_<scene>-<tag>.png` | `scripts/screenshots.py --build release --numbered` → `pad-screenshot.py` | — |
 
@@ -56,6 +57,7 @@ python3 art/draw-mark.py
 
 # 2. Regenerate everything that derives from it.
 python3 art/make-launcher-icon.py       # icons, mipmaps, the 512² Play asset
+python3 art/make-launcher-icon.py --cycling   # the debug build's icon and mipmaps
 python3 art/make-feature-graphic.py     # the 1024×500 listing graphic
 ```
 
@@ -91,4 +93,5 @@ it came from in the provenance table below.
 | File | Where it came from | Licence / terms |
 | --- | --- | --- |
 | `mark.py` / `draw-mark.py` | drawn by hand as anchor points, round 3, from round-1 B, treatment a: both horns and a tail added to the owner's chosen round-1 drawing; no image traced | the repo's, all rights reserved |
+| `mark.py`'s `CYCLING_MARK` and wheels | `draw-mark.py`'s `TYRES` and `WHEELS`, anchors drawn for phase 7a § 6 and chosen by the owner from rendered variants; no image traced | the repo's, all rights reserved |
 | `feature-background.png` | *(if used)* | |
