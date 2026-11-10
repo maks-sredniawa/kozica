@@ -88,8 +88,8 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 - [x] **Take checkpoint E, phase 2b's since phase 2 split.** Passed with 0.3.0 (R4, R7, R8, R9);
       the Console asked no foreground-service declaration for `dataSync` (2026-10-27,
       [`play-app-content.md`](play-app-content.md)). The one-pin update was read twice on 2026-11-01
-      ([`phase-2b.md`](phase-2b.md) R10, R11); their verdict waits on the owner, under *After the
-      closed test*.
+      ([`phase-2b.md`](phase-2b.md) R10, R11); the owner's verdict, keeping the format, is under
+      *After the closed test*.
 - [x] **Take phase 1's phone readings before phase 2 builds on MapLibre.** Taken 2026-10-19: R1
       verdict 1, R8 verdict 3 (undecided until E), R9 after fixing a crash, R10's screen
       ([`phase-1.md`](phase-1.md) § 1).

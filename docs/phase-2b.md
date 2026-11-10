@@ -20,6 +20,10 @@ them, and removes them. The difference a device can be asked about: a release bu
 Play downloads the Tatry, draws the Slovak side's Trails beside the Polish ones, and a one-pin data
 refresh arrives as a patch Play reports at a fraction of the pack.
 
+**Closed on 2026-11-10 with the owner, the patch not shown.** Every reading is in. Play patched six
+Regions once and sent every pack whole otherwise (R10–R12), and § 1's verdict 3, taken on 2026-11-01,
+keeps the format ([`DOD.md`](DOD.md)).
+
 **`PLAN.md`'s paragraph changed in one place, decided with the owner on 2026-10-20 before this file
 was written, and is amended with it.** It asks "whether a polygon follows the state border exactly".
 The answer is that no polygon follows it: Regions cross into Slovakia and Czechia, where the ranges
@@ -219,8 +223,8 @@ the map drew it; nothing was thrown. B merges. What else the day found, R2 and R
   first data refresh through the closed track (§ 6), and the format is reopened only if it is whole
   there too. R10 is that reading, taken on the internal track rather than the closed one: the Tatry
   came whole again, six Regions as patches, 33 minutes after the upload. R11 read the next one two
-  hours after its upload, at the first request, and every pack came whole. What that reopens is
-  the owner's to decide ([`DOD.md`](DOD.md)).
+  hours after its upload, at the first request, and every pack came whole. The owner reopened
+  nothing on 2026-11-01: the format stays ([`DOD.md`](DOD.md)).
 
 ## 2. The library in `main/`
 
@@ -388,7 +392,7 @@ Phase 1 § 5's last three bullets are this checkpoint, with C's three extracts a
 - **The refresh size is read here**, on the closed track, where an install updates in place: the
   first release after F that only moves the pin, installed over F's, read as R3 was (§ 1's verdict).
   R10 and R11 read it on the internal track instead, which updates in place too, 0.14.1 → 0.14.2
-  and 0.14.2 → 0.14.3; their verdict is the owner's to take.
+  and 0.14.2 → 0.14.3; the owner took their verdict on 2026-11-01: the format stays.
   Gate A's CI run spent 1 h 46 min on the data alone (R9), most of it fetching Poland. **No cache**,
   decided with the owner on 2026-10-20: ADR-0007's reasons stand, and two hours inside a six-hour
   limit, unattended, is cheaper than a second workflow keeping a cache warm. Narrowed on
