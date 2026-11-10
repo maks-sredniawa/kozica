@@ -16,8 +16,15 @@ Writes, all of them derived and none of them hand-editable:
 hand-written version of it had.
 
     python3 art/make-launcher-icon.py
+
+`--cycling` writes the foreground, the monochrome and the mipmaps from `mark.CYCLING_PARTS` into
+`app/src/debug/res` instead, which the debug build's resource merge takes over `main`'s; the rest
+stays on `PARTS` (docs/phase-7a.md § 6).
+
+    python3 art/make-launcher-icon.py --cycling
 """
 
+import argparse
 import math
 from pathlib import Path
 
@@ -27,6 +34,7 @@ import mark
 
 ART = Path(__file__).parent
 RES = ART.parent / "app/src/main/res"
+DEBUG_RES = ART.parent / "app/src/debug/res"
 
 CANVAS = 108  # adaptive-icon canvas, in dp
 VISIBLE = 72  # the most any launcher shows of it — what the flat assets are cropped to
@@ -120,12 +128,12 @@ def hex_of(rgb):
     return "#{:02X}{:02X}{:02X}".format(*rgb)
 
 
-def vector_path_data():
-    tf = mark.fit(CANVAS, ART_SIZE)
-    return "".join(mark.path_data(e, tf) for e in mark.PARTS)
+def vector_path_data(parts):
+    tf = mark.fit(CANVAS, ART_SIZE, parts)
+    return "".join(mark.path_data(e, tf) for e in parts)
 
 
-def render(size, mask_circle=False):
+def render(size, parts, mask_circle=False):
     """The composed icon — flat ground, mark ink — cropped to the visible 72dp."""
     big = CANVAS * SS
     img = Image.new("RGBA", (big, big), mark.GROUND + (255,))
@@ -138,11 +146,11 @@ def render(size, mask_circle=False):
     # monochrome layer all read.
     layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    tf = mark.fit(big, ART_SIZE * SS)
-    for e in mark.PARTS:
+    tf = mark.fit(big, ART_SIZE * SS, parts)
+    for e in parts:
         if not e.hole:
             d.polygon(mark.outline(e, tf), fill=mark.MARK_INK + (255,))
-    for e in mark.PARTS:
+    for e in parts:
         if e.hole:
             d.polygon(mark.outline(e, tf), fill=(0, 0, 0, 0))
     img.alpha_composite(layer)
@@ -158,50 +166,58 @@ def render(size, mask_circle=False):
 
 
 def main():
-    data = vector_path_data()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cycling", action="store_true")
+    cycling = parser.parse_args().cycling
+    parts, res = (mark.CYCLING_PARTS, DEBUG_RES) if cycling else (mark.PARTS, RES)
+    data = vector_path_data(parts)
     written = []
 
-    background = RES / "drawable" / "ic_launcher_background.xml"
-    background.write_text(BACKGROUND.format(colour=hex_of(mark.GROUND)))
-    written.append(background)
+    if not cycling:
+        background = RES / "drawable" / "ic_launcher_background.xml"
+        background.write_text(BACKGROUND.format(colour=hex_of(mark.GROUND)))
+        written.append(background)
 
     for name, colour in (
         ("ic_launcher_foreground", hex_of(mark.MARK_INK)),
         ("ic_launcher_monochrome", "#FFFFFF"),
     ):
-        path = RES / "drawable" / f"{name}.xml"
+        path = res / "drawable" / f"{name}.xml"
         path.write_text(VECTOR.format(header=HEADER, colour=colour, data=data))
         written.append(path)
 
-    notification = RES / "drawable" / "ic_notification.xml"
-    notification.write_text(NOTIFICATION.format(
-        header=NOTIFICATION_HEADER,
-        scale=f"{NOTIFICATION_ART / ART_SIZE:.3f}",
-        data=data,
-    ))
-    written.append(notification)
+    if not cycling:
+        notification = RES / "drawable" / "ic_notification.xml"
+        notification.write_text(NOTIFICATION.format(
+            header=NOTIFICATION_HEADER,
+            scale=f"{NOTIFICATION_ART / ART_SIZE:.3f}",
+            data=data,
+        ))
+        written.append(notification)
 
     for density, size in DENSITIES.items():
+        (res / f"mipmap-{density}").mkdir(parents=True, exist_ok=True)
         for name, circle in (("ic_launcher", False), ("ic_launcher_round", True)):
-            path = RES / f"mipmap-{density}" / f"{name}.webp"
-            render(size, mask_circle=circle).save(path, "WEBP", lossless=True, quality=100)
+            path = res / f"mipmap-{density}" / f"{name}.webp"
+            render(size, parts, mask_circle=circle).save(path, "WEBP", lossless=True, quality=100)
             written.append(path)
 
-    play = ART / "play-icon-512.png"
-    render(512).convert("RGB").save(play, "PNG", optimize=True)  # Play rejects alpha
-    written.append(play)
+    if not cycling:
+        play = ART / "play-icon-512.png"
+        render(512, parts).convert("RGB").save(play, "PNG", optimize=True)  # Play rejects alpha
+        written.append(play)
 
-    x0, y0, x1, y1 = mark.bounds()
+    x0, y0, x1, y1 = mark.bounds(parts)
     w, h = x1 - x0, y1 - y0
     scale = ART_SIZE / max(w, h)
 
     # Measure how far the art itself reaches, not the bounding box: the box's corners are
     # empty for any compact mark, so a half-diagonal reports a clipping problem that
     # isn't there — and would have hidden the real one when the mark changed shape.
-    tf = mark.fit(CANVAS, ART_SIZE)
+    tf = mark.fit(CANVAS, ART_SIZE, parts)
     reach = max(
         math.hypot(px - CANVAS / 2, py - CANVAS / 2)
-        for e in mark.PARTS
+        for e in parts
         if not e.hole
         for px, py in mark.outline(e, tf)
     )
