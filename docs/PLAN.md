@@ -28,7 +28,7 @@ was extracted from and the first app built from it settled on exactly this split
 - [ ] **Phase 6** — The hike log: record a hike, its photos and a note, look back, back it up, export GPX
 - [ ] **Phase 6b** — Walking a Route: following it on the way, and times from the user's own pace
 - [ ] **Phase 6c** — Named Trails: a whole Trail highlighted, the rest of the map fainter
-- [ ] **Phase 7a** — Cycling on the map: Bike routes, the Hiking/Cycling switch, search, the mark
+- [x] **Phase 7a** — Cycling on the map: Bike routes, the Hiking/Cycling switch, search, the mark
 - [ ] **Phase 7b** — Planning a ride: along Bike routes, one-way lines, riding times
 - [ ] **Phase 7c** — Recording Rides: Rides in the log, My bikes, a Pace per Bike
 - [ ] **Phase 7d** — Following a ride: the screen kept on, voice directions
