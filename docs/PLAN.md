@@ -20,14 +20,14 @@ was extracted from and the first app built from it settled on exactly this split
 - [x] **Phase P** — The pipeline: release-please releases reach internal testing by themselves
 - [x] **Phase 1** — The data reaches the phone: one Region built, drawn offline and delivered as a pack; Play's reading (E) moved to phase 2b
 - [x] **Phase 2** — The map: the Tatry drawn as the signposts mark them, "you are here"
-- [ ] **Phase 2b** — Every Region: the list, the picker and "Download all", across the border, delivered by Play
+- [x] **Phase 2b** — Every Region: the list, the picker and "Download all", across the border, delivered by Play
 - [x] **Phase 2c** — Every Region arrives with the app: fast-follow packs, no picker
 - [x] **Phase 3** — Safe for a stranger: the Safety screen ← **the door: closed testing opens once its list is done**
 - [x] **Phase 4** — Elevation: contours and hillshading, from the three national lidar models
 - [x] **Phase 5** — Route planning, and search by name
 - [ ] **Phase 6** — The hike log: record a hike, its photos and a note, look back, back it up, export GPX
 - [ ] **Phase 6b** — Walking a Route: following it on the way, and times from the user's own pace
-- [ ] **Phase 6c** — Named Trails: a whole Trail highlighted, the rest of the map fainter
+- [x] **Phase 6c** — Named Trails: a whole Trail highlighted, the rest of the map fainter
 - [x] **Phase 7a** — Cycling on the map: Bike routes, the Hiking/Cycling switch, search, the mark
 - [ ] **Phase 7b** — Planning a ride: along Bike routes, one-way lines, riding times
 - [ ] **Phase 7c** — Recording Rides: Rides in the log, My bikes, a Pace per Bike
