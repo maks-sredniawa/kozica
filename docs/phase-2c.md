@@ -202,7 +202,8 @@ phase 2's.
   phase 4's relief. Someone who hikes only the Tatry pays for the Sudety. Accepted for an app with
   nothing to choose.
 - **A data refresh reaches everyone's nine packs.** Before, it reached only the Regions a user had
-  chosen. What a refresh costs through the closed track is still phase 2b § 6's reading to take.
+  chosen. What a refresh costs through a track was phase 2b § 6's reading to take: 2b read it on the
+  internal track (R10–R12), and the owner kept the format on 2026-11-01.
 - **Opening the app in the first minute shows a part-drawn map.** The progress line says why.
 
 ## Readings
