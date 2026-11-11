@@ -65,6 +65,24 @@ class TrailNetwork private constructor(
 
     fun canWalkBackward(edge: Int): Boolean = isTrail(edge) && edgeOneway[edge].toInt() != FORWARD_ONLY
 
+    /** On a Bike route of any of [kinds], `SET_TOURING`, `SET_MTB` or both. */
+    fun isBikeRoute(
+        edge: Int,
+        kinds: Int,
+    ): Boolean = edgeSets[edge].toInt() and kinds != 0
+
+    /** docs/phase-7b.md § 2: open where any of [kinds] on the edge lets a rider take it that way. */
+    fun canRide(
+        edge: Int,
+        kinds: Int,
+        forward: Boolean,
+    ): Boolean {
+        val on = edgeSets[edge].toInt() and kinds
+        val against = if (forward) BACKWARD_ONLY else FORWARD_ONLY
+        return (on and SET_TOURING != 0 && edgeRideTouring[edge].toInt() != against) ||
+            (on and SET_MTB != 0 && edgeRideMtb[edge].toInt() != against)
+    }
+
     companion object {
         const val FORMAT_VERSION = 3
         const val FORWARD_ONLY = 1

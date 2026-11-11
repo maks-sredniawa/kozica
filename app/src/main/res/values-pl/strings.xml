@@ -52,6 +52,9 @@
     <string name="route_off_trail">%1$s od najbliższego szlaku</string>
     <string name="route_no_way">Brak przejścia szlakami między %1$s a %2$s</string>
     <string name="route_demanding">Zawiera wymagający odcinek: %1$s</string>
+    <string name="route_off_bike_route">%1$s od najbliższego szlaku rowerowego</string>
+    <string name="route_no_way_bike_routes">Brak przejazdu szlakami rowerowymi między %1$s a %2$s</string>
+    <string name="route_demanding_ride">Zawiera wymagający odcinek: %1$s</string>
     <string name="route_length">Długość</string>
     <string name="route_ascent">Podejścia</string>
     <string name="route_descent">Zejścia</string>

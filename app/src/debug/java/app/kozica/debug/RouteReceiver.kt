@@ -6,6 +6,8 @@ import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
 import app.kozica.MainApplication
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import app.kozica.data.hikes.minutes
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePlanner
@@ -35,6 +37,9 @@ import kotlin.concurrent.thread
  * With `--el trail <id>` (and `--ez reversed true` for the other way) it makes the Route along that
  * Trail by "Plan a Route along it"'s code, logs the Trail's row beside it, and plans the points
  * again as a saved Route is on open, for phase 6c's R4.
+ *
+ * With `--es mode CYCLING` and `--es filter ALL|TOURING|MTB` it plans as the map would in that Mode under
+ * that chip, for phase 7b's R4 and R5, and logs each leg's ways.
  *
  * With `--ez show true` it also saves the Route as "Reading" and opens it on the map's sheet, so
  * Follow is one tap, for phase 6b's R3 and R4.
@@ -73,13 +78,22 @@ class RouteReceiver : BroadcastReceiver() {
             resultData = "from and to are required and via is optional, each point as lat,lon, via's joined by ;"
             return
         }
+        val mode = intent.getStringExtra("mode")?.let { name -> Mode.entries.firstOrNull { it.name == name } }
+        val filter =
+            intent.getStringExtra("filter")?.let { name -> BikeRouteFilter.entries.firstOrNull { it.name == name } }
+        if ((intent.hasExtra("mode") && mode == null) || (intent.hasExtra("filter") && filter == null)) {
+            resultCode = 1
+            resultData = "mode is HIKING or CYCLING, filter ALL, TOURING or MTB"
+            return
+        }
         val show = intent.getBooleanExtra("show", false)
         val pending = goAsync()
         val app = context.applicationContext as MainApplication
         thread(name = "RouteReceiver") {
             try {
                 val points = listOf(from) + via.filterNotNull() + listOf(to)
-                plan(app, points)?.let { logAtPace(app, it.seconds, it.minutes) }
+                val route = plan(app, points, mode ?: Mode.HIKING, filter ?: BikeRouteFilter.ALL)
+                if (route?.mode == Mode.HIKING) logAtPace(app, route.seconds, route.minutes)
                 if (show) {
                     val id = runBlocking { app.container.routes.save(null, "Reading", points) }
                     app.container.routeToShow.value = id
@@ -96,6 +110,8 @@ class RouteReceiver : BroadcastReceiver() {
     private fun plan(
         context: Context,
         points: List<RoutePoint>,
+        mode: Mode,
+        filter: BikeRouteFilter,
     ): PlannedRoute? {
         var started = SystemClock.elapsedRealtime()
         val network = TrailNetworks.load(context)
@@ -111,8 +127,12 @@ class RouteReceiver : BroadcastReceiver() {
         val planner = RoutePlanner(network)
         Log.i(TAG, "index ${SystemClock.elapsedRealtime() - started} ms")
         started = SystemClock.elapsedRealtime()
-        val route = planner.plan(points)
-        Log.i(TAG, "plan ${SystemClock.elapsedRealtime() - started} ms")
+        val route = planner.plan(points, mode, filter)
+        Log.i(
+            TAG,
+            "plan ${SystemClock.elapsedRealtime() - started} ms, $mode under $filter, " +
+                "${route.legs.sumOf { it?.nodesVisited ?: 0 }} nodes visited",
+        )
         for ((i, leg) in route.legs.withIndex()) {
             if (leg == null) {
                 Log.i(TAG, "leg ${i + 1}: no way")
@@ -124,12 +144,18 @@ class RouteReceiver : BroadcastReceiver() {
                     "from its points, ${leg.steps.size} edges, ${leg.nodesVisited} nodes visited, " +
                     "${route.minutesTo(i + 1)} min to its end",
             )
+            val ways =
+                leg.steps.map { network.edgeWay[it.edge] }.fold(listOf<Long>()) { kept, way ->
+                    if (kept.lastOrNull() == way) kept else kept + way
+                }
+            Log.i(TAG, "leg ${i + 1} ways: ${ways.joinToString(" ")}")
         }
         Log.i(
             TAG,
             "route: ${route.metres.toInt()} m, ascent ${route.ascent.toInt()} m, descent ${route.descent.toInt()} m, " +
                 "${route.minutes} min (${(route.seconds / 60).toInt()} unrounded)",
         )
+        route.hardestRide?.let { Log.i(TAG, "demanding ride: S${it.scale}${if (it.uphill) " uphill" else ""}") }
         for (stretch in route.demanding) {
             Log.i(
                 TAG,

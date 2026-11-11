@@ -9,7 +9,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import app.kozica.data.APP_DATABASE_FILE
 import app.kozica.data.AppPreferences
+import app.kozica.data.BikeRouteFilter
 import app.kozica.data.HikeRepository
+import app.kozica.data.Mode
 import app.kozica.data.PRESERVED_DIRECTORY
 import app.kozica.data.RouteRepository
 import app.kozica.data.backup.BackupExporter
@@ -193,7 +195,11 @@ class AppContainer(
     fun places(): PlaceSearch? = placeIndex
 
     /** Null in a build without the network. Blocks on its first call, which loads it (docs/phase-5.md § 1). */
-    suspend fun planRoute(points: List<RoutePoint>): PlannedRoute? = planning.withLock { planner?.plan(points) }
+    suspend fun planRoute(
+        points: List<RoutePoint>,
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+    ): PlannedRoute? = planning.withLock { planner?.plan(points, mode, filter) }
 
     /** A Trail as the map shows it (docs/phase-6c.md § 3); reads the index and the network, so off the main thread. */
     fun trail(id: Long): TrailDetail? {
