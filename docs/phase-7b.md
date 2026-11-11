@@ -2,12 +2,12 @@
 
 Sequence lives in [`PLAN.md`](PLAN.md); the live worklist lives in [`DOD.md`](DOD.md). This phase
 relies on [ADR-0011](adr/0011-cycling-follows-marked-bike-routes-and-its-times-are-our-own-estimate.md)
-(Bike routes only, distance and ascent first, the time our own estimate) and amends it twice: the flat
-speed is the way's surface class rather than the Bike route's kind, and a riding time ships only once it
-has passed § 1's gate. It relies on [ADR-0010](adr/0010-routes-are-planned-over-our-own-trail-network.md)
-(the router, whose second set of edges phase 7a built), ADR-0001 (a saved Route gains two columns, the
-first migration since phase 6) and ADR-0008 (the published times are read on the owner's PC, never by the
-app). [`CONTEXT.md`](../CONTEXT.md) is owed nothing: **Route**, **Following** and **Pace** already say what
+(Bike routes only, distance and ascent first, the time our own estimate) and amends it three times: the
+flat speed is the way's surface class rather than the Bike route's kind, a riding time ships only once it
+has passed § 1's gate, and a saved Route keeps its Mode, a schema change here rather than in 7c. It
+relies on [ADR-0010](adr/0010-routes-are-planned-over-our-own-trail-network.md) (the router, whose
+second set of edges phase 7a built), ADR-0001 (a saved Route gains two columns, the first migration
+since phase 6) and ADR-0008 (the published times are read on the owner's PC, never by the app). [`CONTEXT.md`](../CONTEXT.md) is owed nothing: **Route**, **Following** and **Pace** already say what
 each is in Cycling. Planned with the owner on 2026-11-11.
 
 **What closing this phase means.** Today a developer build can switch to Cycling and see the Bike routes,
@@ -20,20 +20,31 @@ Route along it and exports it as GPX. The difference a device can be asked about
 Cycling under MTB, a Route from the top of Twister to its foot takes Twister, and one from its foot to
 its top does not.
 
-**`PLAN.md`'s paragraph moves one thing.** It says the rule is "checked against published riding times
-for 10–15 of our Bike routes". § 1 takes 14, tunes on 7 and judges on the other 7, and keeps 7 more in
-reserve for a second attempt, so up to 21 are read.
+**`PLAN.md` moves three things.**
+
+- **The routes.** 7b's paragraph says the rule is "checked against published riding times for 10–15 of
+  our Bike routes". § 1 picks 21, tunes on 7 and judges on 7 others, and reads the last 7 only for a
+  second attempt, so 14 are read and up to 21.
+- **Following in Cycling**, on screen, comes forward from 7d: it is 6b's Following over a ride's line,
+  and needs nothing 7d adds. 7d keeps what a handlebar needs, the screen kept on and the voice, and its paragraph says so.
+- **A saved ride's Mode** arrives here, ahead of 7c's Rides: a ride that can be planned can be saved,
+  and without its Mode it would open as a walk (§ 4).
 
 ---
 
 ## 0. What this phase inherits
 
 - **Phase 7a built the Bike routes as data**: their edges in `trails.network` (format 2, each edge's
-  sets saying Trail, Bike route or both), membership in `trails.edges`, the rider's direction in each
-  edge's `ride` byte from `oneway:bicycle`, `oneway`, the relation's roles and `signed_direction`, and
-  `mtb:scale` and `mtb:scale:uphill` in `edgeMtb` and `edgeMtbUphill`. Since 7a's B the router keeps a
-  Route in Hiking off an edge without the Trail bit. What it does not store is **which kind** of Bike
-  route an edge is on, so the chips cannot limit a Route yet, and **anything about the surface**.
+  sets saying Trail, Bike route or both), membership in `trails.edges`, the way's own direction for a
+  rider in each edge's `ride` byte (`oneway:bicycle`, else `oneway`), and `mtb:scale` and
+  `mtb:scale:uphill` in `edgeMtb` and `edgeMtbUphill`. Since 7a's B the router keeps a Route in Hiking
+  off an edge without the Trail bit. What it does not store is **which kind** of Bike route an edge is
+  on, so the chips cannot limit a Route yet, **anything about the surface**, and **the direction a
+  Bike route gives a way**: each relation's sense, from its members' roles and `signed_direction`,
+  reaches the build's edges (`Edge.bikes`, which `walks_like` cuts on) and the sheet's "Ridden one way",
+  but not `trails.network`. Some of the 237 Bike routes the sheet calls Ridden one way have no edge the
+  `ride` byte directs at all, Asfaltový traverz (r2193737) and Żółta Bielawa (r12909385) among them,
+  and more have over a quarter of their walk undirected by it.
 - **Times are computed at build time.** `build-network.py`'s `walking_seconds()` writes each edge's
   seconds forward and backward from its length and its climb point by point, and the app only adds
   them. The riding time follows the same path, so the app gains no rule of its own.
@@ -42,16 +53,16 @@ reserve for a second attempt, so up to 21 are read.
   walk. `APP_SCHEMA_VERSION` is 3.
 - **6c's "Plan a Route along it" and "Export GPX"** work on any walk of edges; 7a left them off the Bike
   route's sheet for this phase (7a § *Not in*).
-- **6b's Following** is on screen only, timed by the walking Pace, with a leaving rule of 40 m for 30 s
-  read on foot (6b § 4).
+- **6b's Following** is on screen only, timed by the walking Pace, with 6b's leaving rule as its gate
+  settles it: 40 m for 30 s until then, and still to be read on foot (6b § 1, § 4).
 - **The switch and the chips are developer-only until 7c** (7a), so everything here that a user sees is
   developer-only too. The migration and the network's growth reach release builds.
 
 ## What is in, and what is deliberately not
 
-**In:** each edge's surface class and Bike route kinds, and its riding seconds each way, in
-`trails.network` format 3; the published riding times for up to 21 Bike routes, and the rule tuned and
-judged against them; the router in Cycling, along Bike routes only and only the chips' kind, one-way lines
+**In:** each edge's surface class, Bike route kinds, rider direction per kind and riding seconds each
+way, in `trails.network` format 3; the published riding times for up to 21 Bike routes, and the rule
+tuned and judged against them; the router in Cycling, along Bike routes only and only the chips' kind, one-way lines
 their way; the Route sheet in Cycling with distance and ascent first, the S2 warning and, once the gate
 has passed, the riding time; a saved Route's Mode and chip, a migration; the replan when the Mode or the
 chip changes; Following in Cycling; "Plan a Route along it" and "Export GPX" on a Bike route's sheet.
@@ -80,8 +91,8 @@ failure ships no time at all.
 
 | | Checkpoint | Merges | Depends on |
 | --- | --- | --- | --- |
-| **A** | The references: 14 Bike routes picked and split, their published times read both ways | `docs:` R1's rows | — |
-| **B** | The data: surface class, Bike route kinds and riding seconds in `trails.network` format 3, at a fresh pin; the base files' growth read on its branch | `feat:` (the map data refreshes) | — |
+| **A** | The references: 21 Bike routes picked and split, the 14 in tune and judge read both ways, the reserve only after a failure | `docs:` R1's rows | — |
+| **B** | The data: surface class, Bike route kinds, a rider direction per kind and riding seconds in `trails.network` format 3, at a fresh pin; the base files' growth read on its branch | `feat:` (the map data refreshes) | — |
 | **C** | **The gate**: the rule tuned on 7, judged on 7 | `chore:` the script, its verdict in R3 | A, B |
 | **D** | The router and the Route sheet in Cycling, with no time | `feat:` | B |
 | **E** | A saved Route's Mode and chip, the migration, and the replan on a switch | `feat:` | D |
@@ -107,21 +118,25 @@ are scattered, mostly one direction, and written for different riders.
 
 ### The apparatus
 
-- **The routes**, picked in A before any reference is read: 21 Bike routes, 7 MTB and 14 Touring, in
-  three strata of 7, each stratum mixing flat and hilly, paved and rough, and Poland, Czechia and
-  Slovakia, with Twister (r5738733) and one other one-way trail-centre line among the MTB ones. A seeded
-  shuffle, its seed written in R1, deals each stratum into **tune**, **judge** and **reserve**. A one-way
-  line counts one direction, so a stratum can hold 13 directions rather than 14.
+- **The routes**, picked in A before any reference is read: 21 Bike routes, 9 MTB and 12 Touring, in
+  seven strata of three alike, one kind each, flat or hilly, paved or rough, the strata together
+  spanning Poland, Czechia and Slovakia. Twister (r5738733) and one other one-way trail-centre line
+  share an MTB stratum, so they never land in one set. A seeded shuffle, its seed written in R1, deals
+  each stratum's three one to **tune**, one to **judge** and one to **reserve**, so each set holds 7
+  routes, 3 MTB and 4 Touring, and the same mix of ground. A one-way route counts one direction, so a
+  set holds 14 directions less one for each one-way route in it.
 - **The readings**: for each route and direction, the line drawn along its walk in mapy.cz's planner
   (cycling) and Komoot's (touring bike for Touring, mountain bike for MTB, default fitness), its time
   written down with the distance each gives, to catch a line that strayed. Both are read in the owner's
   Chrome through Playwright, said in chat before each session. **The reserve is read only after a first
   failure**, so it can influence nothing before it.
-- **`scripts/riding-time.py`**, on the PC: for each route it takes the edges along its walk (7a § 2's
-  walk), recomputes their riding seconds from B's per-point data with candidate constants, and prints the
-  estimate against the reference. `--fit tune` fits the constants by least squares on log error,
-  each bounded within the published routers' spread (`cycling-research.md` § 2); `--judge judge` prints
-  the median and the worst. The constants it settles go into `build-network.py`, and the network is
+- **`scripts/riding-time.py`**, on the PC: it imports `build-network.py`, builds the edges at B's pin
+  with its own `edges_of()`, and for each route takes the edges along its walk (7a § 2's walk) and
+  times them by B's riding-seconds function with candidate constants, so the rule it judges is the one
+  that ships, on the same densified points and heights (§ 2). It prints the estimate against the
+  reference. `--fit tune` fits the constants by least squares on log error, each bounded within the
+  published routers' spread (`cycling-research.md` § 2); `--judge judge` prints the median and the
+  worst. The constants it settles go into `build-network.py`, and the network is
   rebuilt once, in G.
 
 ### The verdicts, decided now rather than argued about later
@@ -152,30 +167,46 @@ Decided with the owner on 2026-11-11:
   A way's class is part of what makes two pieces one edge (`walks_like`), so an edge has exactly one.
 - **The Bike route kinds per edge**: the sets byte splits 7a's Bike route bit into Touring and MTB, so an
   edge on both kinds carries both, and the router can keep to the chips.
-- **Riding seconds forward and backward**, computed as walking seconds are, along the edge's points with
-  their heights: each stretch at its class's flat speed, slowed uphill by a time per metre climbed,
-  faster downhill by a factor up to a descent cap per class, and capped below by `mtb:scale` in the
-  direction ridden (`mtb:scale:uphill` uphill where it is tagged). No stretch goes under 4 km/h, the
-  pushing speed GraphHopper and OSRM use: a rider who cannot ride it pushes. An edge on no Bike route
-  gets none. The starting constants, from `cycling-research.md` § 2, C's to tune:
+- **A rider direction per kind**, Touring and MTB, a byte each beside `ride`, folded from every place
+  ADR-0011 reads direction: the way's `oneway:bicycle`, else `oneway`, where it sets one (the `ride`
+  byte), else the senses of that kind's Bike routes on the edge, from their members' roles and
+  `signed_direction` (`Edge.bikes`): one way where every one of them rides it in the same sense, both
+  ways where any of them rides it both ways or two disagree. `walks_like` already cuts an edge where a
+  route's sense changes, so each edge has one direction per kind. Under All a direction either kind on
+  the edge allows is open.
+- **Riding seconds forward and backward**, computed as walking seconds are, from the same densified
+  points and heights `edges_of()` measures the climb on, by one function that takes them and the
+  constants (C imports it). A stretch is a run of `climb()`'s: from where the height last left its 5 m
+  dead band to where it next does, so a ride's time and its sheet's ascent count the same metres, and
+  a stretch inside the band is timed flat. Each stretch at its class's flat speed, slowed uphill by a
+  time per metre climbed, faster downhill by a factor up to a descent cap per class, and capped below
+  by `mtb:scale` in the direction ridden (`mtb:scale:uphill` uphill where it is tagged). No stretch
+  takes longer than walking it: a rider who cannot ride it pushes, timed by `walking_seconds()`'s rule,
+  the PTTK marker's, times a pushing factor, so a 15 % push is 2 km/h as on foot rather than a fixed
+  speed that overrides the climb term on every steep stretch. An edge on no Bike route gets none. The
+  starting constants, from `cycling-research.md` § 2, every one C's to tune:
 
   | | paved | unpaved | rough |
   | --- | --- | --- | --- |
   | Flat | 20 km/h | 15 km/h | 10 km/h |
   | Descent cap | 40 km/h | 25 km/h | 15 km/h |
 
-  Climbing 10 s per metre up; descents ×1.5 the flat before the cap; `mtb:scale` caps at S2 10 km/h, S3
-  6 km/h, S4 and over 4 km/h.
-- **`trails.network` goes to format 3** with the three arrays and the split bit. The base files' growth,
-  against 7a's (`trails.network` 15,198,240 B, `trails.edges` 275,796 B), is R2, recorded, not judged:
-  the owner decided on 2026-11-01 that size blocks nothing.
+  Climbing 10 s per metre up; descents ×1.5 the flat before the cap; pushing ×1 the walking time.
+  `mtb:scale` caps at S2 10 km/h, S3 6 km/h, S4 and over 4 km/h: the 4 km/h is GraphHopper's, which it
+  applies from S3 on; S2's 10 and S3's 6 are our own steps down to it, which GraphHopper does not
+  take, and C keeps them only if the routes bear them out.
+- **`trails.network` goes to format 3** with the five arrays (the surface class, the two rider
+  directions, the riding seconds each way) and the split bit. The base files' growth, against 7a's
+  (`trails.network` 15,198,240 B, `trails.edges` 275,796 B), is R2, recorded, not judged: the owner
+  decided on 2026-11-01 that size blocks nothing.
 
 ## 3. Planning in Cycling
 
 - **The router plans over the edges the chips allow**: in Cycling under All any Bike route edge, under
-  Touring or MTB only that kind's, and never an edge against its `ride` direction. In Hiking it is as it
-  was. The long press, the points, Reverse and the sheet are phase 5's; Reverse on a Route with a one-way
-  stretch plans whatever the router finds the other way.
+  Touring or MTB only that kind's, and never an edge against that kind's rider direction (§ 2), so a
+  line directed only by its relation's roles or `signed_direction` is planned its way as Twister is. In
+  Hiking it is as it was. The long press, the points, Reverse and the sheet are phase 5's; Reverse on a
+  Route with a one-way stretch plans whatever the router finds the other way.
 - **A point off the Bike routes** joins the nearest edge the chips allow, as phase 5's ends join the
   nearest Trail, and the sheet says how far.
 - **The Route sheet in Cycling** shows distance, ascent and descent, the profile, and the warning; from G
@@ -203,7 +234,8 @@ Copy: "%1$s from the nearest Bike route", "No way over the Bike routes between %
 ## 5. Following, and a Route along a Bike route
 
 - **Following in Cycling is 6b's as it is**: Progress, the line ahead, the distance left, and, from G,
-  the time to go from the riding seconds alone. The leaving rule is 6b's 40 m for 30 s; "Back to the
+  the time to go from the riding seconds alone. The leaving rule is 6b's, as its gate settles it (40 m
+  for 30 s until then); "Back to the
   Route" plans over the Bike routes the chips allow, and off them says "Back to the Route from the
   nearest Bike route, %1$s away".
 - **"Plan a Route along it"** on a Bike route's sheet is 6c § 5's, over the Bike route's walk, under the
@@ -218,13 +250,18 @@ Copy: "%1$s from the nearest Bike route", "No way over the Bike routes between %
 ## Tests
 
 - **`test_build_network.py`**: the class of each `surface` in the table and of each fallback, `surface`
-  winning over `highway`; riding seconds on a flat, a climb, a descent reaching its cap, an `mtb:scale`
-  cap in each direction and the 4 km/h floor, forward and backward swapping climb and descent; the split
-  kinds on a way shared by a Touring and an MTB route; no riding seconds on a Trail-only edge; format 3
-  written and read back. Fails toward a wrong time or a Route over the wrong kind.
+  winning over `highway`; riding seconds on a flat, a climb, a rise inside the dead band timed flat, a
+  descent reaching its cap, an `mtb:scale` cap in each direction and a steep push timed as walking it,
+  forward and backward swapping climb and descent; the split kinds on a way shared by a Touring and an
+  MTB route; the rider direction per kind from a way's tag, from a `forward` role alone, from
+  `signed_direction` alone, both ways where two routes of a kind disagree, and each kind its own on a
+  way shared by both; no riding seconds on a Trail-only edge; format 3 written and read back. Fails
+  toward a wrong time, a Route over the wrong kind or one against the ride.
 - **`TrailNetworkTest`**: format 3 read, and format 2 refused by name.
 - **The router**: in Cycling it keeps off Trail-only edges, off the other kind under a chip, and off a
-  one-way edge backwards; in Hiking nothing changes. Fails toward a Route a rider may not take.
+  one-way edge backwards, whether the way's tag directs it or only its Bike route's role or
+  `signed_direction`; under All an edge one kind directs and the other does not is open both ways; in
+  Hiking nothing changes. Fails toward a Route a rider may not take.
 - **The sheet's figures**: the time rounded to 5 minutes and never under 5; the warning from S2 only,
   uphill read from `mtb:scale:uphill` where it is tagged.
 - **`MIGRATION_3_4`** and **`SchemaGateTest`**, under the house rule: a v3 database with Routes and
@@ -237,7 +274,9 @@ Copy: "%1$s from the nearest Bike route", "No way over the Bike routes between %
 
 - **ADR-0011**: the flat speed is the way's surface class; a riding time ships only after § 1's gate;
   saving a ride is a schema change in 7b, before 7c's.
-- **`PLAN.md`**: 7b's paragraph names this file, and the 14 routes with 7 in reserve.
+- **`PLAN.md`**: 7b's paragraph names this file, the 14 routes read with 7 in reserve, Following on
+  screen and a saved ride's Mode; 7d's says on-screen Following arrives in 7b and 7d adds the screen
+  kept on and the voice.
 - **`CONTEXT.md`**: nothing; see the header.
 - **The privacy policy and the listing**: nothing. The published times are read on the owner's PC, and
   nothing in this phase reaches a release user's screen.
@@ -245,9 +284,12 @@ Copy: "%1$s from the nearest Bike route", "No way over the Bike routes between %
 ## Known gaps, deliberately
 
 - **A ride saved in a developer build, restored into a release build, opens as a walk**: release builds
-  stay in Hiking until 7c. Its Mode is kept in the row, so it is a ride again once the switch ships.
-- **The leaving rule was read on foot.** 40 m for 30 s covers several hundred metres at riding speed;
-  7d, which follows a ride for real, reads it on a ride and changes it only by that reading.
+  stay in Hiking until 7c. Its Mode is kept in the row, so it is a ride again once the switch ships,
+  unless it is saved there first: Save in a release build stores the Mode it is open in, Hiking, and it
+  stays a walk.
+- **The leaving rule is read on foot, if at all.** 6b's gate settles it on walks; if it keeps 40 m for
+  30 s, that covers several hundred metres at riding speed. 7d, which follows a ride for real, reads it
+  on a ride and changes it only by that reading.
 - **Surface is OSM's.** A way with no `surface` is classed by its `highway`, so an asphalt `track`
   tagged with nothing else is timed as unpaved.
 - **The reference is two planners' midpoint, not a rider.** 7c's Pace per Bike moves the time toward each
@@ -259,13 +301,18 @@ Copy: "%1$s from the nearest Bike route", "No way over the Bike routes between %
 The device readings run on an emulator where it can show them, a debug build with the network
 hand-pushed to `files/network/`.
 
+**`RouteReceiver` gains what the readings need**, in `app/src/debug/` with the rest of it: in D,
+`--es mode CYCLING` and `--es filter ALL|TOURING|MTB`, planning under that Mode and chip as the map
+would, for R4 and R5; in F, `--el bikeRoute <id>`, which plans along that Bike route by "Plan a Route
+along it"'s code and logs its row beside it, as `--el trail` does for a Trail, for R8.
+
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
 | R1 | The references: each route's id, kind, country, stratum and set, and per direction mapy.cz's and Komoot's time and distance, the guide's where one exists, and the midpoint; the seed | Playwright in the owner's Chrome, said in chat first; `scripts/riding-time.py --split <seed>` | |
 | R2 | The base files' growth at B's pin, against 7a's | `ls -l` on the three base files at both pins | |
 | R3 | The gate: the constants fitted, the judge set's median and worst, each route's error; on a failure, the same for the reserve | `scripts/riding-time.py --fit tune --judge judge` | |
-| R4 | Twister: a Route from its top to its foot under MTB takes it, the reverse does not | `RouteReceiver` both ways in Cycling; the logged edges | |
-| R5 | The chips: the same two points under All, Touring and MTB give the lines each kind allows, or "No way" | `RouteReceiver` with each chip | |
+| R4 | Direction: Twister, directed by its ways' tags, and Asfaltový traverz (r2193737), directed by its relation alone: under MTB a Route from each one's start to its end takes it, the reverse does not | `RouteReceiver --es mode CYCLING --es filter MTB` both ways along each; the logged edges | |
+| R5 | The chips: the same two points under All, Touring and MTB give the lines each kind allows, or "No way" | `RouteReceiver --es mode CYCLING` with each `--es filter` | |
 | R6 | An upgrade: a v3 install with saved Routes updated to this build keeps every Route, each opening as a walk | emulator, the last release installed, Routes saved, this build `install -r` over it | |
 | R7 | The switch: a saved Route replans in Cycling and shows unsaved changes; the switch and chips refuse while Following | emulator, screencaps | |
 | R8 | A Route along a Bike route matches it: Twister one way, and a two-way Touring route each way, length to the metre and climb within 6c's dead band | `RouteReceiver --el bikeRoute <id>` | |
