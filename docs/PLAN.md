@@ -258,7 +258,8 @@ by the direction 7a reads into the network. It shows distance and ascent first a
 own rule, checked against published riding times for 10–15 of our Bike routes before release.
 Planned with the owner on 2026-11-11 in [`phase-7b.md`](phase-7b.md): 14 Bike routes, the rule tuned on
 7 and judged on the other 7, with 7 in reserve, and no time at all if it fails twice; the flat speed
-is the way's surface class; a saved Route keeps its Mode and sub-filter, and a ride can be followed.
+is the way's surface class; a saved Route keeps its Mode and sub-filter, ahead of 7c, and a ride can be
+followed on screen, ahead of 7d.
 
 ## Phase 7c — Recording Rides
 
@@ -268,8 +269,8 @@ Rides. The log's tab name once it holds Rides is open, decided when this phase o
 
 ## Phase 7d — Following a ride
 
-Following in Cycling with the screen kept on in a look for a handlebar mount, and spoken junction
-directions through the phone's own speech engine in an on-device voice, checked to speak with no
+Following in Cycling, on screen since 7b, gains the screen kept on in a look for a handlebar mount, and
+spoken junction directions through the phone's own speech engine in an on-device voice, checked to speak with no
 network connection, with experimental sharp-bend warnings off by default and the voice able to be
 turned off. Hiking stays silent.
 
