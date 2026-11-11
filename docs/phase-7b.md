@@ -425,10 +425,12 @@ one replacement below. The seed put Twister in the reserve; the deal stands.
 
 **One replacement, before any of its readings counted.** Singletrack 14 (r10113028) was dealt to judge
 in M3. Its relation is tagged `oneway=yes` and 18 of its 40 ways are one-way cycleways, so it is
-ridden one way. 7a reads direction only from members' roles and `signed_direction`, and lists it as
-ridden both ways. Neither planner could draw our walk in either direction: Komoot strayed 13 % and
-68 % with 12 waypoints, and 190 % on a half. The rule was fixed before any candidate was looked at.
-The two-way MTB route closest to it in climb per kilometre and unpaved share, with no relation
+ridden one way. 7a gives a route its sense from each member way's own `oneway:bicycle` or `oneway`,
+then roles and `signed_direction`, never from the relation's own `oneway`; Singletrack 14's 18
+directed ways fall under the 0.75 share (`ONE_WAY_SHARE` in `scripts/build-network.py`), so 7a lists
+it as ridden both ways. Komoot could not draw our walk in either direction, straying 13 % and 68 %
+with 12 waypoints and 190 % on a half; mapy.com was not tried. The rule was fixed before any
+candidate was looked at. The two-way MTB route closest to it in climb per kilometre and unpaved share, with no relation
 `oneway` and no one-way member, takes its judge slot. That is Rowerowa 500 – G6 (r14354061), and the
 deal is otherwise unchanged. Twenty more Bike routes carry a relation-level `oneway`; 7a lists two of
 them, beside Singletrack 14, as ridden both ways.
@@ -436,7 +438,7 @@ them, beside Singletrack 14, as ridden both ways.
 **How each direction was read.** The walk is 7a's, from `trails.edges` at 7a's pin, as a line in the
 walk's direction ("walk's") or turned ("reverse"). A one-way route counts its walk's direction only,
 the direction it is ridden. Each planner was given up to 12 points sampled along that line, every
-800 m or every twelfth of it, whichever is longer. Komoot's planner refuses more than 13. Times and
+800 m or every eleventh of it, whichever is longer. Komoot's planner refuses more than 13. Times and
 lengths are the planners' own seconds and metres, taken from their responses:
 
 - **Komoot** was read logged out, at its default fitness (`constitution` 3, "Moderate"), as
@@ -450,7 +452,7 @@ Komoot (+27.5 % and +6.3 % whole) and G6's walk's direction on mapy.com (−8.4 
 reading in the table is within 4.3 % of our length. Guides' times were not looked up; they count
 nowhere. The reserve is not read until a first failure.
 
-**What the readings already say.** On paved Touring routes the two planners agree within 9 %, and
+**What the readings already say.** On paved Touring routes the two planners agree within 10 %, and
 mapy.com is the slower in six of the eight directions. Everywhere else Komoot is the slower: by
 7–34 % on MTB and by 9–43 % on unpaved or mixed Touring, the most on the Czech gravel of T2. The
 midpoint halves that spread, and it is what the gate is judged against.
