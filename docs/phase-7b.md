@@ -139,8 +139,8 @@ are scattered, mostly one direction, and written for different riders.
   that ships, on the same densified points and heights (§ 2). It prints the estimate against the
   reference. `--fit tune` fits the constants by least squares on log error, each bounded within the
   published routers' spread (`cycling-research.md` § 2); `--judge judge` prints the median and the
-  worst. The constants it settles go into `build-network.py`, and the network is
-  rebuilt once, in G.
+  worst. The constants it settles go into `build-network.py`, which `scripts/map-archives.py` counts among
+  the map data's inputs, so the first map-data publish after C rebuilds the network with them.
 
 ### The verdicts, decided now rather than argued about later
 
@@ -157,7 +157,9 @@ Decided with the owner on 2026-11-11:
 
 **Verdict 1: it passes.** Fitted on tune and judged once on judge, the judge set's median error is 3.2 % and
 its worst 11.9 %, against marks of 20 % and 40 %. The fitted constants are `build-network.py`'s `RIDING`, and G
-ships the time; the network is rebuilt with them in G. The reserve was never read. R3 has the run.
+ships the time. The network is not waiting for G: `scripts/map-archives.py` counts `build-network.py` among the
+map data's inputs, so the first map-data publish after C rebuilds `trails.network` with the fitted riding seconds,
+and from then on D, E and F plan on them, still shown nowhere until G. The reserve was never read. R3 has the run.
 
 ## 2. The data
 
@@ -232,13 +234,14 @@ ships the time; the network is rebuilt with them in G. The reserve was never rea
 - **In Cycling it minimises B's riding seconds**, whether or not § 1's gate passed: a failed gate hides
   the time, never the cost, so a ride takes a rider's fastest line rather than a walker's. A* keeps phase
   5's straight line to the end as its heuristic, at the fastest speed the rule gives anywhere, the
-  highest descent cap (40 km/h at B's constants), so it never overestimates and the leg found is the
-  fastest. At phase 5's 4 km/h it would overestimate a ride about fivefold, miss the fastest leg, and
-  misplace 6c § 5's via points with it. The constants are B's until G and the tuned ones from G; if G
-  never merges, B's stay the cost and are shown nowhere. In Hiking the cost and the heuristic are
-  phase 5's. A ride's riding seconds average far below 40 km/h, so the bound is loose and A* may visit
-  many more nodes than in Hiking: R5 and R8 time it against phase 5's and 6c's marks, and decide
-  whether it needs a tighter one.
+  highest descent cap (19.28 km/h, the paved one, at R3's constants: every class rides its descents at
+  its cap, and no flat is faster), so it never overestimates and the leg found is the fastest. At phase
+  5's 4 km/h it would overestimate a ride about threefold, miss the fastest leg, and misplace 6c § 5's
+  via points with it. The constants are R3's from C on, `build-network.py`'s `RIDING`: the first
+  map-data publish after C rebuilds `trails.network` with them (§ 1), whether or not G merges, and G
+  only shows the time. In Hiking the cost and the heuristic are phase 5's. R3's tune directions average
+  9 to 17 km/h, below 19.28 km/h, so the bound is loose and A* may visit more nodes than in Hiking: R5
+  and R8 time it against phase 5's and 6c's marks, and decide whether it needs a tighter one.
 - **A part of an edge**, where a point joins it between its ends, is timed as Hiking times one
   (`EdgePart.kt`): the riding rule run over the heights it rides, by its own runs, with the edge's
   class and grades, so its time follows the point along the edge rather than taking a share of the
@@ -246,7 +249,7 @@ ships the time; the network is rebuilt with them in G. The reserve was never rea
   `build-network.py`'s the source, and a test holds the two together (Tests).
 - **A point off the Bike routes** joins as phase 5's ends join the Trails: every edge the chips allow
   within 1.5 km is a candidate, and the stretch from the point to it is timed at the rough class's flat
-  speed (10 km/h at B's constants, the slowest a rider is assumed to go where nothing is known of the
+  speed (11.60 km/h at R3's constants, the slowest a rider is assumed to go where nothing is known of the
   way), counted ten times while the join is chosen and once in the leg's time, so a farther Bike route
   wins only for a much shorter Route. It is drawn dashed, and the sheet shows its length over 50 m.
 - **The Route sheet in Cycling** shows distance, ascent and descent, the profile, and the warning; from G
@@ -307,9 +310,10 @@ names no Trail, hike or signpost and is Hiking's as it is.
   time since the last match)`, so while counted fixes arrive every few seconds a rider never outruns it.
   It stalls only after a gap in matched fixes, under trees or with the phone in a pocket: at 20 km/h a
   gap of more than about 36 s carries the rider past 200 m while the window is still 200 m, and the
-  next fix lies beyond it. In Cycling the speed is the rule's fastest, the highest descent cap (40 km/h
-  at B's constants), never less than 200 m, so after any gap the window reaches past where a ride can
-  be; in Hiking it stays 6 km/h.
+  next fix lies beyond it. In Cycling the speed is the rule's fastest, the highest descent cap (19.28 km/h
+  at R3's constants), never less than 200 m; in Hiking it stays 6 km/h. That is slower than R9's scripted
+  20 km/h: after its 61 s gap the window reaches 327 m and the next fix lies 340 m on, so F settles the
+  window's speed before R9 is read.
 - **"Plan a Route along it"** on a Bike route's sheet is 6c § 5's, over the Bike route's walk, planned
   under the route's own kind: where the current chip excludes it, the chip is set to that kind first,
   and All stays All. Search in Cycling finds both kinds whatever the chip and a chip change leaves a
@@ -539,9 +543,11 @@ spread (`cycling-research.md` § 2). The bounds, and the starting constants § 2
 A descent cap's floor is its own class's flat ×1.10, so a descent is never slower than the flat (§ 2's "faster
 downhill"). The start's 10 s/m lies above every router's spread and was held to 8.8 before fitting. With both
 floors binding and the rough cap under ×1.92 its flat, every class rides its descents at its cap: the descent factor
-changes nothing from ×1.57 up, so its ×1.92 is where the fit stopped, not a value the routes chose. The `mtb:scale`
-caps are not borne out either way by tune; on judge they add 2.5 min to Turbacz's walk's direction, which comes out
-3.3 % short. No surface was moved between classes.
+changes nothing from ×1.57 up, so its ×1.92 is where the fit stopped, not a value the routes chose. The pushing
+factor is not borne out either: at 3.22 s/m riding beats pushing on every stretch of tune and judge, so any value
+from ×0.784 to ×1.5 gives the same estimate on every direction and the same loss, and its ×0.92 too is only where
+the fit stopped. The `mtb:scale` caps are not borne out either way by tune; on judge they add 2.5 min to Turbacz's
+walk's direction, which comes out 3.3 % short. No surface was moved between classes.
 
 **Every direction's error**, estimate against the midpoint:
 
