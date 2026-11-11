@@ -764,12 +764,36 @@ class SurfaceTest(unittest.TestCase):
         self.assertEqual(surface_class({"highway": "track", "tracktype": "grade1", "surface": "roots"}), ROUGH)
         self.assertEqual(surface_class({"highway": "track", "tracktype": "grade1", "surface": "cobblestone"}), PAVED)
 
-    def test_a_change_of_class_cuts_an_edge_so_each_has_one(self):
-        ways = {1: way([1, 2], {"highway": "track", "surface": "gravel"}), 2: way([2, 3], {"highway": "track"}),
-                3: way([3, 4], {"highway": "track", "tracktype": "grade1"})}
-        edges = edges_of(ways)
-        self.assertEqual([(edge.points[0][0], edge.points[-1][0], edge.surface) for edge in edges],
-                         [(1, 3, UNPAVED), (3, 4, PAVED)])
+    WAYS = {1: way([1, 2], {"highway": "track", "surface": "gravel"}), 2: way([2, 3], {"highway": "track"}),
+            3: way([3, 5], {"highway": "track", "tracktype": "grade1"})}
+
+    def ends(self, edges: list) -> list:
+        return [(edge.points[0][0], edge.points[-1][0], edge.surface) for edge in edges]
+
+    def test_a_change_of_class_cuts_a_bike_route_s_edge_so_each_has_one(self):
+        edges = edges_with_bikes(self.WAYS, {}, {8: bike_line("blue", "touring", [(1, ""), (2, ""), (3, "")])})
+        self.assertEqual(self.ends(edges), [(1, 3, UNPAVED), (3, 5, PAVED)])
+
+    def test_trail_only_pieces_of_different_classes_stay_one_edge_with_the_longest_s(self):
+        self.assertEqual(self.ends(edges_of(self.WAYS)), [(1, 5, PAVED)])
+
+    def test_the_hiking_network_is_the_same_with_the_class_and_without_it(self):
+        surfaces = ["asphalt", "gravel", "roots", "asphalt", "sand", "grass", "compacted"]
+        ways = {k: way([k, k + 1], {"highway": "path", "surface": surface}) for k, surface in enumerate(surfaces, start=1)}
+        ways[8] = way([3, 13], {"highway": "path", "surface": "concrete"})
+        trails = {9: TrailLine("red", None, [(1, ""), (2, ""), (3, ""), (8, "")]),
+                  10: TrailLine("blue", None, [(4, ""), (5, ""), (6, ""), (7, "")])}
+        bikes = {11: bike_line("red", "mtb", [(4, ""), (5, ""), (6, "")])}
+        level = {k: (nodes, {}) for k, (nodes, _) in ways.items()}
+
+        def hiking(edges: list) -> list:
+            return sorted((tuple(edge.points), edge.ways, edge.climb, edge.flags, edge.sac, edge.trails, edge.sets)
+                          for edge in edges if edge.sets == network["SET_TRAIL"])
+
+        with_class, without = edges_with_bikes(ways, trails, bikes), edges_with_bikes(level, trails, bikes)
+        self.assertEqual(hiking(with_class), hiking(without))
+        self.assertEqual(len(hiking(with_class)), 4)
+        self.assertGreater(len(with_class), len(without))
 
 
 def level(metres: float, step: float = 100.0, height: float = 500.0) -> tuple[list[float], list[float]]:

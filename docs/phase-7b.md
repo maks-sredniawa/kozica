@@ -167,7 +167,9 @@ Decided with the owner on 2026-11-11:
   | **unpaved** | `compacted`, `fine_gravel`, `gravel`, `unpaved`, `dirt`, `earth`, `ground`, `grass_paver` | `track` with `grade2`, `grade3` or none |
   | **rough** | `rock`, `stone`, `pebblestone`, `roots`, `mud`, `sand`, `grass`, `woodchips` | `path`, `footway`, `bridleway`, `steps`; `track` with `grade4`, `grade5` |
 
-  A way's class is part of what makes two pieces one edge (`walks_like`), so an edge has exactly one.
+  On a Bike route a way's class is part of what makes two pieces one edge (`walks_like`), so a Bike
+  route's edge has exactly one. A Trail-only edge is never cut by it and stores its longest piece's class,
+  which nothing reads (decided with the owner on 2026-11-11: the Hiking network keeps 7a's edges).
 - **The Bike route kinds per edge**: the sets byte splits 7a's Bike route bit into Touring and MTB, so an
   edge on both kinds carries both, and the router can keep to the chips.
 - **A rider direction per kind**, Touring and MTB, a byte each beside `ride`, folded from every place
