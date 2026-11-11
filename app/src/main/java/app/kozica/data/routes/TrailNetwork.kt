@@ -6,7 +6,8 @@ import java.nio.ByteOrder
 /**
  * The Trail network of docs/phase-5.md § 2, read whole into arrays: `scripts/build-network.py`'s
  * `write_network` is the other end of this format, and `TrailNetworkTest` holds the two together.
- * Positions are in 1e-7 degrees, heights in decimetres, lengths in metres, times in seconds.
+ * Positions are in 1e-7 degrees, heights in decimetres, lengths in metres, times in seconds; an edge on
+ * no Bike route has NaN riding seconds.
  */
 class TrailNetwork private constructor(
     val nodeLat: IntArray,
@@ -31,6 +32,11 @@ class TrailNetwork private constructor(
     val edgeRide: ByteArray,
     val edgeMtb: ByteArray,
     val edgeMtbUphill: ByteArray,
+    val edgeRidingForward: FloatArray,
+    val edgeRidingBackward: FloatArray,
+    val edgeSurface: ByteArray,
+    val edgeRideTouring: ByteArray,
+    val edgeRideMtb: ByteArray,
 ) {
     val nodeCount: Int get() = nodeLat.size
     val edgeCount: Int get() = edgeFrom.size
@@ -59,10 +65,15 @@ class TrailNetwork private constructor(
     fun canWalkBackward(edge: Int): Boolean = isTrail(edge) && edgeOneway[edge].toInt() != FORWARD_ONLY
 
     companion object {
-        const val FORMAT_VERSION = 2
+        const val FORMAT_VERSION = 3
         const val FORWARD_ONLY = 1
         const val BACKWARD_ONLY = 2
-        private const val SET_TRAIL = 1
+        const val SET_TRAIL = 1
+        const val SET_TOURING = 2
+        const val SET_MTB = 4
+        const val PAVED = 0
+        const val UNPAVED = 1
+        const val ROUGH = 2
         private val MAGIC = "KZTN".toByteArray(Charsets.US_ASCII)
 
         fun read(bytes: ByteArray): TrailNetwork {
@@ -122,6 +133,8 @@ class TrailNetwork private constructor(
             val edgeSecondsBackward = floats(edges)
             val edgeAscent = floats(edges)
             val edgeDescent = floats(edges)
+            val edgeRidingForward = floats(edges)
+            val edgeRidingBackward = floats(edges)
             val pointLat = ints(points)
             val pointLon = ints(points)
             val nodeHeight = shorts(nodes)
@@ -132,6 +145,9 @@ class TrailNetwork private constructor(
             val edgeRide = bytes(edges)
             val edgeMtb = bytes(edges)
             val edgeMtbUphill = bytes(edges)
+            val edgeSurface = bytes(edges)
+            val edgeRideTouring = bytes(edges)
+            val edgeRideMtb = bytes(edges)
             require(!buffer.hasRemaining()) { "${buffer.remaining()} bytes past the end of the Trail network" }
             return TrailNetwork(
                 nodeLat,
@@ -156,6 +172,11 @@ class TrailNetwork private constructor(
                 edgeRide,
                 edgeMtb,
                 edgeMtbUphill,
+                edgeRidingForward,
+                edgeRidingBackward,
+                edgeSurface,
+                edgeRideTouring,
+                edgeRideMtb,
             )
         }
 

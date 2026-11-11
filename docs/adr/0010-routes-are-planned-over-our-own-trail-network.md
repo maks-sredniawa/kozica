@@ -90,3 +90,10 @@ The second set of edges and its direction are built in phase 7a rather than 7b, 
 sheet reads its length, ascent and profile from them. The network's format goes to version 2, each edge
 saying which sets it is in. From 7a the router keeps a Route in Hiking off an edge without the Trail bit,
 for snapping as well as for walking; from 7b it plans along them in Cycling.
+
+## Amendment — 2026-11-11: the Bike routes' edges carry their kinds, direction and timing
+
+Phase 7b ([`phase-7b.md`](../phase-7b.md) § 2) takes the network to format version 3: each edge says which
+kinds of Bike route it is on, Touring and MTB apart, its surface class, a rider direction per kind, and its
+riding seconds each way by ADR-0011's rule, computed at build time as the walking seconds are. An edge's
+surface class cuts it as its walking does, so a Trail's edges are cut there too.

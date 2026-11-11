@@ -3,6 +3,7 @@ package app.kozica.data.routes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,10 +25,34 @@ class TrailNetworkTest {
         assertEquals(7000.toShort(), network.nodeHeight[3])
         assertEquals(3, network.edgePointCount[2])
         assertTrue(network.edgeAscent[2] > 150)
-        assertEquals(listOf<Byte>(1, 1, 1, 1, 1, 3, 1, 2), network.edgeSets.toList())
+        assertEquals(listOf<Byte>(1, 1, 1, 1, 1, 3, 1, 4), network.edgeSets.toList())
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRide[7].toInt())
         assertEquals(3, network.edgeMtb[7].toInt())
         assertEquals(5, network.edgeMtbUphill[7].toInt())
+    }
+
+    @Test
+    fun `reads format 3's Bike route kinds, surface, rider directions and riding seconds`() {
+        assertEquals(TrailNetwork.SET_TRAIL or TrailNetwork.SET_TOURING, network.edgeSets[5].toInt())
+        assertEquals(TrailNetwork.SET_MTB, network.edgeSets[7].toInt())
+        assertEquals(TrailNetwork.PAVED, network.edgeSurface[5].toInt())
+        assertEquals(TrailNetwork.UNPAVED, network.edgeSurface[7].toInt())
+        assertEquals(TrailNetwork.ROUGH, network.edgeSurface[0].toInt())
+        assertEquals(List(8) { 0 }, network.edgeRideTouring.map { it.toInt() })
+        assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRideMtb[7].toInt())
+        assertEquals(network.edgeLength[5] / (20f / 3.6f), network.edgeRidingForward[5], 0.01f)
+        assertEquals(network.edgeLength[7] / (10f / 3.6f), network.edgeRidingBackward[7], 0.01f)
+        for (edge in listOf(0, 1, 2, 3, 4, 6)) {
+            assertTrue(network.edgeRidingForward[edge].isNaN() && network.edgeRidingBackward[edge].isNaN())
+        }
+    }
+
+    @Test
+    fun `format 2 is refused by name`() {
+        val bytes = javaClass.getResource("/trails-fixture.network")!!.readBytes()
+        bytes[4] = 2
+        val refused = assertThrows(IllegalArgumentException::class.java) { TrailNetwork.read(bytes) }
+        assertEquals("Trail network format 2, this build reads 3", refused.message)
     }
 
     @Test

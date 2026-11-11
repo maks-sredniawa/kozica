@@ -90,14 +90,16 @@ class Network:
     def __init__(self, data: bytes):
         if data[:4] != b"KZTN":
             raise ValueError("not a trails.network")
-        _, _, vertices, edges, points = struct.unpack_from("<HHIII", data, 4)
+        version, _, vertices, edges, points = struct.unpack_from("<HHIII", data, 4)
+        if version != 3:
+            raise ValueError(f"trails.network format {version}, this script reads 3")
         self.ways = struct.unpack_from(f"<{edges}q", data, 20)
         pos = 20 + 8 * edges + 4 * vertices * 2
         starts = struct.unpack_from(f"<{edges}I", data, pos)
         ends = struct.unpack_from(f"<{edges}I", data, pos + 4 * edges)
         firsts = struct.unpack_from(f"<{edges}I", data, pos + 8 * edges)
         counts = struct.unpack_from(f"<{edges}I", data, pos + 12 * edges)
-        pos += 16 * edges + 5 * 4 * edges
+        pos += 16 * edges + 7 * 4 * edges
         lats = struct.unpack_from(f"<{points}i", data, pos)
         lons = struct.unpack_from(f"<{points}i", data, pos + 4 * points)
         self.ends = list(zip(starts, ends))
