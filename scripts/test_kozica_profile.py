@@ -78,9 +78,9 @@ def bike(kind: str, members: list[str], **tags) -> dict:
                                                for key, value in tags.items()}, "members": members}
 
 
-BIKE_WAYS = 36
+BIKE_WAYS = 41
 """Each way two nodes of its own, but for the chains CHAINED names."""
-CHAINED = {7: (700, 701), 8: (702, 701), 10: (1000, 1001), 9: (1002, 1001)}
+CHAINED = {7: (700, 701), 8: (702, 701), 10: (1000, 1001), 9: (1002, 1001), 38: (3800, 3801), 39: (3802, 3801)}
 BIKE_WAY_TAGS = {
     1: {"oneway:bicycle": "yes", "oneway": "-1"},
     2: {"oneway:bicycle": "-1", "oneway": "yes"},
@@ -131,6 +131,10 @@ BIKE_RELATIONS = {
     252: bike("bicycle", ["w31", "r253"], network="icn", state="abandoned"),
     253: bike("bicycle", ["w32"]),
     254: bike("bicycle", ["w33"], state="recommended"),
+    255: bike("mtb", ["w37"], oneway="yes"),
+    256: bike("mtb", ["w38", "w39"], oneway="-1"),
+    257: bike("mtb", ["w40"], oneway="no"),
+    258: bike("mtb", ["w41/backward"], oneway="yes"),
     301: {"type": "route", "route": "hiking", "network": "rwn", "colour": "green", "members": ["w10", "w9"]},
     302: {"type": "route", "route": "hiking", "network": "rwn", "colour": "red", "members": ["w11"]},
     303: {"type": "route", "route": "hiking", "network": "rwn", "colour": "blue", "members": ["w11"]},
@@ -144,7 +148,8 @@ BIKE_RELATIONS = {
 against; w9 a way drawn reversed by the Trail r301, whose order it continues head to head with w10; w11 two
 Trails and two Bike routes, one of each red. r220 to r229 `icn`/`ncn` parents; r230 to r237 the others, r235
 mixed; r238 a parent with a Section and a way of its own; r240 and r243 the `type`s that are not routes, without
-a colour; r245's members share a colour outside the five, not r245's. r250 to r254 and r304 to r308 `state`."""
+a colour; r245's members share a colour outside the five, not r245's. r250 to r254 and r304 to r308 `state`.
+r255 to r258 the relation's own `oneway`: w38, w39 in a member order that w39 runs against; w41's role over it."""
 
 
 def write_bikes_fixture() -> None:
@@ -281,6 +286,14 @@ class BikeRoutesTest(unittest.TestCase):
         self.assertEqual(self.dir_on(7), "forward")
         self.assertEqual(self.dir_on(8), "forward")
         self.assertEqual(self.rows[207][4], "7@f 8@b")
+
+    def test_the_relation_s_own_oneway_is_its_member_order_and_minus_one_the_reverse(self):
+        self.assertEqual(self.rows[255][4], "37@f")
+        self.assertEqual(self.rows[256][4], "38@b 39@f")
+        self.assertEqual((self.dir_on(38), self.dir_on(39)), ("backward", "backward"))
+        self.assertEqual(self.rows[257][4], "40")
+        self.assertIsNone(self.dir_on(40))
+        self.assertEqual(self.rows[258][4], "41/backward@b")
 
     def test_a_way_drawn_reversed_by_the_union_s_reference_turns_its_dir(self):
         self.assertEqual(self.dir_on(9), "backward")

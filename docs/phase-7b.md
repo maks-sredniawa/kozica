@@ -172,11 +172,18 @@ Decided with the owner on 2026-11-11:
   edge on both kinds carries both, and the router can keep to the chips.
 - **A rider direction per kind**, Touring and MTB, a byte each beside `ride`, folded from every place
   ADR-0011 reads direction: the way's `oneway:bicycle`, else `oneway`, where it sets one (the `ride`
-  byte), else the senses of that kind's Bike routes on the edge, from their members' roles and
-  `signed_direction` (`Edge.bikes`): one way where every one of them rides it in the same sense, both
+  byte), else the senses of that kind's Bike routes on the edge, from their members' roles,
+  `signed_direction` and the relation's own `oneway` (`Edge.bikes`): one way where every one of them rides it in the same sense, both
   ways where any of them rides it both ways or two disagree. `walks_like` already cuts an edge where a
   route's sense changes, so each edge has one direction per kind. Under All a direction either kind on
   the edge allows is open.
+- **A Bike route relation's own `oneway`** is read as its sense, beside its members' roles and
+  `signed_direction` (decided with the owner on 2026-11-11): `yes` rides it in its members' order, as
+  `signed_direction=yes` does, `-1` the reverse, and `no` says nothing. It reaches `Edge.bikes`, the rider
+  direction per kind and the sheet's "Ridden one way". 21 Bike routes carry it, and 3, Singletrack 14
+  (r10113028) among them, were ridden both ways without it. Where sources disagree, 7a's order holds: the
+  way's own tag, then the member's role, then the relation, whose `signed_direction=yes` wins over its
+  `oneway`.
 - **Riding seconds forward and backward**, computed as walking seconds are, from the same densified
   points and heights `edges_of()` measures the climb on, by one function that takes them and the
   constants (C imports it). A stretch is one of `climb()`'s runs: from the point the height was last
@@ -329,7 +336,9 @@ the Trails.
   equal to the edge's ascent; the split kinds on a way shared by a Touring and an
   MTB route; the rider direction per kind from a way's tag, from a `forward` role alone, from
   `signed_direction` alone, both ways where two routes of a kind disagree, and each kind its own on a
-  way shared by both; no riding seconds on a Trail-only edge; format 3 written and read back. Fails
+  way shared by both; a route one way from the relation's own `oneway` alone, and `oneway=no` leaving it
+  two-way (decided with the owner on 2026-11-11, with `test_kozica_profile.py` reading the sense `yes` and
+  `-1` give); no riding seconds on a Trail-only edge; format 3 written and read back. Fails
   toward a wrong time, a Route over the wrong kind or one against the ride.
 - **`TrailNetworkTest`**: format 3 read, and format 2 refused by name.
 - **The router**: in Cycling it keeps off Trail-only edges, off the other kind under a chip, and off a
