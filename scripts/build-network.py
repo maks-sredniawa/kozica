@@ -678,7 +678,8 @@ class Piece:
             bikes=frozenset((number, on_walk, TURNED.get(sense, sense), kind) for number, on_walk, sense, kind in self.bikes))
 
     def walks_like(self, other: Piece) -> bool:
-        """A change of surface class cuts only a Bike route's edges, so the Hiking network keeps 7a's."""
+        """A change of surface class cuts only a Bike route's edges, a Trail's shared with one included, so only
+        the Trail-only edges keep 7a's."""
         ridden = (self.sets | other.sets) & (SET_TOURING | SET_MTB)
         return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes)
                 == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes)
