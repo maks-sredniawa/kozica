@@ -107,3 +107,6 @@ Decided with the owner while planning phase 7b ([`phase-7b.md`](../phase-7b.md))
   fails too, Cycling shows no time, distance and ascent only, until a rule passes the same marks.
 - **Saving a ride is a schema change in 7b**, before 7c's: a saved Route stores its Mode and its
   sub-filter, so it opens and replans as it was saved.
+- **Following in Cycling is on screen from 7b**, ahead of 7d: it is Following over a ride's line and
+  needs nothing else. The screen kept on and the spoken junction directions above stay 7d's, so a ride
+  is followed on screen alone until 7d ships.
