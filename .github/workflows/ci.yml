@@ -100,7 +100,7 @@ jobs:
 
       # It also holds the committed network fixture to what the build's writer writes today.
       - name: Network build tests
-        run: python3 -m unittest scripts/test_build_network.py scripts/test_kozica_profile.py scripts/test_track_offsets.py
+        run: python3 -m unittest scripts/test_build_network.py scripts/test_kozica_profile.py scripts/test_track_offsets.py scripts/test_riding_time.py
 
       - name: Build debug APK
         run: ./gradlew assembleDebug
