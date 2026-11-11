@@ -90,3 +90,20 @@ keying the factor by both covers each without any setting but a name.
   setting, off by default: OSM marks almost no bends off the roads (in all of Poland, 62 objects
   tagged `hazard=curve` or `curves` and 138 bend signs, with one on a cycleway and one on a track;
   [`cycling-research.md`](../cycling-research.md) § 3).
+
+## Amendment — 2026-11-11: the flat speed is the way's surface, and the time ships only past its gate
+
+Decided with the owner while planning phase 7b ([`phase-7b.md`](../phase-7b.md)).
+
+- **The flat speed is set by the way, not the Bike route's kind**: each edge's surface class, paved,
+  unpaved or rough, from `surface`, else `highway` and `tracktype`, with `mtb:scale` capping it in the
+  direction ridden. `route=mtb` holds long loops on asphalt and forest roads as well as singletrack, and
+  a way can belong to both kinds, so a speed per kind would time the asphalt as singletrack and need a
+  tie-break. The kind still decides which Bike routes a Route may use, and 7c's Pace per Bike keeps its
+  Touring and MTB factors on top.
+- **The check before release is a gate.** The reference is the midpoint of mapy.cz's time and Komoot's
+  at its default fitness; the rule is tuned on 7 Bike routes and judged on 7 others: median error at
+  most 20 %, none over 40 %. On a failure it is tuned once more and judged on 7 kept in reserve. If that
+  fails too, Cycling shows no time, distance and ascent only, until a rule passes the same marks.
+- **Saving a ride is a schema change in 7b**, before 7c's: a saved Route stores its Mode and its
+  sub-filter, so it opens and replans as it was saved.
