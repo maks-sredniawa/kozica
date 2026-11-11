@@ -155,16 +155,9 @@ class RoutePlanner(
         edge: Int,
         uphill: Boolean,
     ): RideGrade? {
-        val up = network.edgeMtbUphill[edge].toInt()
-        val grade =
-            if (uphill &&
-                up != 0
-            ) {
-                RideGrade(up - 1, uphill = true)
-            } else {
-                RideGrade(network.edgeMtb[edge] - 1, false)
-            }
-        return grade.takeIf { it.scale >= DEMANDING_MTB }
+        val readUphill = uphill && network.edgeMtbUphill[edge].toInt() != 0
+        val stored = if (readUphill) network.edgeMtbUphill[edge] else network.edgeMtb[edge]
+        return RideGrade(stored - 1, readUphill).takeIf { it.scale >= DEMANDING_MTB }
     }
 
     /** The higher scale; on a tie the one read as it is, which names no direction. */

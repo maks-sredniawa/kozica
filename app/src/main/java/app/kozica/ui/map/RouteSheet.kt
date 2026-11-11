@@ -72,6 +72,7 @@ internal fun RouteSheet(
     // Set as the dialog opens, so a draft restored after the Route itself was lost is never shown.
     var draft by rememberSaveable { mutableStateOf("") }
     val planned = route.planned.takeUnless { route.planning }
+    val figures = planned?.let { sheetFigures(it, route.stretches) }
     val open = expanded || route.points.size < 2
     Surface(
         shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
@@ -112,9 +113,8 @@ internal fun RouteSheet(
                 planned == null -> LinearProgressIndicator(Modifier.fillMaxWidth())
                 route.following != null -> Following(route, route.following, pace, locale)
                 else -> {
-                    val figures = sheetFigures(planned, route.stretches)
-                    Totals(planned, pace, figures.time, locale)
-                    if (figures.paceLine) PaceLine(pace, locale)
+                    Totals(planned, pace, figures?.time == true, locale)
+                    if (figures?.paceLine == true) PaceLine(pace, locale)
                 }
             }
             route.followingNote?.let { note ->
@@ -151,7 +151,7 @@ internal fun RouteSheet(
                     }) { Text(stringResource(R.string.route_save)) }
                 }
             }
-            if (planned != null) Warnings(sheetFigures(planned, route.stretches).warnings, route, locale)
+            if (figures != null) Warnings(figures.warnings, route, locale)
             if (open) {
                 route.points.forEachIndexed { i, point ->
                     PointRow(
@@ -160,7 +160,7 @@ internal fun RouteSheet(
                         count = route.points.size,
                         minutes =
                             planned
-                                ?.takeIf { sheetFigures(it, route.stretches).time }
+                                ?.takeIf { figures?.time == true }
                                 ?.secondsToPoint
                                 ?.get(i)
                                 ?.takeIf { i > 0 }
