@@ -404,7 +404,7 @@ visited, which `--el trail` does not log, for R8.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | The references: each route's id, kind, country, stratum and set, and per direction mapy.cz's and Komoot's time and distance, the guide's where one exists, and the midpoint; the seed | Playwright in the owner's Chrome, said in chat first; `scripts/riding-time.py --split <seed>` | |
+| R1 | The references: each route's id, kind, country, stratum and set, and per direction mapy.cz's and Komoot's time and distance, the guide's where one exists, and the midpoint; the seed | Playwright in the owner's Chrome, said in chat first; `scripts/riding-time.py --split <seed>` | Read 2026-11-11, seed `20261111`: § *R1, the references* below. 14 routes, 25 directions; every reading within 5 % of our walk's length, Singletrack 14 replaced before its first reading counted |
 | R2 | The base files' growth at B's pin, against 7a's | `ls -l` on the three base files at both pins | |
 | R3 | The gate: the constants fitted, the judge set's median and worst, each route's error; on a failure, the same for the reserve | `scripts/riding-time.py --fit tune --judge judge` | |
 | R4 | Direction: Twister, directed by its ways' tags, and Asfaltový traverz (r2193737), directed by its relation alone: under MTB a Route from each one's start to its end takes it, the reverse does not | `RouteReceiver --es mode CYCLING --es filter MTB` both ways along each; the logged edges | |
@@ -413,3 +413,79 @@ visited, which `--el trail` does not log, for R8.
 | R7 | The switch: a saved Route replans in Cycling and shows unsaved changes; the switch and chips refuse while Following, and a Bike route's sheet offers no "Plan a Route along it". A saved ride's row in the Routes tab shows its length and no walking time, and its GPX export is the ride | emulator, screencaps; the export's file pulled | |
 | R8 | A Route along a Bike route matches it: Twister one way, and the longest Touring route in the Regions each way, length to the metre and climb within 6c's dead band; Twister planned with the chip on Touring comes back under MTB, with the chip logged. The longest one's time taken and nodes visited logged as 6c's R4 logged them. Pass: made within 6c's 2 s, whose 2.4 s for Główny Szlak Beskidzki the owner accepted; a miss is fixed in the router as R5's is, before F merges, and not shipped | `RouteReceiver --el bikeRoute <id>`, the last with `--es filter TOURING`; `adb logcat -d -s KozicaRoute` | |
 | R9 | Following a ride: Progress and the distance left along a scripted ride at 20 km/h, Progress keeping up, across a 60 s gap with no fix that would stall Hiking's window, and from G the time to go | emulator; a ride planned by `RouteReceiver --es mode CYCLING` and followed on the map; `scripts/replay-track.py --route --kmh 20 --last <n> -s <serial>`, then `--first <n+34> --t0 <its t0>`: the 33 points skipped, 10 m and 1.8 s apart, put the next fix 340 m and 61 s on, where Hiking's 200 m window stops short; screencaps either side of the gap | |
+
+### R1, the references
+
+**The pick and the split.** Seven strata of three alike, chosen from 7a's `places.sqlite` by kind,
+climb per kilometre, the surface mix of their member ways and country, each route with no gap in its
+walk. The seed is `20261111`, the date it was taken. The deal: one `random.Random(20261111)`, the
+strata in the order below, each stratum's three ids sorted ascending, shuffled, and dealt to tune,
+judge and reserve in that order. `riding-time.py --split 20261111` reproduces it and then applies the
+one replacement below. The seed put Twister in the reserve; the deal stands.
+
+**One replacement, before any of its readings counted.** Singletrack 14 (r10113028) was dealt to judge
+in M3. Its relation is tagged `oneway=yes` and 18 of its 40 ways are one-way cycleways, so it is
+ridden one way. 7a reads direction only from members' roles and `signed_direction`, and lists it as
+ridden both ways. Neither planner could draw our walk in either direction: Komoot strayed 13 % and
+68 % with 12 waypoints, and 190 % on a half. The rule was fixed before any candidate was looked at.
+The two-way MTB route closest to it in climb per kilometre and unpaved share, with no relation
+`oneway` and no one-way member, takes its judge slot. That is Rowerowa 500 – G6 (r14354061), and the
+deal is otherwise unchanged. Twenty more Bike routes carry a relation-level `oneway`; 7a lists two of
+them, beside Singletrack 14, as ridden both ways.
+
+**How each direction was read.** The walk is 7a's, from `trails.edges` at 7a's pin, as a line in the
+walk's direction ("walk's") or turned ("reverse"). A one-way route counts its walk's direction only,
+the direction it is ridden. Each planner was given up to 12 points sampled along that line, every
+800 m or every twelfth of it, whichever is longer. Komoot's planner refuses more than 13. Times and
+lengths are the planners' own seconds and metres, taken from their responses:
+
+- **Komoot** was read logged out, at its default fitness (`constitution` 3, "Moderate"), as
+  `mtb` for MTB and `touringbicycle` for Touring.
+- **mapy.com** was read at its default pace, as *Mountain bike* (`c` 123) for MTB and
+  *Bicycle touring* (`c` 121, 18 km/h on the flat) for Touring.
+
+A direction whose planned length strayed more than 5 % from our walk's was read again as two halves
+of the walk, each with its own 12 points, and the halves summed. That was Okolo Oravskej Jasenice on
+Komoot (+27.5 % and +6.3 % whole) and G6's walk's direction on mapy.com (−8.4 % whole). Every
+reading in the table is within 4.3 % of our length. Guides' times were not looked up; they count
+nowhere. The reserve is not read until a first failure.
+
+**What the readings already say.** On paved Touring routes the two planners agree within 9 %, and
+mapy.com is the slower in six of the eight directions. Everywhere else Komoot is the slower: by
+7–34 % on MTB and by 9–43 % on unpaved or mixed Touring, the most on the Czech gravel of T2. The
+midpoint halves that spread, and it is what the gate is judged against.
+
+| Stratum | Set | Bike route | Country | Ours | Direction | mapy.com | Komoot | Midpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| M1 MTB, one-way trail-centre descent, unpaved | tune | TT Bunkr Trail (r5487422) | CZ | 5.45 km, ↑58 ↓354 m, one way | walk's | 22.2 min, 5.39 km | 23.6 min, 5.43 km | **22.9 min** |
+| M1 MTB, one-way trail-centre descent, unpaved | judge | Griftof trail (r16129431) | SK | 5.34 km, ↑50 ↓361 m, one way | walk's | 20.1 min, 5.34 km | 22.9 min, 5.34 km | **21.5 min** |
+| M1 MTB, one-way trail-centre descent, unpaved | reserve | Twister (r5738733) | PL | 4.14 km, ↑0 ↓267 m, one way | — | not read | not read | — |
+| M2 MTB, hilly, unpaved | tune | Iľovnícky hrebeň (r20344673) | SK | 9.38 km, ↑297 ↓496 m | walk's | 43.6 min, 9.38 km | 52.3 min, 9.40 km | **48.0 min** |
+| M2 MTB, hilly, unpaved | tune | Iľovnícky hrebeň (r20344673) | SK | 9.38 km, ↑297 ↓496 m | reverse | 56.0 min, 9.38 km | 72.5 min, 9.40 km | **64.2 min** |
+| M2 MTB, hilly, unpaved | judge | Czerwony rowerowy na Turbacz (r2828552) | PL | 23.42 km, ↑748 ↓626 m | walk's | 116.0 min, 22.42 km | 155.2 min, 23.36 km | **135.6 min** |
+| M2 MTB, hilly, unpaved | judge | Czerwony rowerowy na Turbacz (r2828552) | PL | 23.42 km, ↑748 ↓626 m | reverse | 108.1 min, 22.42 km | 142.8 min, 23.43 km | **125.5 min** |
+| M2 MTB, hilly, unpaved | reserve | K Boudě (r19423445) | CZ | 15.16 km, ↑352 ↓369 m, one way | — | not read | not read | — |
+| M3 MTB, rolling loop, unpaved | tune | Pętla Kłodzka (r10030377) | PL | 17.67 km, ↑327 ↓329 m, one way | walk's | 73.5 min, 17.44 km | 84.1 min, 17.48 km | **78.8 min** |
+| M3 MTB, rolling loop, unpaved | judge | Rowerowa 500 - G6 (r14354061) | PL | 15.51 km, ↑292 ↓292 m | walk's | 66.8 min, 15.34 km (2 halves) | 81.5 min, 15.00 km | **74.1 min** |
+| M3 MTB, rolling loop, unpaved | judge | Rowerowa 500 - G6 (r14354061) | PL | 15.51 km, ↑292 ↓292 m | reverse | 64.7 min, 14.93 km | 84.3 min, 15.49 km | **74.5 min** |
+| M3 MTB, rolling loop, unpaved | reserve | Trasa Towarzystwa Izerskiego - Konna Ścieżka (r10108765) | PL | 17.69 km, ↑309 ↓309 m | — | not read | not read | — |
+| T1 Touring, flat, paved | tune | Rodzinna trasa rowerowa - Chłopy i Pany (r10799101) | PL | 17.73 km, ↑92 ↓83 m | walk's | 63.1 min, 17.65 km | 62.1 min, 17.65 km | **62.6 min** |
+| T1 Touring, flat, paved | tune | Rodzinna trasa rowerowa - Chłopy i Pany (r10799101) | PL | 17.73 km, ↑92 ↓83 m | reverse | 62.7 min, 17.72 km | 61.9 min, 17.71 km | **62.3 min** |
+| T1 Touring, flat, paved | judge | Kłodzko - Bystrzyca Kłodzka (r8652589) | PL | 19.47 km, ↑113 ↓59 m | walk's | 70.5 min, 19.47 km | 70.9 min, 19.46 km | **70.7 min** |
+| T1 Touring, flat, paved | judge | Kłodzko - Bystrzyca Kłodzka (r8652589) | PL | 19.47 km, ↑113 ↓59 m | reverse | 66.5 min, 19.28 km | 64.5 min, 19.42 km | **65.5 min** |
+| T1 Touring, flat, paved | reserve | Cyklookruh Rozkoš (r20829119) | CZ | 18.41 km, ↑68 ↓68 m | — | not read | not read | — |
+| T2 Touring, rolling, mixed | tune | Szlak niebieski po Paśmie Posłowickim (r7511699) | PL | 16.35 km, ↑164 ↓164 m | walk's | 62.8 min, 16.40 km | 75.7 min, 16.47 km | **69.2 min** |
+| T2 Touring, rolling, mixed | tune | Szlak niebieski po Paśmie Posłowickim (r7511699) | PL | 16.35 km, ↑164 ↓164 m | reverse | 63.2 min, 16.54 km | 75.4 min, 16.87 km | **69.3 min** |
+| T2 Touring, rolling, mixed | judge | 6284 Ludvíkov Nad Bohušem - Andělská Stezka (r9637589) | CZ | 9.95 km, ↑113 ↓183 m | walk's | 40.0 min, 9.98 km | 55.5 min, 9.96 km | **47.8 min** |
+| T2 Touring, rolling, mixed | judge | 6284 Ludvíkov Nad Bohušem - Andělská Stezka (r9637589) | CZ | 9.95 km, ↑113 ↓183 m | reverse | 44.1 min, 9.98 km | 63.0 min, 9.96 km | **53.5 min** |
+| T2 Touring, rolling, mixed | reserve | 8858 (no name) (r6517987) | SK | 16.87 km, ↑242 ↓354 m | — | not read | not read | — |
+| T3 Touring, hilly, paved | tune | Istebna - Jaworzynka - Koniaków (r2728701) | PL | 27.61 km, ↑742 ↓759 m | walk's | 131.2 min, 27.40 km | 125.6 min, 27.37 km | **128.4 min** |
+| T3 Touring, hilly, paved | tune | Istebna - Jaworzynka - Koniaków (r2728701) | PL | 27.61 km, ↑742 ↓759 m | reverse | 132.1 min, 27.40 km | 124.2 min, 26.73 km | **128.1 min** |
+| T3 Touring, hilly, paved | judge | Terchovsko-zázrivský okruh (r1278665) | SK | 35.37 km, ↑831 ↓283 m | walk's | 165.2 min, 35.40 km | 169.9 min, 34.69 km | **167.6 min** |
+| T3 Touring, hilly, paved | judge | Terchovsko-zázrivský okruh (r1278665) | SK | 35.37 km, ↑831 ↓283 m | reverse | 131.2 min, 35.39 km | 119.4 min, 35.26 km | **125.3 min** |
+| T3 Touring, hilly, paved | reserve | 461 Ostravice - Klokočov (CZ/SK) (r174543) | CZ | 24.15 km, ↑551 ↓267 m | — | not read | not read | — |
+| T4 Touring, hilly, unpaved | tune | 12 (no name) (r1671065) | CZ | 9.99 km, ↑332 ↓290 m | walk's | 53.2 min, 10.03 km | 57.8 min, 9.89 km | **55.5 min** |
+| T4 Touring, hilly, unpaved | tune | 12 (no name) (r1671065) | CZ | 9.99 km, ↑332 ↓290 m | reverse | 50.7 min, 10.03 km | 58.0 min, 9.89 km | **54.4 min** |
+| T4 Touring, hilly, unpaved | judge | Okolo Oravskej Jasenice (r11293190) | SK | 20.88 km, ↑668 ↓668 m | walk's | 107.4 min, 20.89 km | 137.2 min, 20.94 km (2 halves) | **122.3 min** |
+| T4 Touring, hilly, unpaved | judge | Okolo Oravskej Jasenice (r11293190) | SK | 20.88 km, ↑668 ↓668 m | reverse | 107.4 min, 20.89 km | 137.3 min, 20.94 km (2 halves) | **122.4 min** |
+| T4 Touring, hilly, unpaved | reserve | Półrzeczki - Chyszówki (r3934748) | PL | 13.57 km, ↑543 ↓523 m | — | not read | not read | — |
