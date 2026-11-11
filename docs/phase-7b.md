@@ -153,7 +153,11 @@ Decided with the owner on 2026-11-11:
    merge, and the phase closes on D, E and F. The rule and both comparisons stay recorded in R3. A later
    attempt that passes the same marks, on routes it was not tuned on, adds the time in its own `feat:`.
 
-### The verdict, taken *(date)*
+### The verdict, taken 2026-11-11
+
+**Verdict 1: it passes.** Fitted on tune and judged once on judge, the judge set's median error is 3.2 % and
+its worst 11.9 %, against marks of 20 % and 40 %. The fitted constants are `build-network.py`'s `RIDING`, and G
+ships the time; the network is rebuilt with them in G. The reserve was never read. R3 has the run.
 
 ## 2. The data
 
@@ -420,7 +424,7 @@ visited, which `--el trail` does not log, for R8.
 | --- | --- | --- | --- |
 | R1 | The references: each route's id, kind, country, stratum and set, and per direction mapy.cz's and Komoot's time and distance, the guide's where one exists, and the midpoint; the seed | Playwright in the owner's Chrome, said in chat first; `scripts/riding-time.py --split <seed>` | Read 2026-11-11, seed `20261111`: § *R1, the references* below. 14 routes, 25 directions; every reading within 5 % of our walk's length, Singletrack 14 replaced before its first reading counted |
 | R2 | The base files' growth at B's pin, against 7a's | `ls -l` on the three base files at both pins | 2026-11-11, the PC, B's branch at pin `poland 4965`, `slovakia 4965`, `czech-republic 4966` (2026-11-10T21:21:39Z), against 7a's at `4956`, `4956`, `4957`: `trails.network` 15,198,240 → 15,782,943 B (+584,703, +3.8 %), `trails.edges` 275,796 → 297,232 B (+21,436, +7.8 %), `places.sqlite` 7,565,312 → 7,581,696 B (+16,384, +0.2 %). Edges 30,843 → 33,993, nodes 23,251 → 26,424, points 1,342,356 → 1,344,511, a walk's steps 53,257 → 58,588. The five new arrays are 11 B an edge, 373,923 B; the rest is the surface class cutting the Bike routes' edges, 3,176 more than a build with the class ignored at the same pin (30,817 edges, 15,525,687 B), and the pin. **The Trail-only edges keep 7a's edges, and the edges a Trail shares with a Bike route are cut by the class**: 14,536 Trail-only edges at 7a's pin, 14,560 at B's, and those 14,560 are the same edges, points, heights, times and climbs as in the build with the class ignored; of the 3,176 more edges, 1,049 are shared by a Trail and a Bike route and so walked by the Hiking router, 22,469 Trail edges against 21,420 (7,909 shared against 6,860), each a cut where the climb's dead band restarts that 7a did not make. Classes: 17,798 edges paved, 9,809 unpaved, 6,386 rough, the Trail-only ones by their longest piece; 16,033 edges on a Touring route, 3,860 on an MTB route, 460 on both. Bike routes ridden one way: 237 without the relation's own `oneway`, 240 with it (Świeradowiec r8781520, Singletrack 14 r10113028, Chabówka - Rabka r14390917). Recorded, not judged |
-| R3 | The gate: the constants fitted, the judge set's median and worst, each route's error; on a failure, the same for the reserve | `scripts/riding-time.py --fit tune --judge judge` | |
+| R3 | The gate: the constants fitted, the judge set's median and worst, each route's error; on a failure, the same for the reserve | `scripts/riding-time.py --fit tune --judge judge` | 2026-11-11, the PC, B's pin rebuilt to R2's bytes: judge median **3.2 %**, worst **11.9 %**, verdict 1. § *R3, the gate* below |
 | R4 | Direction: Twister, directed by its ways' tags, and Asfaltový traverz (r2193737), directed by its relation alone: under MTB a Route from each one's start to its end takes it, the reverse does not | `RouteReceiver --es mode CYCLING --es filter MTB` both ways along each; the logged edges | |
 | R5 | The chips: the same two points under All, Touring and MTB give the lines each kind allows, or "No way". The planning time: a ride of 20 km or more between two points, its plan time and nodes visited logged beside Hiking's for the same two points. Pass: within phase 5's 500 ms. A miss holds D until the router is fixed, a tighter heuristic first (the flat paved speed with an admissible correction for the descent left to the end), and is not shipped | `RouteReceiver --es mode CYCLING` with each `--es filter`; `adb logcat -d -s KozicaRoute` for the plan time and nodes visited | |
 | R6 | An upgrade: a v3 install with saved Routes updated to this build keeps every Route, each opening as a walk | emulator, the last release installed, Routes saved, this build `install -r` over it | |
@@ -505,3 +509,80 @@ midpoint halves that spread, and it is what the gate is judged against.
 | T4 Touring, hilly, unpaved | judge | Okolo Oravskej Jasenice (r11293190) | SK | 20.88 km, ↑668 ↓668 m | walk's | 107.4 min, 20.89 km | 137.2 min, 20.94 km (2 halves) | **122.3 min** |
 | T4 Touring, hilly, unpaved | judge | Okolo Oravskej Jasenice (r11293190) | SK | 20.88 km, ↑668 ↓668 m | reverse | 107.4 min, 20.89 km | 137.3 min, 20.94 km (2 halves) | **122.4 min** |
 | T4 Touring, hilly, unpaved | reserve | Półrzeczki - Chyszówki (r3934748) | PL | 13.57 km, ↑543 ↓523 m | — | not read | not read | — |
+
+### R3, the gate
+
+**The run**, once, on 2026-11-11: `map-data/network-venv/bin/python scripts/riding-time.py --data
+map-data/pin-4965 --relief relief/src/main/assets/relief.pmtiles --cache map-data/pin-4965/riding-gate.json
+--fit tune --judge judge`. `map-data/pin-4965/` is B's pin (`poland 4965`, `slovakia 4965`, `czech-republic
+4966`) cut again by `build-map-data.py`'s own functions, its base files byte for byte R2's. The references are
+`scripts/riding-references.json`, R1's readings, which `test_riding_time.py` holds to R1's table. Every walk at B's pin
+runs as 7a's did, from R1's start and within 0.1 % of its length; each direction is matched by its start and the
+order of R1's waypoints along it.
+
+**The fit**, least squares on log error over tune's 12 directions, each constant inside the published routers'
+spread (`cycling-research.md` § 2). The bounds, and the starting constants § 2 lists:
+
+| Constant | Start | Bounds | Fitted |
+| --- | --- | --- | --- |
+| Flat paved | 20 km/h | 15 (OSRM's default) – 25 (Valhalla's road bike) | **17.53 km/h** |
+| Flat unpaved | 15 km/h | 6 (OSRM's gravel) – 16 (GraphHopper's MTB dirt, Valhalla's mountain bike) | **15.26 km/h** |
+| Flat rough | 10 km/h | 3 (OSRM's mud and sand) – 13 (OSRM's path) | **11.60 km/h** |
+| Descent cap paved | 40 km/h | its flat ×1.10 (GraphHopper's descent) – 45 (BRouter's `maxSpeed`) | **19.28 km/h**, at its floor |
+| Descent cap unpaved | 25 km/h | the same | **16.79 km/h**, at its floor |
+| Descent cap rough | 15 km/h | the same | **18.20 km/h** |
+| Climbing | 10 s/m | 0.5 (GraphHopper's ×0.9 at 4 %) – 8.8 (BRouter's 90 kg at 100 W, m·g/P) | **3.22 s/m** |
+| Descent factor | ×1.5 | ×1.10 (GraphHopper) – ×2.2 (Valhalla) | **×1.92** |
+| Pushing factor | ×1 | ×0.78 (Valhalla's 5.1 km/h dismount) – ×1 (everyone else's 4 km/h) | **×0.92** |
+| `mtb:scale` S2, S3, S4+ caps | 10, 6, 4 km/h | — | **kept**: no tune edge carries S2 or over |
+
+A descent cap's floor is its own class's flat ×1.10, so a descent is never slower than the flat (§ 2's "faster
+downhill"). The start's 10 s/m lies above every router's spread and was held to 8.8 before fitting. With both
+floors binding and the rough cap under ×1.92 its flat, every class rides its descents at its cap: the descent factor
+changes nothing from ×1.57 up, so its ×1.92 is where the fit stopped, not a value the routes chose. The `mtb:scale`
+caps are not borne out either way by tune; on judge they add 2.5 min to Turbacz's walk's direction, which comes out
+3.3 % short. No surface was moved between classes.
+
+**Every direction's error**, estimate against the midpoint:
+
+| Set | Bike route | Direction | Start | Fitted | Midpoint | Error |
+| --- | --- | --- | --- | --- | --- | --- |
+| tune | TT Bunkr Trail (r5487422) | walk's | 29.9 min | 22.9 min | 22.9 min | −0.1 % |
+| tune | Iľovnícky hrebeň (r20344673) | walk's | 78.3 min | 51.4 min | 48.0 min | +7.2 % |
+| tune | Iľovnícky hrebeň (r20344673) | reverse | 105.4 min | 61.5 min | 64.2 min | −4.2 % |
+| tune | Pętla Kłodzka (r10030377) | walk's | 114.5 min | 84.1 min | 78.8 min | +6.7 % |
+| tune | Chłopy i Pany (r10799101) | walk's | 61.6 min | 63.5 min | 62.6 min | +1.4 % |
+| tune | Chłopy i Pany (r10799101) | reverse | 57.5 min | 62.2 min | 62.3 min | −0.1 % |
+| tune | Paśmo Posłowickie (r7511699) | walk's | 76.7 min | 66.5 min | 69.2 min | −3.9 % |
+| tune | Paśmo Posłowickie (r7511699) | reverse | 74.4 min | 66.1 min | 69.3 min | −4.6 % |
+| tune | Istebna - Jaworzynka - Koniaków (r2728701) | walk's | 197.3 min | 132.8 min | 128.4 min | +3.4 % |
+| tune | Istebna - Jaworzynka - Koniaków (r2728701) | reverse | 198.3 min | 132.3 min | 128.1 min | +3.2 % |
+| tune | 12 (r1671065) | walk's | 84.8 min | 53.6 min | 55.5 min | −3.6 % |
+| tune | 12 (r1671065) | reverse | 80.3 min | 51.9 min | 54.4 min | −4.6 % |
+| judge | Griftof trail (r16129431) | walk's | | 22.1 min | 21.5 min | +2.6 % |
+| judge | Czerwony rowerowy na Turbacz (r2828552) | walk's | | 131.1 min | 135.6 min | −3.3 % |
+| judge | Czerwony rowerowy na Turbacz (r2828552) | reverse | | 120.1 min | 125.5 min | −4.3 % |
+| judge | Rowerowa 500 - G6 (r14354061) | walk's | | 71.8 min | 74.1 min | −3.2 % |
+| judge | Rowerowa 500 - G6 (r14354061) | reverse | | 72.5 min | 74.5 min | −2.7 % |
+| judge | Kłodzko - Bystrzyca Kłodzka (r8652589) | walk's | | 70.4 min | 70.7 min | −0.4 % |
+| judge | Kłodzko - Bystrzyca Kłodzka (r8652589) | reverse | | 66.1 min | 65.5 min | +0.9 % |
+| judge | Ludvíkov Nad Bohušem - Andělská Stezka (r9637589) | walk's | | 42.9 min | 47.8 min | −10.2 % |
+| judge | Ludvíkov Nad Bohušem - Andělská Stezka (r9637589) | reverse | | 47.2 min | 53.5 min | −11.9 % |
+| judge | Terchovsko-zázrivský okruh (r1278665) | walk's | | 164.5 min | 167.6 min | −1.8 % |
+| judge | Terchovsko-zázrivský okruh (r1278665) | reverse | | 128.4 min | 125.3 min | +2.5 % |
+| judge | Okolo Oravskej Jasenice (r11293190) | walk's | | 112.4 min | 122.3 min | −8.1 % |
+| judge | Okolo Oravskej Jasenice (r11293190) | reverse | | 111.7 min | 122.4 min | −8.7 % |
+
+Tune: median 3.7 %, worst 7.2 % fitted (46.6 % and 64.1 % at the start). **Judge: median 3.2 %, worst 11.9 %.**
+The judge was run once and not looked at before. Its three worst directions, Ludvíkov's two and Oravská Jasenice's
+reverse, are on the unpaved and mixed Touring routes where Komoot was 28–43 % slower than mapy.com, and all three
+come out short of the midpoint.
+
+**What the rule's shape does, recorded, not changed.** A run of `climb()`'s that falls is a descent however gently
+it falls, so 5 m lost over a kilometre rides at the descent speed one way and pays the climb the other. At the
+start's constants, Chłopy i Pany's runs under 1 % put 5.9 min between its two directions against the flat, on flat
+paved country where the planners differ by 0.3 min: the start timed them 61.6 and 57.5 min. The fit pins the paved
+and unpaved caps at their floor, which closes the gap to 1.3 min and rides every descent there barely faster than
+the flat, steep ones included. Fitted, the gentle falling runs save no direction more than 2.8 min against the flat
+(Kłodzko - Bystrzyca Kłodzka's reverse, 4 %), and the three worst judge directions at most 0.7 min. A grade below
+which a run is timed as flat would leave the caps free to fit the steep descents; that is the owner's call.

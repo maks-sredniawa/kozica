@@ -993,7 +993,7 @@ class FormatTest(unittest.TestCase):
         self.assertEqual(read["ride_mtb"], (0,) * 7 + (FORWARD,))
         riding = list(zip(read["riding_forward"], read["riding_backward"]))
         self.assertTrue(all(math.isnan(f) and math.isnan(b) for k, (f, b) in enumerate(riding) if k not in (5, 7)))
-        self.assertAlmostEqual(riding[5][0], edges[5].length / (20 / 3.6), places=2)
+        self.assertAlmostEqual(riding[5][0], edges[5].length / (network["RIDING"].flat[PAVED] / 3.6), places=2)
         self.assertAlmostEqual(riding[7][1], edges[7].length / (10 / 3.6), places=2)
 
 

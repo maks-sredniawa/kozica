@@ -40,7 +40,7 @@ class TrailNetworkTest {
         assertEquals(TrailNetwork.ROUGH, network.edgeSurface[0].toInt())
         assertEquals(List(8) { 0 }, network.edgeRideTouring.map { it.toInt() })
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRideMtb[7].toInt())
-        assertEquals(network.edgeLength[5] / (20f / 3.6f), network.edgeRidingForward[5], 0.01f)
+        assertEquals(network.edgeLength[5] / (17.53f / 3.6f), network.edgeRidingForward[5], 0.01f)
         assertEquals(network.edgeLength[7] / (10f / 3.6f), network.edgeRidingBackward[7], 0.01f)
         for (edge in listOf(0, 1, 2, 3, 4, 6)) {
             assertTrue(network.edgeRidingForward[edge].isNaN() && network.edgeRidingBackward[edge].isNaN())

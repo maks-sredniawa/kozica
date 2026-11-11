@@ -157,8 +157,8 @@ def walking_seconds(length: float, up: float, steep_down: float) -> float:
 
 @dataclass(frozen=True)
 class RidingConstants:
-    """docs/phase-7b.md § 2's constants, speeds in km/h; `flat` and `descent_cap` are indexed by surface class,
-    `mtb_caps` hold S2's, S3's, and S4's and over."""
+    """docs/phase-7b.md § 2's starting constants, speeds in km/h; `flat` and `descent_cap` are indexed by surface
+    class, `mtb_caps` hold S2's, S3's, and S4's and over. RIDING is what R3's gate fitted."""
     flat: tuple[float, float, float] = (20.0, 15.0, 10.0)
     descent_cap: tuple[float, float, float] = (40.0, 25.0, 15.0)
     seconds_per_metre_up: float = 10.0
@@ -172,7 +172,8 @@ class RidingConstants:
         return math.inf if scale < 2 else self.mtb_caps[min(scale, 4) - 2]
 
 
-RIDING = RidingConstants()
+RIDING = RidingConstants(flat=(17.53, 15.26, 11.6), descent_cap=(19.28, 16.79, 18.2), seconds_per_metre_up=3.22,
+                         descent_factor=1.92, pushing_factor=0.92)
 
 
 def at_kmh(length: float, kmh: float) -> float:
