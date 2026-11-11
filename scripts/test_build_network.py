@@ -777,7 +777,7 @@ class SurfaceTest(unittest.TestCase):
     def test_trail_only_pieces_of_different_classes_stay_one_edge_with_the_longest_s(self):
         self.assertEqual(self.ends(edges_of(self.WAYS)), [(1, 5, PAVED)])
 
-    def test_the_hiking_network_is_the_same_with_the_class_and_without_it(self):
+    def test_the_class_leaves_trail_only_edges_alone_and_cuts_shared_ones(self):
         surfaces = ["asphalt", "gravel", "roots", "asphalt", "sand", "grass", "compacted"]
         ways = {k: way([k, k + 1], {"highway": "path", "surface": surface}) for k, surface in enumerate(surfaces, start=1)}
         ways[8] = way([3, 13], {"highway": "path", "surface": "concrete"})
@@ -790,10 +790,15 @@ class SurfaceTest(unittest.TestCase):
             return sorted((tuple(edge.points), edge.ways, edge.climb, edge.flags, edge.sac, edge.trails, edge.sets)
                           for edge in edges if edge.sets == network["SET_TRAIL"])
 
+        def shared(edges: list) -> list:
+            trail = network["SET_TRAIL"]
+            return sorted(edge.ways for edge in edges if edge.sets & trail and edge.sets != trail)
+
         with_class, without = edges_with_bikes(ways, trails, bikes), edges_with_bikes(level, trails, bikes)
         self.assertEqual(hiking(with_class), hiking(without))
         self.assertEqual(len(hiking(with_class)), 4)
-        self.assertGreater(len(with_class), len(without))
+        self.assertEqual(shared(with_class), [(4,), (5, 6)])
+        self.assertEqual(shared(without), [(4, 5, 6)])
 
 
 def level(metres: float, step: float = 100.0, height: float = 500.0) -> tuple[list[float], list[float]]:
