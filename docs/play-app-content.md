@@ -196,9 +196,8 @@ why it has to be right before the app it describes ships rather than after.
 
 ## Production access — the application, and the answers it was given
 
-**DRAFT, 2026-11-11 — not submitted.** Typed into the Console's form, which waits on the owner's
-review and their own Submit. Once it is sent, change this line to *Submitted <date>* and keep the
-answers below **verbatim**: the Console asks the same set again for the next app on this account, and
+**Submitted 2026-11-11, about 23:00, by the owner** after reviewing the form as typed. The answers
+below are the ones typed into it, recorded **verbatim**: the Console asks the same set again for the next app on this account, and
 an answer re-read a year later has to be the one that was given. Each box takes at most 300
 characters; the count is beside each question.
 

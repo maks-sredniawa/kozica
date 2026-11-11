@@ -96,7 +96,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 ## After the closed test
 
-- [ ] **The production-access application is in, with its answers recorded verbatim** in
+- [x] **The production-access application is in, with its answers recorded verbatim** in
       [`play-app-content.md`](play-app-content.md). Until it is granted the production track does not
       exist. The app this template was extracted from waited one day; that is one datapoint, not a
       promise. **If it comes back rejected, read the reason before changing any artifact.** Changing
