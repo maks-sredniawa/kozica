@@ -164,10 +164,10 @@ from cost 3 MB, so only OSM's own nodes are stored.
   (phase 7a § 2) holds the Bike routes' ways too, and four bytes more per edge: `sets` (1 Trail, 2 Bike
   route, 3 both), `ride`, `mtb` and `mtb_up`. The router leaves an edge without the Trail bit out of its
   grid and never walks it. Format version 3 (phase 7b § 2) splits the Bike route bit into Touring (2) and
-  MTB (4), so `sets` is any sum of 1, 2 and 4; cuts a Bike route's edge where a way's surface class
-  changes, leaving the Trails' edges as format 2 joined them; and adds two float arrays after the five
-  per-edge ones, the riding seconds forward and backward (NaN on an edge on no Bike route), and three bytes
-  after the six: `surface` (0 paved, 1 unpaved, 2 rough; on an edge on no Bike route its longest piece's,
+  MTB (4), so `sets` is any sum of 1, 2 and 4; cuts a Bike route's edge, one a Trail shares included,
+  where a way's surface class changes, leaving the Trail-only edges as format 2 joined them; and adds two
+  float arrays after the five per-edge ones, the riding seconds forward and backward (NaN on an edge on
+  no Bike route), and three bytes after the six: `surface` (0 paved, 1 unpaved, 2 rough; on an edge on no Bike route its longest piece's,
   and meaningful only on a Bike route's),
   `ride_touring` and `ride_mtb`, each kind's rider direction as `flags` writes the walker's, 0 also on an
   edge with no route of that kind.
