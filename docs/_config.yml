@@ -20,3 +20,4 @@ description: A hiking map of the Polish mountains that works with no signal at a
 maksforge:
   icon: /assets/icons/kozica.webp
   status: building
+  kind: Android app
