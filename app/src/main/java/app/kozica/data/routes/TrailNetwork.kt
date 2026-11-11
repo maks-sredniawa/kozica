@@ -6,8 +6,9 @@ import java.nio.ByteOrder
 /**
  * The Trail network of docs/phase-5.md § 2, read whole into arrays: `scripts/build-network.py`'s
  * `write_network` is the other end of this format, and `TrailNetworkTest` holds the two together.
- * Positions are in 1e-7 degrees, heights in decimetres, lengths in metres, times in seconds; an edge on
- * no Bike route has NaN riding seconds.
+ * Positions are in 1e-7 degrees, heights in decimetres, lengths in metres, times in seconds. An edge on
+ * no Bike route has NaN riding seconds, and its surface class, its longest piece's, means nothing: only a
+ * Bike route's edges are cut where the class changes.
  */
 class TrailNetwork private constructor(
     val nodeLat: IntArray,

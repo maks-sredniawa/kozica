@@ -95,5 +95,6 @@ for snapping as well as for walking; from 7b it plans along them in Cycling.
 
 Phase 7b ([`phase-7b.md`](../phase-7b.md) § 2) takes the network to format version 3: each edge says which
 kinds of Bike route it is on, Touring and MTB apart, its surface class, a rider direction per kind, and its
-riding seconds each way by ADR-0011's rule, computed at build time as the walking seconds are. An edge's
-surface class cuts it as its walking does, so a Trail's edges are cut there too.
+riding seconds each way by ADR-0011's rule, computed at build time as the walking seconds are. The surface
+class cuts only a Bike route's edges, so the Trails' edges, and the Hiking network, stay as phase 7a built
+them.

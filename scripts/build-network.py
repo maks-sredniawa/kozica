@@ -678,9 +678,14 @@ class Piece:
             bikes=frozenset((number, on_walk, TURNED.get(sense, sense), kind) for number, on_walk, sense, kind in self.bikes))
 
     def walks_like(self, other: Piece) -> bool:
-        return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes, self.surface)
-                == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes,
-                    other.surface))
+        """A change of surface class cuts only a Bike route's edges, so the Hiking network keeps 7a's."""
+        ridden = (self.sets | other.sets) & (SET_TOURING | SET_MTB)
+        return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes)
+                == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes)
+                and (not ridden or self.surface == other.surface))
+
+    def length(self) -> float:
+        return sum(distance(a[1], a[2], b[1], b[2]) for a, b in zip(self.points, self.points[1:]))
 
 
 def sets_of(way: int, memberships: dict | None, bikes: dict | None) -> int:
@@ -766,7 +771,8 @@ def chains(pieces: list[Piece]) -> list[Piece]:
         for run in (chain[:-1], chain[-1:]) if closed else (chain,):
             points = run[0].points + [point for piece in run[1:] for point in piece.points[1:]]
             ways = tuple(dict.fromkeys(way for piece in run for way in piece.ways))
-            out.append(replace(run[0], points=points, ways=ways))
+            surface = max(run, key=Piece.length).surface if len(run) > 1 else run[0].surface
+            out.append(replace(run[0], points=points, ways=ways, surface=surface))
     return out
 
 
@@ -799,7 +805,8 @@ def edges_of(ways: dict, relief: Relief | Level, memberships: dict[int, frozense
 
 def write_network(edges: list[Edge], target: Path) -> tuple[int, int, int]:
     """docs/phase-5.md § 2's binary, little-endian, its arrays one after another, widest first. An edge on no
-    Bike route rides in NaN seconds."""
+    Bike route rides in NaN seconds, and its surface class, its longest piece's, means nothing: only a Bike
+    route's edges are cut where the class changes."""
     vertices = sorted({ref for edge in edges for ref in (edge.points[0][0], edge.points[-1][0])})
     index = {ref: i for i, ref in enumerate(vertices)}
     where = {}
