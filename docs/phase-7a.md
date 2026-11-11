@@ -197,7 +197,7 @@ of the renders.
   and `Router` leaves those edges out of its grid, so a Hiking Route neither snaps to nor runs over a
   bike-only edge; the edge indices stay one numbering, which `trails.edges` steps into. A Bike route's
   walk, length, ascent each way and profile come from these edges; the router plans over them from
-  7b.
+  7b. Phase 7b § 2 takes the format to version 3, splitting the Bike route bit into Touring and MTB.
 - **The name index**: a table of their own, `bike_routes`, beside `trails`, with `bike_route_names`
   as its FTS4, folded by the one rule. Its columns are `trails`' less `symbol`, plus `kind`,
   `network`, `one_way`, and the route's own `mtb_scale` and `mtb_scale_uphill`. Their walks go into

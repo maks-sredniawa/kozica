@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Builds the Trail network, the name index and the walks of docs/phase-5.md § 2, docs/phase-6c.md § 2 and
-docs/phase-7a.md § 2 from the Regions' merged cuts.
+"""Builds the Trail network, the name index and the walks of docs/phase-5.md § 2, docs/phase-6c.md § 2,
+docs/phase-7a.md § 2 and docs/phase-7b.md § 2 from the Regions' merged cuts.
 
     python3 scripts/build-network.py --relief map-data/relief/relief.pmtiles --out map-data/base-assets \\
         --region tatry map-data/merged/pin/tatry.osm.pbf map-data/archives/tatry.trails ...
@@ -27,7 +27,7 @@ import unicodedata
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-FORMAT_VERSION = 2
+FORMAT_VERSION = 3
 MAGIC = b"KZTN"
 WALK_FORMAT_VERSION = 1
 WALK_MAGIC = b"KZTE"
@@ -56,13 +56,25 @@ TURNED = {FORWARD_ONLY: BACKWARD_ONLY, BACKWARD_ONLY: FORWARD_ONLY}
 ONEWAY_VALUES = {"yes": FORWARD_ONLY, "true": FORWARD_ONLY, "1": FORWARD_ONLY, "-1": BACKWARD_ONLY}
 ONE_WAY_SHARE = 0.75
 SET_TRAIL = 1
-SET_BIKE_ROUTE = 2
+SET_TOURING = 2
+SET_MTB = 4
+KIND_SETS = {"touring": SET_TOURING, "mtb": SET_MTB}
+PAVED, UNPAVED, ROUGH = 0, 1, 2
+SURFACES = {
+    **dict.fromkeys(("asphalt", "paving_stones", "sett", "chipseal", "paved", "metal", "wood"), PAVED),
+    **dict.fromkeys(("compacted", "fine_gravel", "gravel", "unpaved", "dirt", "earth", "ground", "grass_paver"), UNPAVED),
+    **dict.fromkeys(("rock", "stone", "pebblestone", "roots", "mud", "sand", "grass", "woodchips"), ROUGH),
+}
+PAVED_HIGHWAYS = {"motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential",
+                  "living_street", "pedestrian", "road", "busway", "service", "cycleway"}
+TRACK_GRADES = {"grade1": PAVED, "grade2": UNPAVED, "grade3": UNPAVED, "grade4": ROUGH, "grade5": ROUGH}
+NO_RIDING = math.nan
 NAME_KEYS = ("name", "name:pl", "name:sk", "name:cs", "alt_name", "old_name")
 ENDS_KEYS = ("description", "osmc:name", "note:cs", "note")
 TRAIL_KEYS = ("name", "name:pl", "ref", "from", "to", *ENDS_KEYS)
 BIKE_ROUTE_KEYS = ("network", "mtb:scale", "mtb:scale:uphill", "signed_direction")
 WAY_KEYS = ("highway", "oneway", "oneway:foot", "foot:backward", "foot:forward", "sac_scale", "oneway:bicycle",
-            "mtb:scale", "mtb:scale:uphill")
+            "mtb:scale", "mtb:scale:uphill", "surface", "tracktype")
 COLOUR_CODE = re.compile(r"^\[[^\]]{1,3}\]\s*")
 DASH = re.compile(r"\s+[-–—]\s+")
 LONGEST_END = 40
@@ -101,12 +113,12 @@ class Climb:
     steep_descent: float
 
 
-def climb(lengths: list[float], heights: list[float]) -> Climb:
-    """Ascent and descent past a dead band, and the parts of each steeper than STEEP_GRADE.
+def runs(lengths: list[float], heights: list[float]) -> list[tuple[float, float]]:
+    """Each stretch from the point the height was last counted at to the next point a dead band or more above
+    or below it, as (length, change); the last ends at the last point whatever its height differs by there.
 
-    `lengths[i]` is the horizontal distance from point i to point i + 1. What is left inside the band at
-    the last point counts too, so the edges of a Route climb exactly what its ends differ by."""
-    ascent = descent = steep_ascent = steep_descent = 0.0
+    `lengths[i]` is the horizontal distance from point i to point i + 1."""
+    found = []
     reference = heights[0]
     run = 0.0
     for i, (length, height) in enumerate(zip(lengths, heights[1:])):
@@ -114,20 +126,80 @@ def climb(lengths: list[float], heights: list[float]) -> Climb:
         change = height - reference
         if abs(change) < DEAD_BAND_METRES and i < len(lengths) - 1:
             continue
-        steep = run > 0 and abs(change) / run > STEEP_GRADE
+        found.append((run, change))
+        reference, run = height, 0.0
+    return found
+
+
+def is_steep(length: float, change: float) -> bool:
+    return length > 0 and abs(change) / length > STEEP_GRADE
+
+
+def climb(lengths: list[float], heights: list[float]) -> Climb:
+    """Ascent and descent over `runs()`, and the parts of each steeper than STEEP_GRADE. The last run counts
+    too, so the edges of a Route climb exactly what its ends differ by."""
+    ascent = descent = steep_ascent = steep_descent = 0.0
+    for run, change in runs(lengths, heights):
+        steep = is_steep(run, change)
         if change > 0:
             ascent += change
             steep_ascent += change if steep else 0.0
         else:
             descent -= change
             steep_descent -= change if steep else 0.0
-        reference, run = height, 0.0
     return Climb(ascent, descent, steep_ascent, steep_descent)
 
 
 def walking_seconds(length: float, up: float, steep_down: float) -> float:
     """The PTTK marker's rule, docs/phase-5.md § 3, unrounded."""
     return length / FLAT_METRES_PER_SECOND + up * SECONDS_PER_METRE_UP + steep_down * SECONDS_PER_METRE_STEEP_DOWN
+
+
+@dataclass(frozen=True)
+class RidingConstants:
+    """docs/phase-7b.md § 2's constants, speeds in km/h; `flat` and `descent_cap` are indexed by surface class,
+    `mtb_caps` hold S2's, S3's, and S4's and over."""
+    flat: tuple[float, float, float] = (20.0, 15.0, 10.0)
+    descent_cap: tuple[float, float, float] = (40.0, 25.0, 15.0)
+    seconds_per_metre_up: float = 10.0
+    descent_factor: float = 1.5
+    pushing_factor: float = 1.0
+    mtb_caps: tuple[float, float, float] = (10.0, 6.0, 4.0)
+
+    def mtb_cap(self, mtb: int) -> float:
+        """The speed an `mtb` byte caps a stretch at."""
+        scale = mtb - 1
+        return math.inf if scale < 2 else self.mtb_caps[min(scale, 4) - 2]
+
+
+RIDING = RidingConstants()
+
+
+def at_kmh(length: float, kmh: float) -> float:
+    return length * 3.6 / kmh
+
+
+def riding_stretch(length: float, change: float, surface: int, mtb: int, mtb_up: int, constants: RidingConstants) -> float:
+    flat = constants.flat[surface]
+    if change > 0:
+        seconds = at_kmh(length, flat) + change * constants.seconds_per_metre_up
+        cap = constants.mtb_cap(mtb_up or mtb)
+    else:
+        speed = min(flat * constants.descent_factor, constants.descent_cap[surface]) if change < 0 else flat
+        seconds = at_kmh(length, speed)
+        cap = constants.mtb_cap(mtb)
+    pushing = walking_seconds(length, max(change, 0.0), -change if change < 0 and is_steep(length, change) else 0.0)
+    return min(max(seconds, at_kmh(length, cap)), pushing * constants.pushing_factor)
+
+
+def riding_seconds(lengths: list[float], heights: list[float], surface: int, mtb: int, mtb_up: int,
+                   constants: RidingConstants = RIDING) -> tuple[float, float]:
+    """docs/phase-7b.md § 2: riding an edge forward and backward over `climb()`'s runs, each timed by its length
+    and its change, so the metres each way climbs are the edge's ascent and descent."""
+    stretches = runs(lengths, heights)
+    forward = sum(riding_stretch(length, change, surface, mtb, mtb_up, constants) for length, change in stretches)
+    backward = sum(riding_stretch(length, -change, surface, mtb, mtb_up, constants) for length, change in stretches[::-1])
+    return forward, backward
 
 
 def oneway(tags: dict[str, str]) -> int:
@@ -153,6 +225,34 @@ def ride(tags: dict[str, str]) -> int:
 def grade(value: str | None) -> int:
     """An `mtb:scale`'s leading digit plus one, 0 ungraded."""
     return int(value[0]) + 1 if value and value[0].isdigit() else 0
+
+
+def surface_class(tags: dict[str, str]) -> int:
+    """docs/phase-7b.md § 2: `surface` where the table holds it, else `highway` and `tracktype`; a way neither
+    places is rough, the slowest a rider is assumed to go where nothing is known of the way."""
+    surface = tags.get("surface", "")
+    if surface in SURFACES:
+        return SURFACES[surface]
+    if surface.startswith("concrete"):
+        return PAVED
+    highway = tags.get("highway", "")
+    if highway == "track":
+        return TRACK_GRADES.get(tags.get("tracktype", ""), UNPAVED)
+    if highway in PAVED_HIGHWAYS or highway.endswith("_link"):
+        return PAVED
+    return ROUGH
+
+
+def rider_direction(ride: int, bikes: frozenset, kind: str) -> int:
+    """docs/phase-7b.md § 2, for one kind: the way's own direction where it sets one, else the sense every one
+    of that kind's Bike routes rides it in; both ways where any rides it both ways or two disagree, and 0 on an
+    edge with none of that kind."""
+    senses = {sense for _, _, sense, of in bikes if of == kind}
+    if not senses:
+        return 0
+    if ride:
+        return ride
+    return senses.pop() if len(senses) == 1 else 0
 
 
 class Relief:
@@ -516,6 +616,11 @@ class Edge:
     mtb: int = 0
     mtb_up: int = 0
     bikes: frozenset = frozenset()
+    surface: int = ROUGH
+    ride_touring: int = 0
+    ride_mtb: int = 0
+    riding_forward: float = NO_RIDING
+    riding_backward: float = NO_RIDING
 
 
 def densify(points: list[tuple[int, float, float]]) -> list[tuple[int, float, float]]:
@@ -565,22 +670,27 @@ class Piece:
     mtb: int = 0
     mtb_up: int = 0
     bikes: frozenset = frozenset()
+    surface: int = ROUGH
 
     def turned(self) -> Piece:
         return replace(
             self, points=self.points[::-1], flags=TURNED.get(self.flags, self.flags), ride=TURNED.get(self.ride, self.ride),
-            bikes=frozenset((number, on_walk, TURNED.get(sense, sense)) for number, on_walk, sense in self.bikes))
+            bikes=frozenset((number, on_walk, TURNED.get(sense, sense), kind) for number, on_walk, sense, kind in self.bikes))
 
     def walks_like(self, other: Piece) -> bool:
-        return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes)
-                == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes))
+        return ((self.flags, self.sac, self.trails, self.sets, self.ride, self.mtb, self.mtb_up, self.bikes, self.surface)
+                == (other.flags, other.sac, other.trails, other.sets, other.ride, other.mtb, other.mtb_up, other.bikes,
+                    other.surface))
 
 
 def sets_of(way: int, memberships: dict | None, bikes: dict | None) -> int:
     """With no Bike routes given, every way is a Trail's, as a network built for a test is."""
     if not bikes or way not in bikes:
         return SET_TRAIL
-    return SET_BIKE_ROUTE | (SET_TRAIL if memberships and way in memberships else 0)
+    kinds = 0
+    for *_, kind in bikes[way]:
+        kinds |= KIND_SETS[kind]
+    return kinds | (SET_TRAIL if memberships and way in memberships else 0)
 
 
 def pieces_of(ways: dict, memberships: dict[int, frozenset] | None = None, bikes: dict[int, frozenset] | None = None
@@ -606,7 +716,8 @@ def pieces_of(ways: dict, memberships: dict[int, frozenset] | None = None, bikes
                 pieces.append(Piece(way_id, half, oneway(tags), SAC_GRADES.get(tags.get("sac_scale", ""), 0),
                                     (memberships or {}).get(way_id, frozenset()), (way_id,),
                                     sets_of(way_id, memberships, bikes), ride(tags), grade(tags.get("mtb:scale")),
-                                    grade(tags.get("mtb:scale:uphill")), (bikes or {}).get(way_id, frozenset())))
+                                    grade(tags.get("mtb:scale:uphill")), (bikes or {}).get(way_id, frozenset()),
+                                    surface_class(tags)))
     return pieces
 
 
@@ -659,25 +770,36 @@ def chains(pieces: list[Piece]) -> list[Piece]:
     return out
 
 
-def edges_of(ways: dict, relief: Relief, memberships: dict[int, frozenset] | None = None,
-             bikes: dict[int, frozenset] | None = None) -> tuple[list[Edge], int]:
+def measured(points: list[tuple[int, float, float]], relief: Relief | Level
+             ) -> tuple[list[tuple[int, float, float]], list[float], list[float], bool]:
+    """The points densified, the length from each to the next, their heights, and whether the relief reached
+    none of them, which leaves them level. An edge's climb and both its times are taken over these."""
+    dense = densify(points)
+    heights = fill_heights([relief.height(lat, lon) for _, lat, lon in dense])
+    lengths = [distance(a[1], a[2], b[1], b[2]) for a, b in zip(dense, dense[1:])]
+    return dense, lengths, heights or [0.0] * len(dense), heights is None
+
+
+def edges_of(ways: dict, relief: Relief | Level, memberships: dict[int, frozenset] | None = None,
+             bikes: dict[int, frozenset] | None = None, constants: RidingConstants = RIDING) -> tuple[list[Edge], int]:
     edges, flat = [], 0
     for chain in chains(pieces_of(ways, memberships, bikes)):
-        dense = densify(chain.points)
-        heights = fill_heights([relief.height(lat, lon) for _, lat, lon in dense])
-        if heights is None:
-            heights = [0.0] * len(dense)
-            flat += 1
-        lengths = [distance(a[1], a[2], b[1], b[2]) for a, b in zip(dense, dense[1:])]
+        dense, lengths, heights, level = measured(chain.points, relief)
+        flat += level
         kept = [i for i, point in enumerate(dense) if point[0] != 0]
+        riding = (riding_seconds(lengths, heights, chain.surface, chain.mtb, chain.mtb_up, constants)
+                  if chain.sets & (SET_TOURING | SET_MTB) else (NO_RIDING, NO_RIDING))
         edges.append(Edge(chain.way, [dense[i] for i in kept], [heights[i] for i in kept], sum(lengths),
                           climb(lengths, heights), chain.flags, chain.sac, chain.trails, chain.ways, chain.sets,
-                          chain.ride, chain.mtb, chain.mtb_up, chain.bikes))
+                          chain.ride, chain.mtb, chain.mtb_up, chain.bikes, chain.surface,
+                          rider_direction(chain.ride, chain.bikes, "touring"),
+                          rider_direction(chain.ride, chain.bikes, "mtb"), *riding))
     return edges, flat
 
 
 def write_network(edges: list[Edge], target: Path) -> tuple[int, int, int]:
-    """docs/phase-5.md § 2's binary, little-endian, its arrays one after another, widest first."""
+    """docs/phase-5.md § 2's binary, little-endian, its arrays one after another, widest first. An edge on no
+    Bike route rides in NaN seconds."""
     vertices = sorted({ref for edge in edges for ref in (edge.points[0][0], edge.points[-1][0])})
     index = {ref: i for i, ref in enumerate(vertices)}
     where = {}
@@ -711,13 +833,15 @@ def write_network(edges: list[Edge], target: Path) -> tuple[int, int, int]:
         [walking_seconds(edge.length, edge.climb.descent, edge.climb.steep_ascent) for edge in edges],
         [edge.climb.ascent for edge in edges],
         [edge.climb.descent for edge in edges],
+        [edge.riding_forward for edge in edges],
+        [edge.riding_backward for edge in edges],
     ):
         out.write(struct.pack(f"<{len(edges)}f", *values))
     out.write(struct.pack(f"<{point_count}i", *(e7(lat) for edge in edges for _, lat, _ in edge.points)))
     out.write(struct.pack(f"<{point_count}i", *(e7(lon) for edge in edges for _, _, lon in edge.points)))
     out.write(struct.pack(f"<{len(vertices)}h", *(dm(where[ref][2]) for ref in vertices)))
     out.write(struct.pack(f"<{point_count}h", *(dm(h) for edge in edges for h in edge.heights)))
-    for values in ("flags", "sac", "sets", "ride", "mtb", "mtb_up"):
+    for values in ("flags", "sac", "sets", "ride", "mtb", "mtb_up", "surface", "ride_touring", "ride_mtb"):
         out.write(bytes(getattr(edge, values) for edge in edges))
     target.write_bytes(out.getvalue())
     return len(vertices), len(edges), point_count
@@ -770,14 +894,15 @@ def beside_forward(line: TrailLine, ways: dict) -> set[int]:
 
 
 def bike_memberships_of(bikes: dict[int, TrailLine], ways: dict) -> dict[int, frozenset]:
-    """Each way's Bike routes, each with whether the way is on its walk and the sense it is ridden in against
-    the way's nodes."""
+    """Each way's Bike routes, each with whether the way is on its walk, the sense it is ridden in against the
+    way's nodes, and its kind."""
     found: dict[int, set] = {}
     for number, line in bikes.items():
         beside = beside_forward(line, ways)
         for way, role in line.members:
-            found.setdefault(way, set()).add((number, role not in OFF_WALK and way not in beside, line.senses.get(way, 0)))
-    return {way: frozenset(triples) for way, triples in found.items()}
+            found.setdefault(way, set()).add(
+                (number, role not in OFF_WALK and way not in beside, line.senses.get(way, 0), line.kind))
+    return {way: frozenset(routes) for way, routes in found.items()}
 
 
 @dataclass(frozen=True)
@@ -798,7 +923,7 @@ def trail_edges(edges: list[Edge]) -> dict[tuple[int, bool], list[int]]:
     """For each Trail, the edges on its walk under (id, True) and those off it under (id, False)."""
     found: dict[tuple[int, bool], list[int]] = {}
     for i, edge in enumerate(edges):
-        for pair in (*edge.trails, *((number, on_walk) for number, on_walk, _ in edge.bikes)):
+        for pair in (*edge.trails, *((number, on_walk) for number, on_walk, *_ in edge.bikes)):
             found.setdefault(pair, []).append(i)
     return found
 
@@ -959,7 +1084,7 @@ def walk_of(number: int, line: TrailLine, edges: list[Edge], ways: dict, by_trai
 
 def sense_along(number: int, edge: Edge, step: Step) -> int:
     """1 where the step goes the way the Bike route is ridden, -1 against it, 0 where the edge has no direction for it."""
-    sense = next((sense for route, _, sense in edge.bikes if route == number), 0)
+    sense = next((sense for route, _, sense, _ in edge.bikes if route == number), 0)
     if not sense:
         return 0
     return 1 if (sense == FORWARD_ONLY) != step.reversed else -1
@@ -1355,6 +1480,11 @@ def main() -> None:
     log(f"trails.network: {nodes} nodes, {edge_count} edges, {points} points, "
         f"{(args.out / 'trails.network').stat().st_size:,} bytes; {relief.missing} points beyond the relief, "
         f"{flat} edges with no height at all")
+    classes = [sum(edge.surface == of for edge in edges) for of in (PAVED, UNPAVED, ROUGH)]
+    kinds = [sum(edge.sets & of == of for edge in edges) for of in (SET_TOURING, SET_MTB, SET_TOURING | SET_MTB)]
+    log(f"surfaces: {classes[0]} edges paved, {classes[1]} unpaved, {classes[2]} rough; Bike route edges: {kinds[0]} "
+        f"Touring, {kinds[1]} MTB, {kinds[2]} both; one way for a rider: {sum(edge.ride_touring > 0 for edge in edges)} "
+        f"under Touring, {sum(edge.ride_mtb > 0 for edge in edges)} under MTB")
     steps = write_walks([*rows, *ridden_rows], args.out / "trails.edges")
     log(f"trails.edges: {len(rows) + len(ridden_rows)} routes, {steps} steps, {(args.out / 'trails.edges').stat().st_size:,} bytes")
     count = write_places(places, rows, ridden_rows, names_of, edges, by_route, args.out / "places.sqlite")
