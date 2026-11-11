@@ -196,27 +196,70 @@ why it has to be right before the app it describes ships rather than after.
 
 ## Production access — the application, and the answers it was given
 
-**Submitted _<date>_.** Asked once, from the Console's Dashboard, after the closed test's 14 days.
-Record the answers **verbatim**, not summarised: the Console asks the same set again for the next app
-on this account, and an answer re-read a year later has to be the one that was given.
+**DRAFT, 2026-11-11 — not submitted.** Typed into the Console's form, which waits on the owner's
+review and their own Submit. Once it is sent, change this line to *Submitted <date>* and keep the
+answers below **verbatim**: the Console asks the same set again for the next app on this account, and
+an answer re-read a year later has to be the one that was given. Each box takes at most 300
+characters; the count is beside each question.
+
+Urgent's application, the same questions on this account, came back on 2026-11-03: *"Your app
+requires more testing to access Google Play production. We've reviewed your application and have
+determined that your app requires more testing before you can access production."* Its answers
+rested on testers staying opted in and saying they liked the interface. These rest on what the
+Console itself shows.
 
 **About your closed test**
 
-- *How did you recruit users for your closed test?* — _<answer>_
-- *How easy was it to recruit testers?* — _<answer>_
-- *Describe the engagement you received from testers* — _<answer>_
-- *Provide a summary of the feedback that you received* — _<answer>_
+- *How did you recruit users for your closed test? For example, did you ask friends and family or use a paid testing provider?* (254/300) —
+  Through a community app where Android developers test each other's closed tests, whose Google Group is on the track, and my own MaksForge testers' Google Groups. No paid provider. Testers joined within a day of the build reaching the track on 27 October.
+- *How easy was it to recruit testers for your app?* (a choice) — Easy.
+- *Describe the engagement you received from testers during your closed test. Include whether or not testers utilised all of the features in your app and whether tester usage was consistent with how you would expect a real user to use your app.* (298/300) —
+  Play Console: installs rose from 2 to 13 the day after the 27 Oct build reached testers and held 13 to 16 to 8 Nov; 12 took the 30 Oct update within 3 days; no crash or ANR. No internet or analytics, so I can't see features used. 13 of 15 devices are outside Poland, so few could use it on a trail.
+- *Provide a summary of the feedback that you received from testers. Include how you collected the feedback.* (281/300) —
+  Two channels: Play's private testing feedback, and Report a problem and Suggest a feature in the app's Settings, which open an email to kozica.support@maksforge.com. Play's Testing feedback page shows no entries from the test, and Android vitals show no crash or ANR in the period.
 
 **About your app**
 
-- *Who is the intended audience?* — _<answer>_
-- *Describe how your app provides value to users* — _<answer>_
-- *How many installs do you expect in your first year?* — _<answer>_
+- *Who is the intended audience of your app?* (213/300) —
+  Adults (18+) who hike the marked trails of the Polish mountains, and the Slovak and Czech sides of the border, and want a map that works with no signal, drawn in the signposts' colours, with no account and no ads.
+- *Describe how your app provides value to users* (296/300) —
+  All ranges from the Karkonosze to the Bieszczady arrive with the app and work with no signal. Trails are drawn in their signpost colours. Plan routes over marked trails with signpost walking times, follow them, record hikes with the screen off, export GPX. No internet permission, ads or account.
+- *How many installs do you expect your app to have in your first year?* (a choice) — 0 – 10K.
 
 **Your production readiness**
 
-- *What changes did you make based on what you learned during your closed test?* — _<answer>_
-- *How did you decide that your app is ready for production?* — _<answer>_
+- *What changes did you make to your app based on what you learned during your closed test?* (300/300) —
+  Testers sent no change requests through Play, so these came from my own use in the same weeks: Play re-sent the relief whole on every update, so I cut its download to a third; following resumes after the app is closed; route buttons work in landscape; trails mapped as proposed or abandoned are gone.
+- *How did you decide that your app is ready for production?* (278/300) —
+  Read on two Xiaomi phones (Android 11 and 16) and emulators: a 2 h 15 min recording, screen locked, kept 1,593 fixes with no gap over 60 s; recording and following survive a killed app; walking times checked against 10 signposts; no crash or ANR in Android vitals over the test.
+
+*Rests on* (not part of the answers), each read on 2026-11-11:
+
+- **Recruiting:** the *Closed testing - Alpha* track's Testers tab lists three Google Groups,
+  `testers-community@googlegroups.com`, `maks-forge-testers@googlegroups.com` and
+  `gloam-testers@googlegroups.com`. Its *Feedback URL or email address* field is empty. Release
+  history: 0.1.0 (versionCode 6) 2026-10-20, 0.10.0 (315) 2026-10-27 21:30, 0.13.0 (393) 2026-10-30
+  22:15, the track's latest. 0.14.0 to 0.16.0 went to internal testing only.
+- **Engagement:** Statistics, *Installed audience*, daily, by app version: all versions at about 2 until
+  27 Oct, 13 on 28 Oct, 13 to 16 from 29 Oct to 8 Nov; 0.13.0 at 3 on 30 Oct, 8 on 31 Oct, 9 on 1 Nov,
+  12 on 2 Nov, 12 on 8 Nov. By country on 8 Nov: 15 in all, Poland 2, India 2, Pakistan 2, Austria 1.
+  The Console's app list, last 28 days: 26 device acquisitions, 19 first opens, 19 monthly active
+  devices. The Dashboard ticks all three closed-test criteria.
+- **Feedback:** *Testing feedback* shows its empty state. The app's support hand-off has mailed
+  `kozica.support@maksforge.com` since 0.4.1. What testers said in the community app is not visible in
+  the Console and is not in this answer.
+- **Stability:** *Crashes and ANRs*, all types, 14 Oct to 11 Nov: no issues, no affected users. No
+  pre-launch report was generated.
+- **Changes:** the release notes of 0.14.0, 0.14.1, 0.14.4 and 0.15.0 in
+  [`store-listing.md`](store-listing.md); the relief's download in [`DOD.md`](DOD.md) (268 MB sent
+  whole with every update; 86 MB instead of 257 MB, ADR-0009's 2026-11-01 amendment). No commit or
+  issue in the test's window came from a tester.
+- **Readiness:** [`phase-6.md`](phase-6.md) R2a (owner's phone, HyperOS, Android 16, 2026-10-26,
+  17:26–19:41, screen locked, unplugged, no exemption: 1,593 fixes, no gap over 60 s) and R4
+  (recording after `kill -9`, API 33 emulator); [`phase-6b.md`](phase-6b.md) R4 (following after a
+  force-stop, test phone, Android 11); [`phase-5.md`](phase-5.md) R2 (ten signposts, five in the
+  Tatry and five in the Beskidy).
+- **Audience:** *Target audience and content* above, 18 and over.
 
 **Three things the first app built from this template kept deliberate, so a later answer does not undo
 them:**
