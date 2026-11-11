@@ -253,8 +253,8 @@ the new mark stay developer-only until 7c.
 
 ## Phase 7b — Planning a ride
 
-A Route in Cycling, along Bike routes only and the sub-filter's kind, honouring one-way MTB lines
-by the direction 7a reads into the network. It shows distance and ascent first and an estimated time from our
+A Route in Cycling, along Bike routes only and the sub-filter's kind, honouring one-way lines by
+each kind's rider direction, which 7b adds to the network. It shows distance and ascent first and an estimated time from our
 own rule, checked against published riding times for 10–15 of our Bike routes before release.
 Planned with the owner on 2026-11-11 in [`phase-7b.md`](phase-7b.md): 14 Bike routes, the rule tuned on
 7 and judged on the other 7, with 7 in reserve, and no time at all if it fails twice; the flat speed
