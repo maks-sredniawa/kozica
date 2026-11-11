@@ -448,6 +448,14 @@ class RiddenOneWayTest(unittest.TestCase):
         self.assertEqual(signed["one_way"], 1)
         self.assertEqual(signed["start_lon"], place(4)[1])
 
+    def test_a_relation_s_own_oneway_rides_it_one_way_and_no_says_nothing(self):
+        ways = {1: grid_way([1, 2]), 2: grid_way([2, 3]), 3: grid_way([3, 4])}
+        line = bike_line("red", "mtb", [(1, ""), (2, ""), (3, "")], {1: self.backward, 2: self.backward})
+        for oneway, one_way in (("yes", 1), ("-1", 1), ("no", 0)):
+            row = index_of(ways, {7: line}, {7: {"oneway": oneway}})[0]
+            self.assertEqual(row["one_way"], one_way, oneway)
+        self.assertEqual(index_of(ways, {7: line}, {7: {"oneway": "-1"}})[0]["start_lon"], place(4)[1])
+
     def test_a_line_mostly_directed_is_ridden_one_way_past_its_untagged_connector(self):
         ways = {way: grid_way([way, way + 1]) for way in range(1, 6)}
         members = [(way, "") for way in ways]
@@ -903,7 +911,7 @@ class RiderDirectionTest(unittest.TestCase):
     def test_from_a_forward_role_alone(self):
         self.assertEqual(self.directions({}, self.line("mtb", FORWARD, "forward")), (4, 0, FORWARD))
 
-    def test_from_signed_direction_alone(self):
+    def test_from_signed_direction_or_the_relation_s_oneway_alone(self):
         self.assertEqual(self.directions({}, self.line("touring", BACKWARD)), (2, BACKWARD, 0))
 
     def test_both_ways_where_two_of_a_kind_disagree_or_one_rides_it_both_ways(self):

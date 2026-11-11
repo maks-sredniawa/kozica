@@ -72,7 +72,7 @@ NO_RIDING = math.nan
 NAME_KEYS = ("name", "name:pl", "name:sk", "name:cs", "alt_name", "old_name")
 ENDS_KEYS = ("description", "osmc:name", "note:cs", "note")
 TRAIL_KEYS = ("name", "name:pl", "ref", "from", "to", *ENDS_KEYS)
-BIKE_ROUTE_KEYS = ("network", "mtb:scale", "mtb:scale:uphill", "signed_direction")
+BIKE_ROUTE_KEYS = ("network", "mtb:scale", "mtb:scale:uphill", "signed_direction", "oneway")
 WAY_KEYS = ("highway", "oneway", "oneway:foot", "foot:backward", "foot:forward", "sac_scale", "oneway:bicycle",
             "mtb:scale", "mtb:scale:uphill", "surface", "tracktype")
 COLOUR_CODE = re.compile(r"^\[[^\]]{1,3}\]\s*")
@@ -1316,8 +1316,14 @@ def bike_rows(bikes: dict[int, TrailLine], names_of: dict[int, dict[str, str]], 
               edges: list[Edge], ways: dict, own: list[Edge]) -> list[TrailRow]:
     rows = route_rows(bikes, outermost(sections), edges, ways, own, names_of)
     for row in rows:
-        row.walk, row.one_way = ridden(row.number, row.walk, edges, row.tags.get("signed_direction") == "yes")
+        row.walk, row.one_way = ridden(row.number, row.walk, edges, signed(row.tags))
     return rows
+
+
+def signed(tags: dict[str, str]) -> bool:
+    """Whether the relation gives itself a direction: `signed_direction=yes`, or its own `oneway`
+    (docs/phase-7b.md § 2)."""
+    return tags.get("signed_direction") == "yes" or tags.get("oneway") in ONEWAY_VALUES
 
 
 def outermost(sections: dict[int, list[int]]) -> dict[int, int]:

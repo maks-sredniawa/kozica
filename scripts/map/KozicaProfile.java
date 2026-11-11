@@ -69,7 +69,7 @@ public class KozicaProfile implements Profile {
 
   record Hiking(long id, String network, boolean marked, Trail marking, List<Member> members) {}
 
-  record BikeRoute(long id, String kind, String colour, String marking, String network, String ref, boolean signed,
+  record BikeRoute(long id, String kind, String colour, String marking, String network, String ref, int order,
       long[] ways, List<Member> members) implements OsmRelationInfo {}
 
   private static final Comparator<Trail> TRAIL_ORDER =
@@ -156,7 +156,22 @@ public class KozicaProfile implements Profile {
         .toArray();
     return new BikeRoute(relation.id(), BIKE_KINDS.get(relation.getString("route")),
         colour == null ? NO_COLOUR : colour, colour == null ? written : colour, relation.getString("network", ""),
-        relation.getString("ref"), relation.hasTag("signed_direction", "yes"), ways, membersOf(relation));
+        relation.getString("ref"), orderOf(relation), ways, membersOf(relation));
+  }
+
+  /**
+   * docs/phase-7b.md § 2: the sense the relation itself gives against its member order, from {@code
+   * signed_direction=yes}, else the relation's own {@code oneway}.
+   */
+  private static int orderOf(OsmElement.Relation relation) {
+    if (relation.hasTag("signed_direction", "yes")) {
+      return FORWARD;
+    }
+    return switch (relation.getString("oneway", "")) {
+      case "yes", "true", "1" -> FORWARD;
+      case "-1" -> BACKWARD;
+      default -> TWO_WAY;
+    };
   }
 
   private BikeMembership bikeMembership() {
@@ -660,11 +675,11 @@ public class KozicaProfile implements Profile {
     if (role.equals("backward")) {
       return BACKWARD;
     }
-    if (!route.signed()) {
+    if (route.order() == TWO_WAY) {
       return TWO_WAY;
     }
     var runs = runsWithOrder(feature.id(), route.ways());
-    return runs == null || runs ? FORWARD : BACKWARD;
+    return (runs == null || runs ? FORWARD : BACKWARD) * route.order();
   }
 
   private boolean reversed(long way, long[] reference, LineString line) {
