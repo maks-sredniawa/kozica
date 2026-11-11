@@ -325,7 +325,7 @@ class MapViewModel(
     private val confirmFetch: suspend (ActivityResultLauncher<IntentSenderRequest>) -> Boolean,
     relief: Flow<Region?> = flowOf(null),
     private val places: suspend () -> PlaceSearch? = { null },
-    private val planRoute: suspend (List<RoutePoint>) -> PlannedRoute? = { null },
+    private val planRoute: suspend (List<RoutePoint>, Mode, BikeRouteFilter) -> PlannedRoute? = { _, _, _ -> null },
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val compute: CoroutineDispatcher = Dispatchers.Default,
     private val routeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
@@ -1173,10 +1173,11 @@ class MapViewModel(
         val rejoin = line.rejoin(following.progress, fix)
         planningBack?.cancel()
         route.update { state -> state.copy(following = state.following?.copy(back = LegBack.Planning)) }
+        val (planMode, planFilter) = mode.value to bikeRouteFilter.value
         planningBack =
             viewModelScope.launch {
-                val planned =
-                    withContext(compute) { planRoute(listOf(RoutePoint(fix.latitude, fix.longitude), rejoin)) }
+                val ends = listOf(RoutePoint(fix.latitude, fix.longitude), rejoin)
+                val planned = withContext(compute) { planRoute(ends, planMode, planFilter) }
                 val back = planned?.takeIf { it.complete }?.let(LegBack::Found) ?: LegBack.NoWay
                 route.update { state ->
                     val now = state.following?.takeIf { it.back == LegBack.Planning } ?: return@update state
@@ -1234,9 +1235,10 @@ class MapViewModel(
         if (points.isEmpty()) routeGeneration++
         planning?.cancel()
         if (points.size < 2) return
+        val (planMode, planFilter) = mode.value to bikeRouteFilter.value
         planning =
             viewModelScope.launch {
-                val planned = withContext(compute) { planRoute(points) }
+                val planned = withContext(compute) { planRoute(points, planMode, planFilter) }
                 if (planned == null) {
                     route.update {
                         it.copy(

@@ -78,7 +78,7 @@ class RoutePlannerTest {
     @Test
     fun `the phone's rule for part of an edge is the build's rule for the whole`() {
         val almost = 1 - 1e-9
-        for (edge in 0 until network.edgeCount) {
+        for (edge in (0 until network.edgeCount).filter(network::isTrail)) {
             assertEquals(network.edgeSecondsForward[edge].toDouble(), network.part(edge, 0.0, almost).seconds, 1.0)
             assertEquals(network.edgeSecondsBackward[edge].toDouble(), network.part(edge, almost, 0.0).seconds, 1.0)
         }

@@ -81,6 +81,12 @@
     <string name="route_no_way">No way over the Trails between %1$s and %2$s</string>
     <!-- %1$s names the stretch by the places at its ends, such as "Zawrat – Kozi Wierch", or by its distances along the Route, such as "4.2 km – 5.4 km". "Demanding" is the difficulty grade, as in "demanding mountain hiking". -->
     <string name="route_demanding">Includes a demanding stretch: %1$s</string>
+    <!-- In Cycling (docs/phase-7b.md § 3), as route_off_trail: %1$s is a distance, such as "320 m", from a point to where its Route joins the Bike routes. -->
+    <string name="route_off_bike_route">%1$s from the nearest Bike route</string>
+    <!-- In Cycling, as route_no_way: %1$s and %2$s are two points' place names, such as "Kuźnice" and "Zakopane". -->
+    <string name="route_no_way_bike_routes">No way over the Bike routes between %1$s and %2$s</string>
+    <!-- In Cycling: %1$s is the hardest grade on the MTB scale, from S2 up, that the Route rides, as mtb_grade ("S3") or mtb_grade_uphill ("Uphill S2") give it. -->
+    <string name="route_demanding_ride">Includes a demanding stretch: %1$s</string>
     <string name="route_length">Length</string>
     <string name="route_ascent">Ascent</string>
     <string name="route_descent">Descent</string>

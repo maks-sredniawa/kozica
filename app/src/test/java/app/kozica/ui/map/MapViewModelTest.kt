@@ -1312,7 +1312,7 @@ private fun routingViewModel(
     fetch = {},
     confirmFetch = { false },
     places = places,
-    planRoute = planRoute,
+    planRoute = { points, _, _ -> planRoute(points) },
     io = io,
     compute = Dispatchers.Main,
     routeToShow = routeToShow,

@@ -1,5 +1,7 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import kotlinx.serialization.Serializable
 import kotlin.math.ceil
 
@@ -43,9 +45,19 @@ data class DemandingStretch(
 )
 
 /**
+ * docs/phase-7b.md § 3: the hardest `mtb:scale` from S2 up a ride takes, read in the direction it is
+ * ridden; [uphill] where `mtb:scale:uphill` gave it.
+ */
+data class RideGrade(
+    val scale: Int,
+    val uphill: Boolean,
+)
+
+/**
  * docs/phase-5.md § 3: a Route's legs, one per pair of consecutive points, null where no way over the
- * Trails joins them; the totals and the rest cover the legs that were found, and the time to a point is
- * null from the first missing leg on.
+ * Trails, or in Cycling the Bike routes, joins them; the totals and the rest cover the legs that were
+ * found, and the time to a point is null from the first missing leg on. A ride has no [demanding]
+ * stretches, which are hiking grades, and may have a [hardestRide].
  */
 data class PlannedRoute(
     val legs: List<Leg?>,
@@ -56,6 +68,8 @@ data class PlannedRoute(
     val secondsToPoint: List<Double?>,
     val demanding: List<DemandingStretch>,
     val metresToPoint: List<Double?> = emptyList(),
+    val mode: Mode = Mode.HIKING,
+    val hardestRide: RideGrade? = null,
 ) {
     val metres: Double get() = line.lastOrNull()?.metres ?: 0.0
     val complete: Boolean get() = legs.all { it != null }
@@ -71,13 +85,19 @@ class RoutePlanner(
     private val network: TrailNetwork,
     private val router: Router = Router(network),
 ) {
-    fun plan(points: List<RoutePoint>): PlannedRoute {
+    fun plan(
+        points: List<RoutePoint>,
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+    ): PlannedRoute {
         require(points.size >= 2) { "a Route has a start and an end" }
-        val joins = points.map { router.joins(it.latitude, it.longitude) }
+        val joins = points.map { router.joins(it.latitude, it.longitude, mode, filter) }
         val legs =
             points.indices.drop(1).map { i ->
-                router.leg(joins[i - 1], joins[i], points[i].latitude, points[i].longitude)
+                router.leg(joins[i - 1], joins[i], points[i].latitude, points[i].longitude, mode, filter)
             }
+        val cycling = mode == Mode.CYCLING
+        var hardestRide: RideGrade? = null
         val line = mutableListOf<RouteSample>()
         val demanding = mutableListOf<DemandingStretch>()
         var ascent = 0.0
@@ -101,6 +121,10 @@ class RoutePlanner(
                 descent += part.descent
                 val from = line.last().metres
                 walk(step, line)
+                if (cycling) {
+                    hardestRide = harder(hardestRide, rideGrade(step.edge, uphill = part.ascent > part.descent))
+                    continue
+                }
                 val sac = network.edgeSac[step.edge].toInt()
                 if (sac >= DEMANDING_SAC) {
                     demanding.extend(from, line.last().metres, sac, apart = acrossNoWay)
@@ -112,8 +136,48 @@ class RoutePlanner(
             metresToPoint[i + 1] = line.last().metres
         }
         val seconds = legs.sumOf { it?.seconds ?: 0.0 }
-        return PlannedRoute(legs, line, ascent, descent, seconds, secondsToPoint, demanding, metresToPoint)
+        return PlannedRoute(
+            legs,
+            line,
+            ascent,
+            descent,
+            seconds,
+            secondsToPoint,
+            demanding,
+            metresToPoint,
+            mode,
+            hardestRide,
+        )
     }
+
+    /** `mtb:scale:uphill` for a step ridden uphill where the edge has one, else `mtb:scale`; null under S2. */
+    private fun rideGrade(
+        edge: Int,
+        uphill: Boolean,
+    ): RideGrade? {
+        val up = network.edgeMtbUphill[edge].toInt()
+        val grade =
+            if (uphill &&
+                up != 0
+            ) {
+                RideGrade(up - 1, uphill = true)
+            } else {
+                RideGrade(network.edgeMtb[edge] - 1, false)
+            }
+        return grade.takeIf { it.scale >= DEMANDING_MTB }
+    }
+
+    /** The higher scale; on a tie the one read as it is, which names no direction. */
+    private fun harder(
+        a: RideGrade?,
+        b: RideGrade?,
+    ): RideGrade? =
+        when {
+            a == null -> b
+            b == null -> a
+            b.scale > a.scale || (b.scale == a.scale && !b.uphill) -> b
+            else -> a
+        }
 
     /** The step's stretch of its edge's line, in walking order, ends interpolated. */
     private fun walk(
@@ -193,6 +257,7 @@ class RoutePlanner(
 
     private companion object {
         const val DEMANDING_SAC = 3
+        const val DEMANDING_MTB = 2
         const val SAME_PLACE_METRES = 0.5
     }
 }

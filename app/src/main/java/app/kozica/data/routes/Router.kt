@@ -1,5 +1,7 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.ceil
@@ -25,7 +27,7 @@ data class Step(
     val forward: Boolean get() = to > from
 }
 
-/** A leg's [seconds] include the walk from each point to where it joins the Trails, at 4 km/h. */
+/** A leg's [seconds] include the way from each point to where it joins the network, at [Travel.offNetworkMetresPerSecond]. */
 data class Leg(
     val start: Snap,
     val end: Snap,
@@ -34,7 +36,7 @@ data class Leg(
     val nodesVisited: Int,
 )
 
-/** docs/phase-5.md § 3: the shortest walking time between two points over the Trails. */
+/** docs/phase-5.md § 3 and docs/phase-7b.md § 3: the shortest walking time over the Trails, or riding time over the Bike routes. */
 class Router(
     private val network: TrailNetwork,
 ) {
@@ -49,7 +51,6 @@ class Router(
         for (edge in 0 until network.edgeCount) {
             val first = network.edgeFirstPoint[edge]
             for (point in first until first + network.edgePointCount[edge]) pointEdge[point] = edge
-            if (!network.isTrail(edge)) continue
             for (point in first until first + network.edgePointCount[edge] - 1) {
                 val lat1 = network.pointLat[point]
                 val lat2 = network.pointLat[point + 1]
@@ -66,40 +67,52 @@ class Router(
         cells = keys.copyOf(count).also { it.sort() }
     }
 
-    /** The nearest point on any Trail, or null when none is within [MAX_RINGS] cells. */
+    /** The nearest point on any edge [mode] and [filter] allow, or null when none is within [MAX_RINGS] cells. */
     fun nearest(
         latitude: Double,
         longitude: Double,
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+    ): Snap? = nearest(latitude, longitude, Travel(network, mode, filter))
+
+    private fun nearest(
+        latitude: Double,
+        longitude: Double,
+        travel: Travel,
     ): Snap? {
         for (ring in 0..MAX_RINGS) {
-            val found = nearestPerEdge(latitude, longitude, ring).minByOrNull { it.metresAway }
+            val found = nearestPerEdge(latitude, longitude, ring, travel).minByOrNull { it.metresAway }
             if (found != null && found.metresAway <= ring * CELL_METRES) return found
         }
         return null
     }
 
     /**
-     * Every Trail within [JOIN_METRES], each at its nearest point, or the nearest Trail when none is: the
-     * leg then picks the join that makes it shortest (decided with the owner on 2026-10-25). Empty when
-     * [nearest] finds none.
+     * Every edge [mode] and [filter] allow within [JOIN_METRES], each at its nearest point, or the nearest
+     * one when none is: the leg then picks the join that makes it shortest (decided with the owner on
+     * 2026-10-25). Empty when [nearest] finds none.
      */
     fun joins(
         latitude: Double,
         longitude: Double,
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
     ): List<Snap> {
+        val travel = Travel(network, mode, filter)
         val near =
-            nearestPerEdge(latitude, longitude, ceil(JOIN_METRES / CELL_METRES).toInt()).filter {
+            nearestPerEdge(latitude, longitude, ceil(JOIN_METRES / CELL_METRES).toInt(), travel).filter {
                 it.metresAway <=
                     JOIN_METRES
             }
-        return near.ifEmpty { listOfNotNull(nearest(latitude, longitude)) }
+        return near.ifEmpty { listOfNotNull(nearest(latitude, longitude, travel)) }
     }
 
-    /** The nearest point of each edge with a segment in the cells up to [rings] away. */
+    /** The nearest point of each allowed edge with a segment in the cells up to [rings] away. */
     private fun nearestPerEdge(
         latitude: Double,
         longitude: Double,
         rings: Int,
+        travel: Travel,
     ): List<Snap> {
         val scale = cos(latitude * PI / 180)
         val bestSquared = HashMap<Int, Double>()
@@ -112,6 +125,7 @@ class Router(
                 while (index < cells.size && (cells[index] ushr 32).toInt() == cell(r, c)) {
                     val point = (cells[index] and 0xffffffffL).toInt()
                     index++
+                    if (!travel.allows(pointEdge[point])) continue
                     val ax = network.pointLon[point] * 1e-7 * scale
                     val ay = network.pointLat[point] * 1e-7
                     val dx = network.pointLon[point + 1] * 1e-7 * scale - ax
@@ -163,20 +177,33 @@ class Router(
         fromLongitude: Double,
         toLatitude: Double,
         toLongitude: Double,
-    ): Leg? = leg(joins(fromLatitude, fromLongitude), joins(toLatitude, toLongitude), toLatitude, toLongitude)
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+    ): Leg? =
+        leg(
+            joins(fromLatitude, fromLongitude, mode, filter),
+            joins(toLatitude, toLongitude, mode, filter),
+            toLatitude,
+            toLongitude,
+            mode,
+            filter,
+        )
 
     /**
-     * A* from every start join to every end join, with the straight line to the end position at 4 km/h
-     * as its heuristic: no Trail and no walk to one is faster than the flat. A walk to a Trail counts
-     * [JOIN_WEIGHT] times while the join is chosen, and once in the leg's time.
+     * A* from every start join to every end join, with the straight line to the end position at
+     * [Travel.fastestMetresPerSecond] as its heuristic. The way to the network counts [JOIN_WEIGHT] times
+     * while the join is chosen, and once in the leg's time.
      */
     fun leg(
         starts: List<Snap>,
         ends: List<Snap>,
         toLatitude: Double,
         toLongitude: Double,
+        mode: Mode = Mode.HIKING,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
     ): Leg? {
         if (starts.isEmpty() || ends.isEmpty()) return null
+        val travel = Travel(network, mode, filter)
         val nodes = network.nodeCount
         val cost = DoubleArray(nodes) { Double.POSITIVE_INFINITY }
         // The edge a node was reached by, or -1 - the index of the start join it was opened from.
@@ -189,22 +216,22 @@ class Router(
         var direct: Pair<Int, Int>? = null
         var visited = 0
 
-        // Weighted while choosing, so a farther Trail wins only for a much shorter Route, never as a shortcut.
-        fun offTrail(snap: Snap) = snap.metresAway / FLAT_METRES_PER_SECOND * JOIN_WEIGHT
+        // Weighted while choosing, so a farther join wins only for a much shorter Route, never as a shortcut.
+        fun offTrail(snap: Snap) = snap.metresAway / travel.offNetworkMetresPerSecond * JOIN_WEIGHT
 
         fun walked(
             start: Snap,
             end: Snap,
             weighted: Double,
-        ) = weighted - (JOIN_WEIGHT - 1) * (start.metresAway + end.metresAway) / FLAT_METRES_PER_SECOND
+        ) = weighted - (JOIN_WEIGHT - 1) * (start.metresAway + end.metresAway) / travel.offNetworkMetresPerSecond
 
         for ((s, start) in starts.withIndex()) {
             for ((e, end) in ends.withIndex()) {
                 if (start.edge != end.edge) continue
                 val forward = end.fraction >= start.fraction
-                val possible = if (forward) network.canWalkForward(start.edge) else network.canWalkBackward(start.edge)
+                val possible = if (forward) travel.forward(start.edge) else travel.backward(start.edge)
                 if (!possible && end.fraction != start.fraction) continue
-                val seconds = network.part(start.edge, start.fraction, end.fraction).seconds
+                val seconds = travel.part(start.edge, start.fraction, end.fraction).seconds
                 val total = offTrail(start) + seconds + offTrail(end)
                 if (total < best) {
                     best = total
@@ -215,7 +242,7 @@ class Router(
 
         fun heuristic(node: Int): Double =
             metres(network.nodeLat[node] * 1e-7, network.nodeLon[node] * 1e-7, toLatitude, toLongitude) /
-                FLAT_METRES_PER_SECOND
+                travel.fastestMetresPerSecond
 
         fun open(
             node: Int,
@@ -230,12 +257,12 @@ class Router(
         }
         // A join on a node stands on it, whichever way the edge may be walked.
         for ((s, start) in starts.withIndex()) {
-            if (network.canWalkBackward(start.edge) || start.fraction == 0.0) {
-                val seconds = network.part(start.edge, start.fraction, 0.0).seconds
+            if (travel.backward(start.edge) || start.fraction == 0.0) {
+                val seconds = travel.part(start.edge, start.fraction, 0.0).seconds
                 open(network.edgeFrom[start.edge], offTrail(start) + seconds, -1 - s)
             }
-            if (network.canWalkForward(start.edge) || start.fraction == 1.0) {
-                val seconds = network.part(start.edge, start.fraction, 1.0).seconds
+            if (travel.forward(start.edge) || start.fraction == 1.0) {
+                val seconds = travel.part(start.edge, start.fraction, 1.0).seconds
                 open(network.edgeTo[start.edge], offTrail(start) + seconds, -1 - s)
             }
         }
@@ -244,8 +271,8 @@ class Router(
             endsAt.getOrPut(network.edgeFrom[end.edge]) { mutableListOf() }.add(e)
             endsAt.getOrPut(network.edgeTo[end.edge]) { mutableListOf() }.add(e)
         }
-        val restFromEdgeFrom = ends.map { network.part(it.edge, 0.0, it.fraction).seconds }
-        val restFromEdgeTo = ends.map { network.part(it.edge, 1.0, it.fraction).seconds }
+        val restFromEdgeFrom = ends.map { travel.part(it.edge, 0.0, it.fraction).seconds }
+        val restFromEdgeTo = ends.map { travel.part(it.edge, 1.0, it.fraction).seconds }
 
         while (heap.isNotEmpty()) {
             val node = heap.peekNode()
@@ -259,10 +286,10 @@ class Router(
                 val rest =
                     when {
                         node == network.edgeFrom[end.edge] &&
-                            (network.canWalkForward(end.edge) || end.fraction == 0.0) ->
+                            (travel.forward(end.edge) || end.fraction == 0.0) ->
                             restFromEdgeFrom[e]
                         node == network.edgeTo[end.edge] &&
-                            (network.canWalkBackward(end.edge) || end.fraction == 1.0) ->
+                            (travel.backward(end.edge) || end.fraction == 1.0) ->
                             restFromEdgeTo[e]
                         else -> Double.POSITIVE_INFINITY
                     }
@@ -275,11 +302,11 @@ class Router(
             }
             for (index in network.adjacencyStart[node] until network.adjacencyStart[node + 1]) {
                 val edge = network.adjacentEdges[index]
-                if (network.edgeFrom[edge] == node && network.canWalkForward(edge)) {
-                    open(network.edgeTo[edge], cost[node] + network.edgeSecondsForward[edge], edge)
+                if (network.edgeFrom[edge] == node && travel.forward(edge)) {
+                    open(network.edgeTo[edge], cost[node] + travel.seconds(edge, forward = true), edge)
                 }
-                if (network.edgeTo[edge] == node && network.canWalkBackward(edge)) {
-                    open(network.edgeFrom[edge], cost[node] + network.edgeSecondsBackward[edge], edge)
+                if (network.edgeTo[edge] == node && travel.backward(edge)) {
+                    open(network.edgeFrom[edge], cost[node] + travel.seconds(edge, forward = false), edge)
                 }
             }
         }

@@ -40,11 +40,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Pace
 import app.kozica.data.hikes.ProfilePoint
 import app.kozica.data.hikes.minutes
 import app.kozica.data.routes.Approach
 import app.kozica.data.routes.PlannedRoute
+import app.kozica.data.routes.RideGrade
 import app.kozica.data.routes.RoutePoint
 import app.kozica.theme.Spacing
 import java.util.Locale
@@ -110,8 +112,9 @@ internal fun RouteSheet(
                 planned == null -> LinearProgressIndicator(Modifier.fillMaxWidth())
                 route.following != null -> Following(route, route.following, pace, locale)
                 else -> {
-                    Totals(planned, pace, locale)
-                    PaceLine(pace, locale)
+                    val figures = sheetFigures(planned, route.stretches)
+                    Totals(planned, pace, figures.time, locale)
+                    if (figures.paceLine) PaceLine(pace, locale)
                 }
             }
             route.followingNote?.let { note ->
@@ -148,7 +151,7 @@ internal fun RouteSheet(
                     }) { Text(stringResource(R.string.route_save)) }
                 }
             }
-            if (planned != null) Warnings(planned, route, locale)
+            if (planned != null) Warnings(sheetFigures(planned, route.stretches).warnings, route, locale)
             if (open) {
                 route.points.forEachIndexed { i, point ->
                     PointRow(
@@ -157,11 +160,13 @@ internal fun RouteSheet(
                         count = route.points.size,
                         minutes =
                             planned
+                                ?.takeIf { sheetFigures(it, route.stretches).time }
                                 ?.secondsToPoint
                                 ?.get(i)
                                 ?.takeIf { i > 0 }
                                 ?.let(pace::minutes),
                         offTrailMetres = planned?.offTrailMetres(i),
+                        cycling = planned?.mode == Mode.CYCLING,
                         locale = locale,
                         onRemove = { onRemove(i) },
                         onMove = { to -> onMove(i, to) },
@@ -213,10 +218,54 @@ internal fun RouteNameDialog(
     )
 }
 
+/** What the sheet shows beside a Route's distance, ascent and descent, which it always shows. */
+internal data class SheetFigures(
+    val time: Boolean,
+    val paceLine: Boolean,
+    val warnings: List<RouteWarning>,
+)
+
+internal sealed interface RouteWarning {
+    /** No way between point [from] and the next, over the Trails or, in Cycling, the Bike routes. */
+    data class NoWay(
+        val from: Int,
+        val cycling: Boolean,
+    ) : RouteWarning
+
+    data class Demanding(
+        val stretch: NamedStretch,
+    ) : RouteWarning
+
+    data class Ride(
+        val grade: RideGrade,
+    ) : RouteWarning
+}
+
+/**
+ * docs/phase-7b.md § 3: a ride shows no time, no point's time and no Pace line, since the riding time
+ * waits for its gate and the walking Pace never touches a ride; its warning is the MTB scale's.
+ */
+internal fun sheetFigures(
+    planned: PlannedRoute,
+    stretches: List<NamedStretch>,
+): SheetFigures {
+    val cycling = planned.mode == Mode.CYCLING
+    val noWay =
+        planned.legs.mapIndexedNotNull { i, leg -> if (leg == null) RouteWarning.NoWay(i, cycling) else null }
+    val demanding =
+        if (cycling) {
+            listOfNotNull(planned.hardestRide?.let(RouteWarning::Ride))
+        } else {
+            stretches.map(RouteWarning::Demanding)
+        }
+    return SheetFigures(time = !cycling, paceLine = !cycling, warnings = noWay + demanding)
+}
+
 @Composable
 private fun Totals(
     planned: PlannedRoute,
     pace: Pace?,
+    time: Boolean,
     locale: Locale,
 ) {
     val signposts = planned.minutes
@@ -225,13 +274,15 @@ private fun Totals(
         Total(stringResource(R.string.route_length), length(planned.metres, locale))
         Total(stringResource(R.string.route_ascent), wholeMetres(planned.ascent, locale))
         Total(stringResource(R.string.route_descent), wholeMetres(planned.descent, locale))
-        Total(
-            stringResource(R.string.route_walking_time),
-            walkingTime(yours, locale),
-            beside =
-                stringResource(R.string.route_time_signposts, walkingTime(signposts, locale))
-                    .takeIf { yours != signposts },
-        )
+        if (time) {
+            Total(
+                stringResource(R.string.route_walking_time),
+                walkingTime(yours, locale),
+                beside =
+                    stringResource(R.string.route_time_signposts, walkingTime(signposts, locale))
+                        .takeIf { yours != signposts },
+            )
+        }
     }
 }
 
@@ -348,29 +399,37 @@ private fun factor(
 
 @Composable
 private fun Warnings(
-    planned: PlannedRoute,
+    warnings: List<RouteWarning>,
     route: RouteUiState,
     locale: Locale,
 ) {
     val lines =
-        planned.legs.mapIndexedNotNull { i, leg ->
-            if (leg != null) {
-                null
-            } else {
-                stringResource(
-                    R.string.route_no_way,
-                    route.points[i].name(),
-                    route.points[i + 1].name(),
-                )
+        warnings.map { warning ->
+            when (warning) {
+                is RouteWarning.NoWay ->
+                    stringResource(
+                        if (warning.cycling) R.string.route_no_way_bike_routes else R.string.route_no_way,
+                        route.points[warning.from].name(),
+                        route.points[warning.from + 1].name(),
+                    )
+                is RouteWarning.Demanding -> {
+                    val named = warning.stretch
+                    val name =
+                        listOfNotNull(named.from, named.to).distinct().joinToString(" – ").ifEmpty {
+                            "${length(named.stretch.fromMetres, locale)} – ${length(named.stretch.toMetres, locale)}"
+                        }
+                    stringResource(R.string.route_demanding, name)
+                }
+                is RouteWarning.Ride -> {
+                    val grade =
+                        stringResource(
+                            if (warning.grade.uphill) R.string.mtb_grade_uphill else R.string.mtb_grade,
+                            warning.grade.scale,
+                        )
+                    stringResource(R.string.route_demanding_ride, grade)
+                }
             }
-        } +
-            route.stretches.map { named ->
-                val name =
-                    listOfNotNull(named.from, named.to).distinct().joinToString(" – ").ifEmpty {
-                        "${length(named.stretch.fromMetres, locale)} – ${length(named.stretch.toMetres, locale)}"
-                    }
-                stringResource(R.string.route_demanding, name)
-            }
+        }
     for (line in lines) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
@@ -386,6 +445,7 @@ private fun PointRow(
     count: Int,
     minutes: Int?,
     offTrailMetres: Double?,
+    cycling: Boolean,
     locale: Locale,
     onRemove: () -> Unit,
     onMove: (Int) -> Unit,
@@ -414,7 +474,10 @@ private fun PointRow(
             if (minutes != null) Text(walkingTime(minutes, locale), style = MaterialTheme.typography.bodyMedium)
             if (offTrailMetres != null && offTrailMetres > OFF_TRAIL_SHOWN_METRES) {
                 Text(
-                    stringResource(R.string.route_off_trail, distance(offTrailMetres, locale)),
+                    stringResource(
+                        if (cycling) R.string.route_off_bike_route else R.string.route_off_trail,
+                        distance(offTrailMetres, locale),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

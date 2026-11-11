@@ -33,13 +33,18 @@ def fixture_edges() -> list:
     """A–B–C along a flat line, B→C one-way; A–D up and D–C along a noisy ridge, then down; E–F a demanding
     island far from the rest, over a summit midway; G–H–I a Trail bending round J–K, G–H paved and a Touring
     route too, and J–K an unpaved MTB route alone, cut short between its two ends, ridden one way towards K and
-    graded S2, uphill S4.
+    graded S2, uphill S4. Then docs/phase-7b.md's rides: P–Q a rough Trail and Touring route straight across,
+    P–R–Q the same but paved and longer; Q–S unpaved, on both kinds, its MTB route alone directing it towards S
+    and graded S1; S–T a rough MTB route that climbs with a wobble, then drops a little, graded S3, uphill S2.
 
     Node refs are OSM-like ids; only the ends of an edge are nodes of the network."""
     a, b, c, d = (49.0, 20.0), (49.0, 20.01), (49.0, 20.02), (49.01, 20.01)
     e, f = (49.2, 20.2), (49.2, 20.21)
     g, h, i = (49.3, 20.3), (49.31, 20.31), (49.3, 20.32)
     ridge = [(round(49.01 - k / 1000, 3), round(20.01 + k / 1000, 3)) for k in range(1, 8)]
+    p, q, r, s, t = (49.5, 20.5), (49.5, 20.52), (49.506, 20.51), (49.5, 20.54), (49.51, 20.55)
+    climb = [(round(49.5 + k / 600, 5), round(20.54 + k / 600, 5)) for k in range(1, 6)]
+    trail_and_touring = network["SET_TRAIL"] | network["SET_TOURING"]
     return [
         edge(100, [1, 2], [a, b], [500.0, 500.0]),
         edge(101, [2, 0, 3], [b, (49.0, 20.015), c], [500.0, 500.0, 500.0], flags=network["FORWARD_ONLY"]),
@@ -50,6 +55,13 @@ def fixture_edges() -> list:
         edge(106, [8, 9], [h, i], [800.0, 800.0]),
         edge(107, [7, 0, 9], [g, (49.3, 20.31), i], [800.0, 800.0, 800.0], sets=4, surface=network["UNPAVED"],
              ride=network["FORWARD_ONLY"], mtb=3, mtb_up=5, ride_mtb=network["FORWARD_ONLY"]),
+        edge(108, [20, 0, 21], [p, (49.5, 20.51), q], [400.0] * 3, sets=trail_and_touring, surface=network["ROUGH"]),
+        edge(109, [20, 22], [p, r], [400.0] * 2, sets=trail_and_touring, surface=network["PAVED"]),
+        edge(110, [22, 21], [r, q], [400.0] * 2, sets=trail_and_touring, surface=network["PAVED"]),
+        edge(111, [21, 23], [q, s], [400.0] * 2, sets=6, surface=network["UNPAVED"], mtb=2,
+             ride_mtb=network["FORWARD_ONLY"]),
+        edge(112, [23] + [0] * 5 + [24], [s, *climb, t], [400.0, 403.0, 420.0, 417.0, 450.0, 440.0, 436.0], sets=4,
+             surface=network["ROUGH"], mtb=4, mtb_up=3),
     ]
 
 
@@ -987,12 +999,14 @@ class FormatTest(unittest.TestCase):
             network["write_network"](edges, target)
             read = read_network(target.read_bytes())
         self.assertEqual((read["magic"], read["version"], read["left"]), (b"KZTN", 3, 0))
-        self.assertEqual(read["sets"], (1, 1, 1, 1, 1, 3, 1, 4))
-        self.assertEqual(read["surface"], (ROUGH, ROUGH, ROUGH, ROUGH, ROUGH, PAVED, ROUGH, UNPAVED))
-        self.assertEqual(read["ride_touring"], (0,) * 8)
-        self.assertEqual(read["ride_mtb"], (0,) * 7 + (FORWARD,))
+        self.assertEqual(read["sets"], (1, 1, 1, 1, 1, 3, 1, 4, 3, 3, 3, 6, 4))
+        self.assertEqual(read["surface"], (ROUGH, ROUGH, ROUGH, ROUGH, ROUGH, PAVED, ROUGH, UNPAVED, ROUGH, PAVED,
+                                           PAVED, UNPAVED, ROUGH))
+        self.assertEqual(read["ride_touring"], (0,) * 13)
+        self.assertEqual(read["ride_mtb"], (0,) * 7 + (FORWARD,) + (0,) * 3 + (FORWARD, 0))
         riding = list(zip(read["riding_forward"], read["riding_backward"]))
-        self.assertTrue(all(math.isnan(f) and math.isnan(b) for k, (f, b) in enumerate(riding) if k not in (5, 7)))
+        self.assertTrue(all(math.isnan(f) and math.isnan(b) for k, (f, b) in enumerate(riding) if k < 8 and k not in (5, 7)))
+        self.assertFalse(any(math.isnan(f) or math.isnan(b) for f, b in riding[8:]))
         self.assertAlmostEqual(riding[5][0], edges[5].length / (network["RIDING"].flat[PAVED] / 3.6), places=2)
         self.assertAlmostEqual(riding[7][1], edges[7].length / (10 / 3.6), places=2)
 
