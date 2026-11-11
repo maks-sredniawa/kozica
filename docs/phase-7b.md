@@ -220,7 +220,9 @@ Decided with the owner on 2026-11-11:
   fastest. At phase 5's 4 km/h it would overestimate a ride about fivefold, miss the fastest leg, and
   misplace 6c § 5's via points with it. The constants are B's until G and the tuned ones from G; if G
   never merges, B's stay the cost and are shown nowhere. In Hiking the cost and the heuristic are
-  phase 5's.
+  phase 5's. A ride's riding seconds average far below 40 km/h, so the bound is loose and A* may visit
+  many more nodes than in Hiking: R5 and R8 time it against phase 5's and 6c's marks, and decide
+  whether it needs a tighter one.
 - **A part of an edge**, where a point joins it between its ends, is timed as Hiking times one
   (`EdgePart.kt`): the riding rule run over the heights it rides, by its own runs, with the edge's
   class and grades, so its time follows the point along the edge rather than taking a share of the
@@ -254,7 +256,25 @@ names no Trail, hike or signpost and is Hiking's as it is.
   `bikeRouteFilter`, enums by name, defaulting to `HIKING` and `ALL`, so every Route saved before stays a
   walk (decided with the owner on 2026-11-11). `MIGRATION_3_4`, registered, its schema exported, the
   gate's assertion and a migration test that proves the rows and their points survive.
-- **Opening a saved Route sets the map's Mode and chip to its own** and plans it under them.
+- **Opening a saved Route sets the map's Mode and chip to its own** and plans it under them, in one step
+  with the Route itself: they are handed to the router with its points rather than read back from the
+  map, and change together with the new Route, so the replan below never runs on the Route being
+  replaced. Opening one while Following ends Following first, as it does today.
+- **The Routes tab plans a saved Route under its own Mode and chip as well.** Its rows (`RouteTotals`,
+  keyed by the points, the Mode and the chip rather than the points alone) and
+  `RoutesViewModel.exportGpx` both plan. A ride's row shows its length with no walking time and no
+  signposts' Pace, and no time before G; from G it shows the riding time, "≈" and rounded as the sheet
+  rounds it. A ride's GPX export plans over the Bike routes its chip allows and, with no way, says § 5's
+  Cycling string. Both read the stored Mode through the map's own seam (`modeOf`), so in a release build
+  a ride's row and export are a walk's, as it opens (*Known gaps*).
+- **Every other caller of the planner passes a Mode and chip too**: `AppContainer.planRoute` takes them
+  beside the points, so nothing can plan a ride as a walk by default. The followed Route kept for a
+  closed app (`FollowedRoute`, 6b § 3) stores them beside its points, Hiking and All when absent so one
+  stored before this phase decodes as a walk, and resuming sets the map's Mode and chip to them before
+  it plans, as opening a saved Route does: the map keeps its Mode across a closed app but not its chip,
+  which would come back All and replan an MTB ride over Touring lines. "Back to the Route" plans under
+  the followed Route's (§ 5). The debug seeder's Hike along a Route stays a walk, and `RouteReceiver`
+  takes them from `--es mode` and `--es filter` (Readings).
 - **A change of Mode or chip with a Route open replans its points** in the new Mode, saved or not. A leg
   that cannot be joined says so as in § 3. On a saved Route it is an unsaved change, and Save stores the
   new Mode and chip.
@@ -267,20 +287,28 @@ names no Trail, hike or signpost and is Hiking's as it is.
   to go from the riding seconds alone, spread over the line by the riding rule as 6b spreads the
   walking one. The leaving rule is 6b's, as its gate settles it (40 m for 30 s until then); "Back to the
   Route" plans over the Bike routes the chips allow by § 3's router.
-- **Progress's forward window reaches as far as a ride does**: in Cycling as far ahead as the rule's
-  fastest speed, the highest descent cap, would carry the rider since the last match, never less than
-  200 m. At 6b's 6 km/h a rider would outrun it within the first minute and Progress would stall; in
-  Hiking it stays 6 km/h.
+- **Progress's forward window reaches as far as a ride does**: 6b's window is `max(200 m, 6 km/h × the
+  time since the last match)`, so while counted fixes arrive every few seconds a rider never outruns it.
+  It stalls only after a gap in matched fixes, under trees or with the phone in a pocket: at 20 km/h a
+  gap of more than about 36 s carries the rider past 200 m while the window is still 200 m, and the
+  next fix lies beyond it. In Cycling the speed is the rule's fastest, the highest descent cap (40 km/h
+  at B's constants), never less than 200 m, so after any gap the window reaches past where a ride can
+  be; in Hiking it stays 6 km/h.
 - **"Plan a Route along it"** on a Bike route's sheet is 6c § 5's, over the Bike route's walk, planned
   under the route's own kind: where the current chip excludes it, the chip is set to that kind first,
   and All stays All. Search in Cycling finds both kinds whatever the chip and a chip change leaves a
   selection open (7a § 4), so the chip alone would plan an MTB route opened under Touring as "No way"
   or a detour. The via points are found by § 3's router under that chip, and the Route saves with it
   (§ 4). A one-way Bike route is planned its way only; Reverse then plans whatever the router finds
-  the other way, as on a Trail with a one-way stretch.
+  the other way, as on a Trail with a one-way stretch. **It is not offered while Following**, since the
+  chips are locked then (§ 4); a Trail's sheet keeps 6c's, where the new Route ends Following, as it
+  changes no chip. The chip changes together with the new Route in one step, as on opening a saved
+  Route (§ 4): the open Route is set aside first and the new one planned under the new chip, so § 4's
+  replan never runs on the Route being replaced, and a saved one is never marked changed just before it
+  goes.
 - **"Export GPX"** on a Bike route's sheet is 6c § 5's, named after its title, with the OSM
   `<copyright>` and `<link>`. It writes the walk and plans nothing, so it has no "no way"; a saved
-  ride's export, which plans, has its own.
+  ride's export from the Routes tab, which plans, has its own (§ 4).
 
 Copy: "Back to the Route from the nearest Bike route, %1$s away", "No way back to the Route over the
 Bike routes", and "This route has no way over the Bike routes right now, so there is no GPX to export.".
@@ -316,14 +344,23 @@ the Trails.
 - **The sheet's figures**: the time rounded to 5 minutes and never under 5, and each point's time
   rounded as it is, none without G; no Pace line in Cycling; the warning from S2 only, uphill read from
   `mtb:scale:uphill` where it is tagged, in its own string.
-- **Following in Cycling**: a fix 25 km/h's worth ahead of the last match moves Progress, where in
-  Hiking it does not; without G, the lines carry no time.
+- **Following in Cycling**: after 60 s with no fix, a fix 340 m on along the line, a ride at 20 km/h,
+  moves Progress, where in Hiking, whose window is then still 200 m, it does not; with fixes every few
+  seconds both keep up; without G, the lines carry no time.
 - **"Plan a Route along it"** on an MTB route under Touring sets the chip to MTB, and under All leaves
-  All.
+  All. In the map's ViewModel, with a saved Route open under Touring, it plans only the new Route, once,
+  under MTB, and leaves the saved one unmarked; while Following it is not offered and does nothing.
+- **The Routes tab's ViewModel**: a saved ride's row is planned under its Mode and chip and shows its
+  length with no walking time and no Pace, and no time without G; the same points saved as a walk and
+  as a ride are planned apart; a walk's row is as it was. Its GPX export plans a ride under its chip
+  and, with no way over the Bike routes, fails with the Cycling string.
+- **`FollowedRoute`**: one stored before this phase decodes as Hiking and All; resuming a followed ride
+  sets the Mode and chip before it plans.
 - **`MIGRATION_3_4`** and **`SchemaGateTest`**, under the house rule: a v3 database with Routes and
   points opens at v4 with both intact and every Route `HIKING` and `ALL`.
 - **The map's ViewModel**: a change of Mode or chip replans an open Route and marks a saved one changed;
-  both are refused while Following.
+  both are refused while Following. Opening a saved ride with a walk open plans only the ride, under its
+  own Mode and chip, and marks nothing changed.
 - **`riding-time.py`**: its error measure and the split are deterministic from the seed.
 
 ## Documents this phase amends
@@ -340,8 +377,8 @@ the Trails.
 
 ## Known gaps, deliberately
 
-- **A ride saved in a developer build, restored into a release build, opens as a walk**: release builds
-  stay in Hiking until 7c. Its Mode is kept in the row, so it is a ride again once the switch ships,
+- **A ride saved in a developer build, restored into a release build, opens as a walk**, and its row and
+  GPX export in the Routes tab are a walk's: release builds stay in Hiking until 7c. Its Mode is kept in the row, so it is a ride again once the switch ships,
   unless it is saved there first: Save in a release build stores the Mode it is open in, Hiking, and it
   stays a walk.
 - **The leaving rule is read on foot, if at all.** 6b's gate settles it on walks; if it keeps 40 m for
@@ -362,7 +399,8 @@ hand-pushed to `files/network/`.
 `--es mode CYCLING` and `--es filter ALL|TOURING|MTB`, planning under that Mode and chip as the map
 would, for R4 and R5; in F, `--el bikeRoute <id>`, which plans along that Bike route by "Plan a Route
 along it"'s code from the chip `--es filter` gives, as the map's current one, and logs its row and the
-chip it planned under beside it, as `--el trail` does for a Trail, for R8.
+chip it planned under beside it and the time taken, as `--el trail` does for a Trail, and the nodes
+visited, which `--el trail` does not log, for R8.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
@@ -370,8 +408,8 @@ chip it planned under beside it, as `--el trail` does for a Trail, for R8.
 | R2 | The base files' growth at B's pin, against 7a's | `ls -l` on the three base files at both pins | |
 | R3 | The gate: the constants fitted, the judge set's median and worst, each route's error; on a failure, the same for the reserve | `scripts/riding-time.py --fit tune --judge judge` | |
 | R4 | Direction: Twister, directed by its ways' tags, and Asfaltový traverz (r2193737), directed by its relation alone: under MTB a Route from each one's start to its end takes it, the reverse does not | `RouteReceiver --es mode CYCLING --es filter MTB` both ways along each; the logged edges | |
-| R5 | The chips: the same two points under All, Touring and MTB give the lines each kind allows, or "No way" | `RouteReceiver --es mode CYCLING` with each `--es filter` | |
+| R5 | The chips: the same two points under All, Touring and MTB give the lines each kind allows, or "No way". The planning time: a ride of 20 km or more between two points, its plan time and nodes visited logged beside Hiking's for the same two points. Pass: within phase 5's 500 ms. A miss holds D until the router is fixed, a tighter heuristic first (the flat paved speed with an admissible correction for the descent left to the end), and is not shipped | `RouteReceiver --es mode CYCLING` with each `--es filter`; `adb logcat -d -s KozicaRoute` for the plan time and nodes visited | |
 | R6 | An upgrade: a v3 install with saved Routes updated to this build keeps every Route, each opening as a walk | emulator, the last release installed, Routes saved, this build `install -r` over it | |
-| R7 | The switch: a saved Route replans in Cycling and shows unsaved changes; the switch and chips refuse while Following | emulator, screencaps | |
-| R8 | A Route along a Bike route matches it: Twister one way, and a two-way Touring route each way, length to the metre and climb within 6c's dead band; Twister planned with the chip on Touring comes back under MTB, with the chip logged | `RouteReceiver --el bikeRoute <id>`, the last with `--es filter TOURING` | |
-| R9 | Following a ride: Progress and the distance left along a scripted ride at riding speed, Progress keeping up, and from G the time to go | emulator, `PositionReceiver` along the line with `--el time` at 20 km/h | |
+| R7 | The switch: a saved Route replans in Cycling and shows unsaved changes; the switch and chips refuse while Following, and a Bike route's sheet offers no "Plan a Route along it". A saved ride's row in the Routes tab shows its length and no walking time, and its GPX export is the ride | emulator, screencaps; the export's file pulled | |
+| R8 | A Route along a Bike route matches it: Twister one way, and the longest Touring route in the Regions each way, length to the metre and climb within 6c's dead band; Twister planned with the chip on Touring comes back under MTB, with the chip logged. The longest one's time taken and nodes visited logged as 6c's R4 logged them. Pass: made within 6c's 2 s, whose 2.4 s for Główny Szlak Beskidzki the owner accepted; a miss is fixed in the router as R5's is, before F merges, and not shipped | `RouteReceiver --el bikeRoute <id>`, the last with `--es filter TOURING`; `adb logcat -d -s KozicaRoute` | |
+| R9 | Following a ride: Progress and the distance left along a scripted ride at 20 km/h, Progress keeping up, across a 60 s gap with no fix that would stall Hiking's window, and from G the time to go | emulator; a ride planned by `RouteReceiver --es mode CYCLING` and followed on the map; `scripts/replay-track.py --route --kmh 20 --last <n> -s <serial>`, then `--first <n+34> --t0 <its t0>`: the 33 points skipped, 10 m and 1.8 s apart, put the next fix 340 m and 61 s on, where Hiking's 200 m window stops short; screencaps either side of the gap | |
