@@ -244,9 +244,9 @@ def nelder_mead(f, start: list[float], step: float = 0.3, iterations: int = 3000
 
 def fit(rows: list[dict], edges: dict, network: dict) -> tuple[dict[str, float], list[str]]:
     """Least squares on log error, each constant held inside its bounds by lo + (hi − lo)·sin²(u); a constant
-    the rows' edges never reach keeps its starting value. Rounded to what build-network.py would carry."""
+    the rows' edges never reach keeps its starting value, § 2's. Rounded to what build-network.py would carry."""
     start = {name: min(max(value, BOUNDS[name][0]), BOUNDS[name][1])
-             for name, value in values_of(network["RIDING"]).items()}
+             for name, value in values_of(network["RidingConstants"]()).items()}
     base = loss(rows, edges, constants_of(start, network), network)
     reached = [name for name in BOUNDS
                if any(not math.isclose(loss(rows, edges, constants_of({**start, name: bound}, network), network), base)
@@ -327,9 +327,10 @@ def main() -> None:
     print("walks at this pin against R1's:")
     check_walks(sets["tune"] + sets["judge"])
 
+    starting = network["RidingConstants"]()
+    print("\nstarting constants: " + ", ".join(f"{k} {v:g}" for k, v in values_of(starting).items()))
+    report("tune, starting constants", sets["tune"], built["edges"], starting, network)
     constants = network["RIDING"]
-    print("\nstarting constants: " + ", ".join(f"{k} {v:g}" for k, v in values_of(constants).items()))
-    report("tune, starting constants", sets["tune"], built["edges"], constants, network)
     if args.fit:
         fitted, reached = fit(sets["tune"], built["edges"], network)
         constants = constants_of(fitted, network)
