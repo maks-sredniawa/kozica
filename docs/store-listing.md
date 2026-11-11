@@ -443,3 +443,17 @@ The map now also shows Bike routes and MTB routes, faded beneath the Trails so t
 ```
 Mapa pokazuje teraz także szlaki rowerowe i szlaki MTB, przygaszone pod szlakami pieszymi, żeby te pozostały czytelne. Na razie nie da się ich wybrać dotknięciem.
 ```
+
+### 0.17.0 — fresher map data
+
+**English** — 139/500:
+
+```
+The map's OpenStreetMap data is refreshed to 10 November 2026: trails, paths and places as mappers have changed them since the last update.
+```
+
+**Polish** — 145/500:
+
+```
+Dane OpenStreetMap na mapie są odświeżone do 10 listopada 2026: szlaki, ścieżki i miejsca tak, jak zmienili je maperzy od ostatniej aktualizacji.
+```
