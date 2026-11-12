@@ -241,6 +241,10 @@ data class SearchUiState(
  * @param opening counts the times a saved Route was opened, so re-opening the same one is still fitted to.
  * @param naming whether the Save dialog is open. Held here rather than in the sheet's saved state, so
  *   it goes with the Route when a dead process comes back without one.
+ * @param mode the Mode the Route is planned under, with [bikeRouteFilter] its chip: handed to the router
+ *   with the points rather than read back from the map, so a Route opened in its own changes the map's
+ *   with it (docs/phase-7b.md § 4).
+ * @param changed whether a saved Route's points, Mode or chip differ from what was saved.
  */
 data class RouteUiState(
     val points: List<RoutePoint> = emptyList(),
@@ -255,6 +259,9 @@ data class RouteUiState(
     val following: FollowingUiState? = null,
     val followingNote: FollowingNote? = null,
     val opening: Int = 0,
+    val mode: Mode = Mode.HIKING,
+    val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
+    val changed: Boolean = false,
 )
 
 /**
@@ -332,7 +339,13 @@ class MapViewModel(
     private val compute: CoroutineDispatcher = Dispatchers.Default,
     private val routeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
     private val loadRoute: suspend (id: String) -> SavedRoute? = { null },
-    private val saveRoute: suspend (id: String?, name: String, points: List<RoutePoint>) -> String = { _, _, _ -> "" },
+    private val saveRoute: suspend (
+        id: String?,
+        name: String,
+        points: List<RoutePoint>,
+        mode: Mode,
+        filter: BikeRouteFilter,
+    ) -> String = { _, _, _, _, _ -> "" },
     private val observeName: (id: String) -> Flow<String?> = { emptyFlow() },
     private val recording: Flow<Recording?> = flowOf(null),
     private val observeTrack: (hikeId: String) -> Flow<Track> = { flowOf(emptyList()) },
@@ -490,14 +503,43 @@ class MapViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
+    /** Replans an open Route in [mode]; refused while Following, since changing the line under someone helps nobody. */
     fun setMode(mode: Mode) {
+        if (route.value.following != null) return
+        switchMap(mode, bikeRouteFilter.value)
+        replan(mode, bikeRouteFilter.value)
+    }
+
+    /** As [setMode], for the chip. */
+    fun setBikeRouteFilter(filter: BikeRouteFilter) {
+        if (route.value.following != null) return
+        if (filter != bikeRouteFilter.value) planningAlong?.cancel()
+        bikeRouteFilter.value = filter
+        replan(route.value.mode, filter)
+    }
+
+    private fun switchMap(
+        mode: Mode,
+        filter: BikeRouteFilter,
+    ) {
         if (mode != this.mode.value) closeSelection()
+        bikeRouteFilter.value = filter
         applicationScope.launch { preferences.setMapMode(mode) }
     }
 
-    fun setBikeRouteFilter(filter: BikeRouteFilter) {
-        if (filter != bikeRouteFilter.value) planningAlong?.cancel()
-        bikeRouteFilter.value = filter
+    /** A walk has no chip, so only its Mode replans it. */
+    private fun replan(
+        mode: Mode,
+        filter: BikeRouteFilter,
+    ) {
+        val current = route.value
+        if (current.points.isEmpty() ||
+            current.mode == mode &&
+            (mode == Mode.HIKING || current.bikeRouteFilter == filter)
+        ) {
+            return
+        }
+        changePoints(mode to filter) { it }
     }
 
     init {
@@ -712,14 +754,19 @@ class MapViewModel(
         changePoints { it.reversed() }
     }
 
-    /** Replaces whatever is on the map with a saved Route, planned again from today's network. */
+    /**
+     * Replaces whatever is on the map with a saved Route, planned again from today's network under its own
+     * Mode and chip, which the map takes in the same step (docs/phase-7b.md § 4).
+     */
     private fun show(saved: SavedRoute) {
         dismissOffer()
         closeHike()
         routeGeneration++
         unfollow()
+        val under = modeOf(saved.mode) to saved.bikeRouteFilter
+        switchMap(under.first, under.second)
         route.update { RouteUiState(savedId = saved.id, name = saved.name, opening = ++routeOpenings) }
-        changePoints { saved.points }
+        changePoints(under, edit = false) { saved.points }
     }
 
     /** A rename in the Routes tab renames the Route on the map; a delete leaves its points unsaved. */
@@ -733,7 +780,7 @@ class MapViewModel(
                 route.update {
                     when {
                         it.savedId != id -> it
-                        name == null -> it.copy(savedId = null, name = null)
+                        name == null -> it.copy(savedId = null, name = null, changed = false)
                         else -> it.copy(name = name)
                     }
                 }
@@ -868,7 +915,7 @@ class MapViewModel(
                     planning?.cancel()
                     routeGeneration++
                     route.value = RouteUiState(suggestedName = title)
-                    changePoints { points }
+                    changePoints(edit = false) { points }
                     labelPoints(points)
                 } finally {
                     if (planningAlong === self) trail.update { it.copy(planningRoute = false) }
@@ -915,7 +962,7 @@ class MapViewModel(
                     routeGeneration++
                     route.value = RouteUiState(suggestedName = title)
                     bikeRouteFilter.value = chip
-                    changePoints { points }
+                    changePoints(mode.value to chip, edit = false) { points }
                     labelPoints(points)
                 } finally {
                     if (planningAlong === self) bikeRoute.update { it.copy(planningRoute = false) }
@@ -1091,13 +1138,23 @@ class MapViewModel(
         route.update { it.copy(naming = shown) }
     }
 
-    /** Saves the points under [name]: over the Route they were opened from, or as a new one. */
+    /** Saves the points, Mode and chip under [name]: over the Route they were opened from, or as a new one. */
     fun save(name: String) {
         val current = route.updateAndGet { it.copy(naming = false) }
         val generation = routeGeneration
         viewModelScope.launch {
-            val id = saveRoute(current.savedId, name, current.points)
-            if (generation == routeGeneration) route.update { it.copy(savedId = id, name = name) }
+            val id = saveRoute(current.savedId, name, current.points, current.mode, current.bikeRouteFilter)
+            if (generation != routeGeneration) return@launch
+            route.update {
+                it.copy(
+                    savedId = id,
+                    name = name,
+                    changed =
+                        it.points != current.points ||
+                            it.mode != current.mode ||
+                            it.bikeRouteFilter != current.bikeRouteFilter,
+                )
+            }
         }
     }
 
@@ -1125,8 +1182,11 @@ class MapViewModel(
         if (now() - stored.touchedAtMillis > FOLLOWED_KEPT_MILLIS) return
         if (route.value.points.isNotEmpty() || shownHike.value != null) return
         routeGeneration++
+        // The map keeps its Mode across a closed app but not its chip, so both come from the Route.
+        val under = modeOf(stored.mode) to stored.bikeRouteFilter
+        switchMap(under.first, under.second)
         route.value = RouteUiState(savedId = stored.savedId, name = stored.name)
-        changePoints { stored.points }
+        changePoints(under, edit = false) { stored.points }
         val job =
             viewModelScope.launch {
                 route.first { !it.planning }
@@ -1143,7 +1203,16 @@ class MapViewModel(
     }
 
     private fun followedOf(state: RouteUiState): FollowedRoute? =
-        state.following?.let { FollowedRoute(state.points, state.name, state.savedId, it.progress) }
+        state.following?.let {
+            FollowedRoute(
+                state.points,
+                state.name,
+                state.savedId,
+                it.progress,
+                mode = state.mode,
+                bikeRouteFilter = state.bikeRouteFilter,
+            )
+        }
 
     /**
      * The followed Route's only writer, in [applicationScope] so the last value lands even after the
@@ -1214,7 +1283,7 @@ class MapViewModel(
         val rejoin = line.rejoin(following.progress, fix)
         planningBack?.cancel()
         route.update { state -> state.copy(following = state.following?.copy(back = LegBack.Planning)) }
-        val (planMode, planFilter) = mode.value to bikeRouteFilter.value
+        val (planMode, planFilter) = route.value.mode to route.value.bikeRouteFilter
         planningBack =
             viewModelScope.launch {
                 val ends = listOf(RoutePoint(fix.latitude, fix.longitude), rejoin)
@@ -1257,26 +1326,49 @@ class MapViewModel(
         }
     }
 
-    private fun changePoints(change: (List<RoutePoint>) -> List<RoutePoint>) {
+    /**
+     * [under] is the Mode and chip to plan in; without it a Route keeps its own, and a new one takes the
+     * map's. An [edit] of a saved Route is a change to save; opening one is not.
+     */
+    private fun changePoints(
+        under: Pair<Mode, BikeRouteFilter>? = null,
+        edit: Boolean = true,
+        change: (List<RoutePoint>) -> List<RoutePoint>,
+    ) {
         val stopped = route.value.following != null
         unfollow()
         route.update { it.copy(following = null, followingNote = if (stopped) FollowingNote.ROUTE_CHANGED else null) }
-        val points =
-            route
-                .updateAndGet {
-                    val points = change(it.points)
-                    if (points.isEmpty()) {
-                        RouteUiState()
-                    } else if (points.size < 2) {
-                        it.copy(points = points, planned = null, stretches = emptyList(), planning = false)
-                    } else {
-                        it.copy(points = points, planning = true)
-                    }
-                }.points
+        val next =
+            route.updateAndGet {
+                val points = change(it.points)
+                val (planMode, planFilter) =
+                    under
+                        ?: if (it.points.isEmpty()) {
+                            mode.value to bikeRouteFilter.value
+                        } else {
+                            it.mode to
+                                it.bikeRouteFilter
+                        }
+                val changed =
+                    it.copy(
+                        points = points,
+                        mode = planMode,
+                        bikeRouteFilter = planFilter,
+                        changed = it.changed || edit && it.savedId != null,
+                    )
+                if (points.isEmpty()) {
+                    RouteUiState()
+                } else if (points.size < 2) {
+                    changed.copy(planned = null, stretches = emptyList(), planning = false)
+                } else {
+                    changed.copy(planning = true)
+                }
+            }
+        val points = next.points
         if (points.isEmpty()) routeGeneration++
         planning?.cancel()
         if (points.size < 2) return
-        val (planMode, planFilter) = mode.value to bikeRouteFilter.value
+        val (planMode, planFilter) = next.mode to next.bikeRouteFilter
         planning =
             viewModelScope.launch {
                 val planned = withContext(compute) { planRoute(points, planMode, planFilter) }

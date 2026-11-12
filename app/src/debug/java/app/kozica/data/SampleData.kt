@@ -19,6 +19,8 @@ object SampleData {
                 RoutePoint(49.2190881, 20.0163920, "Zawrat"),
                 RoutePoint(49.1987000, 20.0712000, "Morskie Oko"),
             ),
+            Mode.HIKING,
+            BikeRouteFilter.ALL,
         )
         repository.save(
             null,
@@ -27,6 +29,8 @@ object SampleData {
                 RoutePoint(49.2702510, 19.9808508, "Kuźnice"),
                 RoutePoint(49.2318000, 19.9818000, "Kasprowy Wierch"),
             ),
+            Mode.HIKING,
+            BikeRouteFilter.ALL,
         )
     }
 

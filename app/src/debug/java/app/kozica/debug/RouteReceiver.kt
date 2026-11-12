@@ -48,8 +48,8 @@ import kotlin.concurrent.thread
  * "Plan a Route along it"'s code with `--es filter` as the map's chip, and logs the chip it planned
  * under, the nodes the search visited and the Route's own planning, for phase 7b's R8.
  *
- * With `--ez show true` it also saves the Route as "Reading" and opens it on the map's sheet, so
- * Follow is one tap, for phase 6b's R3 and R4.
+ * With `--ez show true` it also saves the Route as "Reading", under the Mode and chip it was planned in,
+ * and opens it on the map's sheet in them, so Follow is one tap, for phase 6b's R3 and R4.
  */
 class RouteReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -122,10 +122,12 @@ class RouteReceiver : BroadcastReceiver() {
         thread(name = "RouteReceiver") {
             try {
                 val points = listOf(from) + via.filterNotNull() + listOf(to)
-                val route = plan(app, points, mode ?: Mode.HIKING, filter ?: BikeRouteFilter.ALL)
+                val under = mode ?: Mode.HIKING
+                val chip = filter ?: BikeRouteFilter.ALL
+                val route = plan(app, points, under, chip)
                 if (route?.mode == Mode.HIKING) logAtPace(app, route.seconds, route.minutes)
                 if (show) {
-                    val id = runBlocking { app.container.routes.save(null, "Reading", points) }
+                    val id = runBlocking { app.container.routes.save(null, "Reading", points, under, chip) }
                     app.container.routeToShow.value = id
                     Log.i(TAG, "shown as saved Route $id")
                 }

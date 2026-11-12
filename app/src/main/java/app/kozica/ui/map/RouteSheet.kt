@@ -107,6 +107,13 @@ internal fun RouteSheet(
                 )
             }
             route.name?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+            if (route.changed) {
+                Text(
+                    stringResource(R.string.route_unsaved),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             when {
                 route.unavailable -> Text(stringResource(R.string.map_planning_missing))
                 route.points.size < 2 -> Unit

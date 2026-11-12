@@ -20,7 +20,6 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-/** [NoWayOverBikeRoutes] is a ride's [NoWay] (docs/phase-7b.md § 4). */
 enum class GpxFailure { NoWay, NoWayOverBikeRoutes, NotWritten }
 
 /** @param file written and waiting for the share sheet, held in the view model so a rotation does not drop it. */

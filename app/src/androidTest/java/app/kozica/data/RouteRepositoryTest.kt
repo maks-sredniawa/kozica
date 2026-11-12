@@ -39,7 +39,14 @@ class RouteRepositoryTest {
     @Test
     fun aSavedRouteComesBackWithItsPointsInOrder() =
         runTest {
-            val id = routes.save(null, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat, lake))
+            val id =
+                routes.save(
+                    null,
+                    "Kuźnice – Morskie Oko",
+                    listOf(kuznice, zawrat, lake),
+                    Mode.HIKING,
+                    BikeRouteFilter.ALL,
+                )
 
             assertEquals(SavedRoute(id, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat, lake)), routes.get(id))
             assertEquals(listOf(id), routes.observeAll().first().map { it.id })
@@ -48,9 +55,19 @@ class RouteRepositoryTest {
     @Test
     fun savingAgainReplacesThePointsRatherThanAddingToThem() =
         runTest {
-            val id = routes.save(null, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat, lake))
+            val id =
+                routes.save(
+                    null,
+                    "Kuźnice – Morskie Oko",
+                    listOf(kuznice, zawrat, lake),
+                    Mode.HIKING,
+                    BikeRouteFilter.ALL,
+                )
 
-            assertEquals(id, routes.save(id, "Zawrat – Kuźnice", listOf(zawrat, kuznice)))
+            assertEquals(
+                id,
+                routes.save(id, "Zawrat – Kuźnice", listOf(zawrat, kuznice), Mode.HIKING, BikeRouteFilter.ALL),
+            )
 
             assertEquals(SavedRoute(id, "Zawrat – Kuźnice", listOf(zawrat, kuznice)), routes.get(id))
         }
@@ -58,7 +75,14 @@ class RouteRepositoryTest {
     @Test
     fun writingTheRouteRowOverItselfLeavesItsChildRowsAlone() =
         runTest {
-            val id = routes.save(null, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat))
+            val id =
+                routes.save(
+                    null,
+                    "Kuźnice – Morskie Oko",
+                    listOf(kuznice, zawrat),
+                    Mode.HIKING,
+                    BikeRouteFilter.ALL,
+                )
             val dao = database.routeDao()
 
             dao.upsert(dao.get(id)!!.route.copy(name = "Przez Zawrat"))
@@ -67,9 +91,30 @@ class RouteRepositoryTest {
         }
 
     @Test
+    fun aRideComesBackWithItsModeAndChipAndSavingAgainStoresTheNewOnes() =
+        runTest {
+            val id = routes.save(null, "Kuźnice – Zawrat", listOf(kuznice, zawrat), Mode.CYCLING, BikeRouteFilter.MTB)
+            assertEquals(
+                SavedRoute(id, "Kuźnice – Zawrat", listOf(kuznice, zawrat), Mode.CYCLING, BikeRouteFilter.MTB),
+                routes.get(id),
+            )
+
+            routes.save(id, "Kuźnice – Zawrat", listOf(kuznice, zawrat), Mode.HIKING, BikeRouteFilter.ALL)
+
+            assertEquals(Mode.HIKING to BikeRouteFilter.ALL, routes.get(id)!!.let { it.mode to it.bikeRouteFilter })
+        }
+
+    @Test
     fun theNameIsObservedThroughARenameAndADelete() =
         runTest {
-            val id = routes.save(null, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat))
+            val id =
+                routes.save(
+                    null,
+                    "Kuźnice – Morskie Oko",
+                    listOf(kuznice, zawrat),
+                    Mode.HIKING,
+                    BikeRouteFilter.ALL,
+                )
             routes.rename(id, "Przez Zawrat")
             assertEquals("Przez Zawrat", routes.observeName(id).first())
 
@@ -81,7 +126,14 @@ class RouteRepositoryTest {
     @Test
     fun renameKeepsThePointsAndDeleteTakesThemWithIt() =
         runTest {
-            val id = routes.save(null, "Kuźnice – Morskie Oko", listOf(kuznice, zawrat))
+            val id =
+                routes.save(
+                    null,
+                    "Kuźnice – Morskie Oko",
+                    listOf(kuznice, zawrat),
+                    Mode.HIKING,
+                    BikeRouteFilter.ALL,
+                )
             routes.rename(id, "Przez Zawrat")
             assertEquals(SavedRoute(id, "Przez Zawrat", listOf(kuznice, zawrat)), routes.get(id))
 

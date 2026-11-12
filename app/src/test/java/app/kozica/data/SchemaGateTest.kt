@@ -33,19 +33,19 @@ class SchemaGateTest {
      * through three releases upgrades straight to 4, walking three migrations in a row, and nobody
      * ever tests that path by hand.
      *
-     * Released builds have written schema 1 (0.2.0 to 0.8.0), 2 with saved Routes (0.8.1), and now 3,
-     * with recorded Hikes.
+     * Released builds have written schema 1 (0.2.0 to 0.8.0), 2 with saved Routes (0.8.1), 3 with
+     * recorded Hikes, and now 4, with a saved Route's Mode and chip (docs/phase-7b.md § 4).
      */
     @Test
     fun `the shipped migrations reach this build's version`() {
-        assertEquals(3, APP_SCHEMA_VERSION)
-        for (from in 1..2) {
+        assertEquals(4, APP_SCHEMA_VERSION)
+        for (from in 1..3) {
             assertEquals(
                 "a release-shaped launch over a schema-$from install opens, and Room migrates",
                 SchemaGate.Open,
                 schemaGateDecision(
                     onDiskVersion = from,
-                    appSchemaVersion = 3,
+                    appSchemaVersion = 4,
                     steps = shipped,
                     destructiveAllowed = false,
                 ),

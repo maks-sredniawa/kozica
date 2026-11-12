@@ -154,14 +154,15 @@ private fun RouteRowItem(
     ) {
         Column(Modifier.weight(1f)) {
             Text(row.route.name, style = MaterialTheme.typography.bodyLarge)
-            if (row.metres != null && row.minutes != null) {
+            if (row.metres != null) {
+                val time = row.minutes?.let { " · " + walkingTime(it, locale) }.orEmpty()
                 val signposts =
                     row.signpostMinutes
                         ?.takeIf { it != row.minutes }
                         ?.let { " · " + stringResource(R.string.route_time_signposts, walkingTime(it, locale)) }
                         .orEmpty()
                 Text(
-                    "${length(row.metres, locale)} · ${walkingTime(row.minutes, locale)}$signposts",
+                    "${length(row.metres, locale)}$time$signposts",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

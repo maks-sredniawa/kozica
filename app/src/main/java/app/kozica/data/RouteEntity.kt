@@ -1,5 +1,6 @@
 package app.kozica.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -9,8 +10,9 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * A saved Route: its name and its points only (docs/phase-5.md § 5). Its legs, totals and profile
- * are planned again every time it opens, so it always follows today's Trails.
+ * A saved Route: its name, its points, and the Mode and chip it is planned under (docs/phase-5.md § 5,
+ * docs/phase-7b.md § 4). Its legs, totals and profile are planned again every time it opens, so it
+ * always follows today's Trails and Bike routes.
  */
 @Entity(tableName = "routes")
 data class RouteEntity(
@@ -19,6 +21,10 @@ data class RouteEntity(
     val name: String,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = createdAt,
+    @ColumnInfo(defaultValue = "HIKING")
+    val mode: Mode = Mode.HIKING,
+    @ColumnInfo(defaultValue = "ALL")
+    val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
 )
 
 /**

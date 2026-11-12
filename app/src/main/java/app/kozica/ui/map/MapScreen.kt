@@ -680,6 +680,7 @@ fun MapScreen(
                             onMode = viewModel::setMode,
                             onFilter = viewModel::setBikeRouteFilter,
                             modifier = Modifier.padding(horizontal = Spacing.tight),
+                            enabled = state.route.following == null,
                         )
                     }
                     val searchFoundAny = state.search.results.isNotEmpty() || state.search.otherModeMatches > 0

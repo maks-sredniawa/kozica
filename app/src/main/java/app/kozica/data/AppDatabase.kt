@@ -18,7 +18,7 @@ import app.kozica.BuildConfig
  * migration, its registration in [APP_MIGRATIONS], the exported `schemas/<n>.json`, and the
  * `SchemaGateTest` assertion. See ADR-0001.
  */
-const val APP_SCHEMA_VERSION = 3
+const val APP_SCHEMA_VERSION = 4
 
 /** The database file name, under the app's standard databases directory. */
 const val APP_DATABASE_FILE = "kozica.db"

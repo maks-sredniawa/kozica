@@ -1,5 +1,6 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import kotlinx.serialization.Serializable
 import kotlin.math.PI
@@ -42,7 +43,8 @@ data class Progress(
 
 /**
  * What following keeps in the app's settings so it survives a closed app (docs/phase-6b.md § 3): the
- * points rather than the saved Route's id, so a Route followed before it was saved survives too.
+ * points rather than the saved Route's id, so a Route followed before it was saved survives too, and
+ * the Mode and chip they are planned under, absent from one stored before phase 7b and so a walk.
  */
 @Serializable
 data class FollowedRoute(
@@ -51,6 +53,8 @@ data class FollowedRoute(
     val savedId: String? = null,
     val progress: Progress? = null,
     val touchedAtMillis: Long = 0,
+    val mode: Mode = Mode.HIKING,
+    val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
 )
 
 /** What is left to a place along the Route, by the signposts' rule; a Pace applies to [seconds]. */

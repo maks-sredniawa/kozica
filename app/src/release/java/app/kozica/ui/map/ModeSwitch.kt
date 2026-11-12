@@ -29,4 +29,5 @@ fun ModeSwitch(
     onMode: (Mode) -> Unit,
     onFilter: (BikeRouteFilter) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) = Unit

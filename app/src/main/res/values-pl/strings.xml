@@ -45,6 +45,7 @@
     <string name="route_details_hide">Ukryj szczegóły trasy</string>
     <string name="route_reverse">Odwróć</string>
     <string name="route_save">Zapisz trasę</string>
+    <string name="route_unsaved">Niezapisane zmiany</string>
     <string name="route_name">Nazwa</string>
     <string name="route_move_up">Przesuń wyżej</string>
     <string name="route_move_down">Przesuń niżej</string>
