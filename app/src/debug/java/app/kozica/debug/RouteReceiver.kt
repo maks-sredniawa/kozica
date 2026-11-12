@@ -13,8 +13,10 @@ import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePlanner
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.Step
+import app.kozica.data.routes.TrailNetwork
 import app.kozica.data.routes.TrailNetworks
 import app.kozica.data.routes.TrailWalks
+import app.kozica.data.routes.Travel
 import app.kozica.data.routes.WalkedEdge
 import app.kozica.data.routes.chipFrom
 import kotlinx.coroutines.flow.filterNotNull
@@ -304,10 +306,102 @@ class RouteReceiver : BroadcastReceiver() {
             }
         }
         Log.i(TAG, "follows $next of the walk's ${walk.size} edges in order")
+        logWalkCover(network, id, app, walk, route, mode, filter)
         val again =
             runBlocking { app.container.planRoute(points.map { RoutePoint(it.latitude, it.longitude) }, mode, filter) }
                 ?: return
         Log.i(TAG, "again: %.1f m, ascent %.1f m, descent %.1f m".format(again.metres, again.ascent, again.descent))
+    }
+
+    /**
+     * The same comparison by membership rather than order, so one leg off the walk does not count every
+     * leg after it: the metres ridden on and off the walk's edges, each its way, the legs across its gaps,
+     * and the walk's metres never ridden, with how many of those the chip's rider direction makes one-way.
+     */
+    private fun logWalkCover(
+        network: TrailNetwork,
+        id: Long,
+        app: MainApplication,
+        walk: List<WalkedEdge>,
+        route: PlannedRoute,
+        mode: Mode,
+        filter: BikeRouteFilter,
+    ) {
+        val onWalk = walk.toSet()
+        val ridden = mutableSetOf<WalkedEdge>()
+        var on = 0.0
+        var off = 0.0
+        var acrossGaps = 0.0
+        val steps = TrailNetworks.walks(app)?.steps(id) ?: return
+        val gapSides =
+            steps.indices
+                .filter { TrailWalks.gapBefore(steps[it]) }
+                .flatMap { listOf(endOf(network, steps[it - 1]), startOf(network, steps[it])) }
+                .toSet()
+        for ((i, leg) in route.legs.withIndex()) {
+            if (leg == null) continue
+            var legOff = 0.0
+            var legOn = 0.0
+            for (step in leg.steps.filter { it.from != it.to }) {
+                val metres = kotlin.math.abs(step.to - step.from) * network.edgeLength[step.edge]
+                val way = WalkedEdge(step.edge, step.forward)
+                if (way in onWalk) legOn += metres else legOff += metres
+                ridden += way
+            }
+            val gap = nodeAt(network, leg.start) in gapSides && nodeAt(network, leg.end) in gapSides
+            if (gap) acrossGaps += legOn + legOff else off += legOff
+            if (!gap) on += legOn
+            if (gap || legOff > 0) {
+                Log.i(TAG, "leg ${i + 1}${if (gap) ", across a gap" else ""}: %.1f m off the walk".format(legOff))
+            }
+        }
+        val travel = Travel(network, mode, filter)
+        val missed = walk.filter { it !in ridden }
+        val missedOneWay = missed.filter { travel.oneWay(it.edge) }
+        for (way in missed) {
+            val against = if (way.forward) !travel.forward(way.edge) else !travel.backward(way.edge)
+            Log.i(
+                TAG,
+                "never ridden: way ${network.edgeWay[way.edge]}, %.1f m${if (against) ", walked against its rider direction" else ""}"
+                    .format(network.edgeLength[way.edge]),
+            )
+        }
+        Log.i(
+            TAG,
+            "by membership: %.1f m on the walk, %.1f m off it, %.1f m across its %d gaps; ".format(
+                on,
+                off,
+                acrossGaps,
+                gapSides.size / 2,
+            ) +
+                "%d of its edges never ridden, %.1f m, %d of them one-way, %.1f m; %d one-way edges on the walk".format(
+                    missed.size,
+                    missed.sumOf { network.edgeLength[it.edge].toDouble() },
+                    missedOneWay.size,
+                    missedOneWay.sumOf { network.edgeLength[it.edge].toDouble() },
+                    walk.count { travel.oneWay(it.edge) },
+                ),
+        )
+    }
+
+    private fun startOf(
+        network: TrailNetwork,
+        step: Int,
+    ) = TrailWalks.edge(step).let { if (TrailWalks.reversed(step)) network.edgeTo[it] else network.edgeFrom[it] }
+
+    private fun endOf(
+        network: TrailNetwork,
+        step: Int,
+    ) = TrailWalks.edge(step).let { if (TrailWalks.reversed(step)) network.edgeFrom[it] else network.edgeTo[it] }
+
+    /** The node a join stands on, or -1 for one inside its edge. */
+    private fun nodeAt(
+        network: TrailNetwork,
+        snap: app.kozica.data.routes.Snap,
+    ) = when (snap.fraction) {
+        0.0 -> network.edgeFrom[snap.edge]
+        1.0 -> network.edgeTo[snap.edge]
+        else -> -1
     }
 
     private fun alongBikeRoute(
