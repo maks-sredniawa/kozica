@@ -111,7 +111,8 @@ internal fun RouteSheet(
                 route.unavailable -> Text(stringResource(R.string.map_planning_missing))
                 route.points.size < 2 -> Unit
                 planned == null -> LinearProgressIndicator(Modifier.fillMaxWidth())
-                route.following != null -> Following(route, route.following, pace, locale)
+                route.following != null ->
+                    Following(route, route.following, pace, figures?.time == true, planned.mode == Mode.CYCLING, locale)
                 else -> {
                     Totals(planned, pace, figures?.time == true, locale)
                     if (figures?.paceLine == true) PaceLine(pace, locale)
@@ -301,69 +302,99 @@ private fun Total(
     }
 }
 
-/** docs/phase-6b.md § 3: what is left to the next point and to the end, from the user's Progress. */
+/**
+ * docs/phase-6b.md § 3: what is left to the next point and to the end, from the user's Progress; with no
+ * [time] where the sheet shows none, as in Cycling (docs/phase-7b.md § 5).
+ */
 @Composable
 private fun Following(
     route: RouteUiState,
     following: FollowingUiState,
     pace: Pace?,
+    time: Boolean,
+    cycling: Boolean,
     locale: Locale,
 ) {
     val left = following.left
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.hair)) {
         if (left.nextPoint < route.points.lastIndex) {
+            val name = route.points[left.nextPoint].name()
+            val metres = length(left.toNext.metres, locale)
+            val ascent = wholeMetres(left.toNext.ascent, locale)
             Text(
-                stringResource(
-                    R.string.following_next,
-                    route.points[left.nextPoint].name(),
-                    length(left.toNext.metres, locale),
-                    wholeMetres(left.toNext.ascent, locale),
-                    walkingTime(pace.minutes(left.toNext.seconds), locale),
-                ),
+                if (time) {
+                    stringResource(
+                        R.string.following_next,
+                        name,
+                        metres,
+                        ascent,
+                        walkingTime(pace.minutes(left.toNext.seconds), locale),
+                    )
+                } else {
+                    stringResource(R.string.following_next_no_time, name, metres, ascent)
+                },
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
+        val metres = length(left.toEnd.metres, locale)
+        val ascent = wholeMetres(left.toEnd.ascent, locale)
         Text(
-            stringResource(
-                R.string.following_to_end,
-                length(left.toEnd.metres, locale),
-                wholeMetres(left.toEnd.ascent, locale),
-                walkingTime(pace.minutes(left.toEnd.seconds), locale),
-            ),
+            if (time) {
+                stringResource(
+                    R.string.following_to_end,
+                    metres,
+                    ascent,
+                    walkingTime(pace.minutes(left.toEnd.seconds), locale),
+                )
+            } else {
+                stringResource(R.string.following_to_end_no_time, metres, ascent)
+            },
             style = MaterialTheme.typography.titleMedium,
         )
-        following.back?.let { LegBackLines(it, pace, locale) }
+        following.back?.let { LegBackLines(it, pace, time, cycling, locale) }
     }
 }
 
-/** docs/phase-6b.md § 4: the leg back, its length and time at the Pace, and how far its start is from the Trails. */
+/** docs/phase-6b.md § 4: the leg back, its length and time at the Pace, and how far its start is from the network. */
 @Composable
 private fun LegBackLines(
     back: LegBack,
     pace: Pace?,
+    time: Boolean,
+    cycling: Boolean,
     locale: Locale,
 ) {
     when (back) {
         LegBack.Planning -> LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = Spacing.tight))
         LegBack.NoWay ->
             Text(
-                stringResource(R.string.following_back_no_way),
+                stringResource(
+                    if (cycling) R.string.following_back_no_way_bike_routes else R.string.following_back_no_way,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
         is LegBack.Found -> {
+            val metres = distance(back.planned.metres, locale)
             Text(
-                stringResource(
-                    R.string.following_back_leg,
-                    distance(back.planned.metres, locale),
-                    walkingTime(pace.minutes(back.planned.seconds), locale),
-                ),
+                if (time) {
+                    stringResource(
+                        R.string.following_back_leg,
+                        metres,
+                        walkingTime(pace.minutes(back.planned.seconds), locale),
+                    )
+                } else {
+                    stringResource(R.string.following_back_leg_no_time, metres)
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             back.planned.offTrailMetres(0)?.takeIf { it > OFF_TRAIL_SHOWN_METRES }?.let {
                 Text(
-                    stringResource(R.string.following_back_off_trail, distance(it, locale)),
+                    stringResource(
+                        if (cycling) R.string.following_back_off_bike_route else R.string.following_back_off_trail,
+                        distance(it, locale),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

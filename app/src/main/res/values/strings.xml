@@ -99,6 +99,10 @@
     <string name="following_next">Next: %1$s · %2$s · ↑ %3$s · %4$s</string>
     <!-- What is left to the Route's end. %1$s is a distance, %2$s the climb, %3$s a time. -->
     <string name="following_to_end">To the end: %1$s · ↑ %2$s · %3$s</string>
+    <!-- As following_next, in Cycling, which shows no time yet (docs/phase-7b.md § 5): %1$s is the next point's name, %2$s a distance, %3$s the climb. -->
+    <string name="following_next_no_time">Next: %1$s · %2$s · ↑ %3$s</string>
+    <!-- As following_to_end, in Cycling, with no time: %1$s is a distance, %2$s the climb. -->
+    <string name="following_to_end_no_time">To the end: %1$s · ↑ %2$s</string>
     <string name="following_ended">You\'ve reached the end of the Route</string>
     <!-- Following stops when the user adds, moves, removes or reverses a point. -->
     <string name="following_route_changed">Following stopped: the Route changed</string>
@@ -107,13 +111,18 @@
     <string name="following_location_settings">Location settings</string>
     <!-- The banner while following once the user has been off the Route for 30 s (docs/phase-6b.md § 4). %1$s is a distance, such as "120 m": how far they are from the Route's line. -->
     <string name="following_left">You\'ve left the Route · %1$s from it</string>
-    <!-- The banner's action: plans a way over the Trails from the user back to the Route. A noun phrase, not an instruction. -->
+    <!-- The banner's action: plans a way over the Trails, or in Cycling over the Bike routes, from the user back to the Route. A noun phrase, not an instruction. -->
     <string name="following_back">Back to the Route</string>
     <!-- The way back, under what is left. %1$s is a distance, such as "650 m"; %2$s a time, such as "15 min". -->
     <string name="following_back_leg">Back to the Route: %1$s · %2$s</string>
     <!-- Under the way back when the user is away from every Trail. %1$s is a distance, such as "80 m". -->
     <string name="following_back_off_trail">Back to the Route from the nearest Trail, %1$s away</string>
     <string name="following_back_no_way">No way back to the Route over the Trails</string>
+    <!-- As following_back_leg, in Cycling, with no time: %1$s is a distance, such as "650 m". -->
+    <string name="following_back_leg_no_time">Back to the Route: %1$s</string>
+    <!-- As following_back_off_trail, in Cycling: the user is away from every Bike route. %1$s is a distance, such as "80 m". -->
+    <string name="following_back_off_bike_route">Back to the Route from the nearest Bike route, %1$s away</string>
+    <string name="following_back_no_way_bike_routes">No way back to the Route over the Bike routes</string>
     <!-- Beside a walking time worked out from the user's own pace: the time by the signposts' rule. %1$s is a time, such as "4 h 50 min". -->
     <string name="route_time_signposts">signposts %1$s</string>
     <!-- Under a Route's totals, where the user's own pace sets its times (docs/phase-6b.md § 2). %1$s is the factor, such as "0.85", against the time on the signposts; %2$d is how many recorded Hikes it comes from. -->
@@ -379,6 +388,8 @@
     <string name="gpx_export">Export GPX</string>
     <!-- After "Export GPX" on a saved route, when it can no longer be planned over the Trails as they are now. -->
     <string name="gpx_export_no_way">This route has no way over the Trails right now, so there is no GPX to export.</string>
+    <!-- As gpx_export_no_way, for a route planned in Cycling, which can no longer be planned over the Bike routes. -->
+    <string name="gpx_export_no_way_bike_routes">This route has no way over the Bike routes right now, so there is no GPX to export.</string>
     <string name="gpx_export_failed">The GPX file couldn\'t be written. Check that the phone has free space.</string>
     <string name="hike_delete_title">Delete hike?</string>
     <!-- The body of the delete confirmation for a hike with no photos. -->

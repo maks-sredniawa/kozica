@@ -20,7 +20,8 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-enum class GpxFailure { NoWay, NotWritten }
+/** [NoWayOverBikeRoutes] is a ride's [NoWay] (docs/phase-7b.md § 4). */
+enum class GpxFailure { NoWay, NoWayOverBikeRoutes, NotWritten }
 
 /** @param file written and waiting for the share sheet, held in the view model so a rotation does not drop it. */
 data class GpxExport(
@@ -37,9 +38,10 @@ class GpxExports(
     private val current = MutableStateFlow(GpxExport())
     val state: StateFlow<GpxExport> = current.asStateFlow()
 
-    /** [build] gives null when there is no whole line to export. */
+    /** [build] gives null when there is no whole line to export, which fails as [noWay]. */
     fun start(
         date: LocalDate,
+        noWay: GpxFailure = GpxFailure.NoWay,
         build: suspend () -> Gpx?,
     ) {
         if (current.value.running) return
@@ -48,7 +50,7 @@ class GpxExports(
             val gpx = build()
             current.value =
                 if (gpx == null) {
-                    GpxExport(failure = GpxFailure.NoWay)
+                    GpxExport(failure = noWay)
                 } else {
                     try {
                         GpxExport(file = write(gpx, date))
@@ -75,6 +77,7 @@ fun GpxFailureNotice(
             stringResource(
                 when (failure) {
                     GpxFailure.NoWay -> R.string.gpx_export_no_way
+                    GpxFailure.NoWayOverBikeRoutes -> R.string.gpx_export_no_way_bike_routes
                     GpxFailure.NotWritten -> R.string.gpx_export_failed
                 },
             ),

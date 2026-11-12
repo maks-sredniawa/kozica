@@ -40,11 +40,14 @@ class GpxExportsTest {
     }
 
     @Test
-    fun `no line and a failed write each say why`() {
+    fun `no line, no ride and a failed write each say why`() {
         val exports = GpxExports(scope) { _, _ -> throw IOException("full") }
 
         exports.start(date) { null }
         assertEquals(GpxExport(failure = GpxFailure.NoWay), exports.state.value)
+
+        exports.start(date, GpxFailure.NoWayOverBikeRoutes) { null }
+        assertEquals(GpxExport(failure = GpxFailure.NoWayOverBikeRoutes), exports.state.value)
 
         exports.start(date) { gpx }
         assertEquals(GpxExport(failure = GpxFailure.NotWritten), exports.state.value)
