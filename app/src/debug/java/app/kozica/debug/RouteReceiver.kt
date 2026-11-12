@@ -280,7 +280,6 @@ class RouteReceiver : BroadcastReceiver() {
         val network = TrailNetworks.load(app) ?: return
         val walks = TrailNetworks.walks(app) ?: return
         val there = walks.steps(id) ?: return
-        // Reversed, the Route is held on the back walk (docs/phase-7b.md § 6).
         val steps = if (reversed) walks.back(id) ?: TrailWalks.turned(there) else there
         val walk = steps.map { WalkedEdge(TrailWalks.edge(it), !TrailWalks.reversed(it)) }
         // pointsAlong's test over the whole Route: each edge walked is the walk's next, its way; a point inside an

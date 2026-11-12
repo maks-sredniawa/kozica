@@ -33,6 +33,7 @@ fun TrailNetwork.pointsAlong(
     checkCancelled: () -> Unit = {},
     legPlanned: (Leg?) -> Unit = {},
 ): List<RoutePoint> {
+    if (steps.isEmpty()) return emptyList()
     val travel = Travel(this, mode, filter)
     val there = moves(steps)
     val other = back?.let { moves(TrailWalks.turned(it)) } ?: there
@@ -75,7 +76,6 @@ fun TrailNetwork.pointsAlong(
 
     val points = mutableListOf<RoutePoint>()
     for ((first, last) in there.stretches()) {
-        // A via point stands only where both walks pass, so the search steps over the vertices both visit.
         val held = (first..last).filter { it == first || it == last || visit[it] >= 0 }
         val end = held.lastIndex
         var here = 0
@@ -99,7 +99,6 @@ fun TrailNetwork.pointsAlong(
             if (good == here) {
                 // Another way joins these two junctions more cheaply, so a point on the Trail's own edge holds it;
                 // halfway, a rival has half the edge to beat from either end, and if one still does, nothing better holds it.
-                // Where the walks part, no edge between is both's, so nothing goes between.
                 val from = held[here]
                 if (held[here + 1] == from + 1 && bothRide(from)) points += halfway(there.moves[from]!!.edge)
                 here++
