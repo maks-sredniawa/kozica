@@ -52,6 +52,7 @@ import app.kozica.data.routes.SearchResult
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.after
 import app.kozica.data.routes.boxAway
+import app.kozica.data.routes.chipFrom
 import app.kozica.record.Recording
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxExports
@@ -298,12 +299,13 @@ data class TrailUiState(
     val highlighted: List<TrailDetail> get() = whole.ifEmpty { listOfNotNull(shown) }
 }
 
-/** [TrailUiState] for Bike routes, which have no Route to plan along them until phase 7b. */
+/** [TrailUiState] for Bike routes. */
 data class BikeRouteUiState(
     val shown: BikeRouteDetail? = null,
     val choices: List<BikeRouteDetail> = emptyList(),
     val whole: List<BikeRouteDetail> = emptyList(),
     val fits: Int = 0,
+    val planningRoute: Boolean = false,
 ) {
     val highlighted: List<BikeRouteDetail> get() = whole.ifEmpty { listOfNotNull(shown) }
 }
@@ -352,6 +354,7 @@ class MapViewModel(
     private val loadTrail: (id: Long) -> TrailDetail? = { null },
     private val sectionsOf: (longDistance: Long) -> List<Long> = { emptyList() },
     private val routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
+    private val routeAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
     private val loadBikeRoute: (id: Long) -> BikeRouteDetail? = { null },
     private val bikeRouteWhole: (parent: Long) -> List<Long> = { emptyList() },
     pace: Flow<Pace?> = flowOf(null),
@@ -889,6 +892,43 @@ class MapViewModel(
         }
     }
 
+    /**
+     * docs/phase-7b.md § 5: as [planAlongTrail], under the Bike route's own kind. The chip changes with
+     * the new Route, once the Route set aside has gone, and never while Following, when it is locked.
+     */
+    fun planAlongBikeRoute(title: String) {
+        val shown = bikeRoute.value.shown ?: return
+        if (route.value.following != null) return
+        val chip = shown.facts.kind.chipFrom(bikeRouteFilter.value)
+        planningAlong?.cancel()
+        bikeRoute.update { it.copy(planningRoute = true) }
+        planningAlong =
+            viewModelScope.launch(start = CoroutineStart.LAZY) {
+                val self = coroutineContext[Job]
+                try {
+                    val points = withContext(compute) { routeAlongBikeRoute(shown, chip) }?.takeIf { it.size >= 2 }
+                    if (points == null || bikeRoute.value.shown?.id != shown.id) return@launch
+                    if (route.value.following != null) return@launch
+                    clearSelection()
+                    planning?.cancel()
+                    routeGeneration++
+                    route.value = RouteUiState(suggestedName = title)
+                    bikeRouteFilter.value = chip
+                    changePoints { points }
+                    labelPoints(points)
+                } finally {
+                    if (planningAlong === self) bikeRoute.update { it.copy(planningRoute = false) }
+                }
+            }
+        planningAlong?.start()
+    }
+
+    /** The shown Bike route's walk as a GPX file for the share sheet, named [title]; it plans nothing. */
+    fun exportBikeRouteGpx(title: String) {
+        val shown = bikeRoute.value.shown ?: return
+        gpxExports.start(LocalDate.now()) { trailGpx(title, shown.line) }
+    }
+
     /** The shown Trail's walk as a GPX file for the share sheet, named [title]. */
     fun exportTrailGpx(title: String) {
         val shown = trail.value.shown ?: return
@@ -1320,6 +1360,7 @@ class MapViewModel(
                         loadTrail = app.container::trail,
                         sectionsOf = app.container::sections,
                         routeAlong = app.container::routeAlong,
+                        routeAlongBikeRoute = app.container::routeAlongBikeRoute,
                         loadBikeRoute = app.container::bikeRoute,
                         bikeRouteWhole = app.container::bikeRouteWhole,
                         pace = app.container.pace,

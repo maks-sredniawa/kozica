@@ -1,5 +1,8 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
+
 /** An edge of a Trail's walk, and whether it is walked from `edgeFrom` to `edgeTo`. */
 internal data class WalkedEdge(
     val edge: Int,
@@ -16,14 +19,19 @@ private fun Leg.walked(): List<WalkedEdge> = steps.filter { it.from != it.to }.m
  * a point on each side of a gap, and between them a via point at the farthest junction to which a
  * leg, planned either way, walks exactly the walk's edges in order; found by doubling the span along
  * the walk, then bisecting back, since a leg that follows the walk as far as one junction follows it
- * as far as every junction before. [checkCancelled] runs before each leg is planned, so a search no
- * longer wanted can stop by throwing.
+ * as far as every junction before. A Bike route's walk is held the same way in Cycling under [filter]
+ * (docs/phase-7b.md § 5). [checkCancelled] runs before each leg is planned, so a search no longer
+ * wanted can stop by throwing; [legPlanned] sees each leg the search plans.
  */
 fun TrailNetwork.pointsAlong(
     steps: IntArray,
     router: Router,
+    mode: Mode = Mode.HIKING,
+    filter: BikeRouteFilter = BikeRouteFilter.ALL,
     checkCancelled: () -> Unit = {},
+    legPlanned: (Leg?) -> Unit = {},
 ): List<RoutePoint> {
+    val travel = Travel(this, mode, filter)
     val stretches = mutableListOf<MutableList<Int>>()
     val stretchWays = mutableListOf<MutableList<WalkedEdge>>()
     for (step in steps) {
@@ -45,7 +53,9 @@ fun TrailNetwork.pointsAlong(
         ways: List<WalkedEdge>,
     ): Boolean {
         checkCancelled()
-        return router.leg(from.latitude, from.longitude, to.latitude, to.longitude)?.walked() == ways
+        val leg = router.leg(from.latitude, from.longitude, to.latitude, to.longitude, mode, filter)
+        legPlanned(leg)
+        return leg?.walked() == ways
     }
 
     // Only a span that is all one-way is walked its own way alone, so only it is not asked to hold reversed.
@@ -56,7 +66,7 @@ fun TrailNetwork.pointsAlong(
     ): Boolean =
         follows(from, to, ways) &&
             (
-                ways.all { edgeOneway[it.edge].toInt() != 0 } ||
+                ways.all { travel.oneWay(it.edge) } ||
                     follows(to, from, ways.asReversed().map(WalkedEdge::reversed))
             )
 

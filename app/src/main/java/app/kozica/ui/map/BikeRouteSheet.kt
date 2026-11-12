@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,8 +40,13 @@ import app.kozica.data.routes.BikeRouteKind
 import app.kozica.data.routes.MtbGrade
 import app.kozica.data.routes.TrailColour
 import app.kozica.theme.Spacing
+import app.kozica.ui.common.GpxExport
+import app.kozica.ui.common.GpxFailureNotice
 
-/** The selected Bike route's sheet (docs/phase-7a.md § 4). */
+/**
+ * The selected Bike route's sheet (docs/phase-7a.md § 4), with a Route along it and its GPX (docs/phase-7b.md
+ * § 5); [onPlanRoute] is null while Following, which offers no Route along it.
+ */
 @Composable
 internal fun BikeRouteSheet(
     route: BikeRouteDetail,
@@ -48,6 +54,11 @@ internal fun BikeRouteSheet(
     onClose: () -> Unit,
     onShowWhole: () -> Unit,
     onShowSections: () -> Unit,
+    planningRoute: Boolean,
+    onPlanRoute: ((title: String) -> Unit)?,
+    gpx: GpxExport,
+    onExportGpx: (title: String) -> Unit,
+    onDismissGpxFailure: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -126,6 +137,14 @@ internal fun BikeRouteSheet(
             )
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+            onPlanRoute?.let { plan ->
+                TextButton(onClick = { plan(heading.title) }, enabled = !planningRoute) {
+                    Text(stringResource(R.string.trail_plan_route))
+                }
+            }
+            TextButton(onClick = { onExportGpx(heading.title) }, enabled = !gpx.running) {
+                Text(stringResource(R.string.gpx_export))
+            }
             TextButton(onClick = onShowWhole) { Text(stringResource(R.string.bike_route_show_whole)) }
             bikeRouteSectionsSubject(route, heading.title)?.let { subject ->
                 TextButton(onClick = onShowSections) {
@@ -133,6 +152,8 @@ internal fun BikeRouteSheet(
                 }
             }
         }
+        if (planningRoute) LinearProgressIndicator(Modifier.fillMaxWidth())
+        gpx.failure?.let { GpxFailureNotice(it, onDismissGpxFailure) }
     }
 }
 
