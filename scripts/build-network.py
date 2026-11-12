@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds the Trail network, the name index and the walks of docs/phase-5.md § 2, docs/phase-6c.md § 2,
-docs/phase-7a.md § 2 and docs/phase-7b.md § 2 from the Regions' merged cuts.
+docs/phase-7a.md § 2 and docs/phase-7b.md §§ 2 and 6 from the Regions' merged cuts.
 
     python3 scripts/build-network.py --relief map-data/relief/relief.pmtiles --out map-data/base-assets \\
         --region tatry map-data/merged/pin/tatry.osm.pbf map-data/archives/tatry.trails ...
@@ -24,12 +24,13 @@ import sqlite3
 import struct
 import sys
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 FORMAT_VERSION = 3
 MAGIC = b"KZTN"
-WALK_FORMAT_VERSION = 1
+WALK_FORMAT_VERSION = 2
 WALK_MAGIC = b"KZTE"
 DENSIFY_METRES = 30.0
 DEAD_BAND_METRES = 5.0
@@ -54,6 +55,7 @@ FORWARD_ONLY = 1
 BACKWARD_ONLY = 2
 TURNED = {FORWARD_ONLY: BACKWARD_ONLY, BACKWARD_ONLY: FORWARD_ONLY}
 ONEWAY_VALUES = {"yes": FORWARD_ONLY, "true": FORWARD_ONLY, "1": FORWARD_ONLY, "-1": BACKWARD_ONLY}
+RINGS = {"roundabout", "circular"}
 ONE_WAY_SHARE = 0.75
 SET_TRAIL = 1
 SET_TOURING = 2
@@ -74,7 +76,7 @@ ENDS_KEYS = ("description", "osmc:name", "note:cs", "note")
 TRAIL_KEYS = ("name", "name:pl", "ref", "from", "to", *ENDS_KEYS)
 BIKE_ROUTE_KEYS = ("network", "mtb:scale", "mtb:scale:uphill", "signed_direction", "oneway")
 WAY_KEYS = ("highway", "oneway", "oneway:foot", "foot:backward", "foot:forward", "sac_scale", "oneway:bicycle",
-            "mtb:scale", "mtb:scale:uphill", "surface", "tracktype")
+            "mtb:scale", "mtb:scale:uphill", "surface", "tracktype", "junction")
 COLOUR_CODE = re.compile(r"^\[[^\]]{1,3}\]\s*")
 DASH = re.compile(r"\s+[-–—]\s+")
 LONGEST_END = 40
@@ -83,6 +85,7 @@ SEARCHED_RUNS = 60
 SEARCH_STEPS = 200_000
 ENDLESS_LONGER = 2
 BESIDE_METRES = 150.0
+WIDEN_METRES = 150.0
 OFF_WALK = {"alternative", "excursion", "approach", "branch"}
 UNDECOMPOSED = str.maketrans({"ł": "l", "đ": "d", "ð": "d", "ø": "o", "ß": "ss", "æ": "ae", "œ": "oe", "ı": "i"})
 
@@ -218,9 +221,12 @@ def oneway(tags: dict[str, str]) -> int:
 
 
 def ride(tags: dict[str, str]) -> int:
-    """docs/phase-7a.md § 2: the rider's direction, `oneway:bicycle` over `oneway` on any highway."""
-    value = tags.get("oneway:bicycle")
-    return ONEWAY_VALUES.get(tags.get("oneway", "") if value is None else value, 0)
+    """docs/phase-7a.md § 2: the rider's direction, `oneway:bicycle` over `oneway` on any highway; a roundabout
+    untagged by either is one-way along the way (docs/phase-7b.md § 6)."""
+    value = tags.get("oneway:bicycle", tags.get("oneway"))
+    if value is None:
+        return FORWARD_ONLY if tags.get("junction") in RINGS else 0
+    return ONEWAY_VALUES.get(value, 0)
 
 
 def grade(value: str | None) -> int:
@@ -1276,6 +1282,7 @@ class TrailRow:
     walk: Walk
     long_distance: int | None
     one_way: bool = False
+    back: list[Step] | None = None
 
 
 def own_edges(lines: dict[int, TrailLine], ways: dict, memberships: dict[int, frozenset] | None = None,
@@ -1324,9 +1331,131 @@ def route_rows(lines: dict[int, TrailLine], long_distance: dict[int, int], edges
 def bike_rows(bikes: dict[int, TrailLine], names_of: dict[int, dict[str, str]], sections: dict[int, list[int]],
               edges: list[Edge], ways: dict, own: list[Edge]) -> list[TrailRow]:
     rows = route_rows(bikes, outermost(sections), edges, ways, own, names_of)
+    by_route = trail_edges(edges)
     for row in rows:
         row.walk, row.one_way = ridden(row.number, row.walk, edges, signed(row.tags))
+        route_edges = by_route.get((row.number, True), []) + by_route.get((row.number, False), [])
+        line = row.walk.steps
+        row.walk = replace(row.walk, steps=with_the_ride(row.line.kind, line, edges, route_edges))
+        if not row.one_way:
+            row.back = with_the_ride(row.line.kind, turned_steps(line), edges, route_edges)
     return rows
+
+
+def rider_may(kind: str, edge: Edge, step: Step) -> bool:
+    """Whether a rider of the kind may take the step, by the edge's rider direction for that kind."""
+    direction = edge.ride_touring if kind == "touring" else edge.ride_mtb
+    return direction != (FORWARD_ONLY if step.reversed else BACKWARD_ONLY)
+
+
+def first_of(step: Step, edges: list[Edge]) -> int:
+    return edges[step.edge].points[-1 if step.reversed else 0][0]
+
+
+def last_of(step: Step, edges: list[Edge]) -> int:
+    return edges[step.edge].points[0 if step.reversed else -1][0]
+
+
+def shortest_ride(kind: str, source: int, target: int, edges: list[Edge], at: dict[int, list[int]],
+                  ridden: Counter, replaced: Counter) -> list[Step] | None:
+    """The shortest run over the route's own edges, by vertex in at, from source to target that a rider of the kind
+    may take, riding no edge the walk rides but where the run replaces it."""
+    best = {source: 0.0}
+    came: dict[int, Step] = {}
+    queue = [(0.0, source)]
+    while queue:
+        length, vertex = heapq.heappop(queue)
+        if vertex == target:
+            break
+        if length > best[vertex]:
+            continue
+        for i in at.get(vertex, []):
+            if ridden[i] > replaced[i]:
+                continue
+            for step in (Step(i, False), Step(i, True)):
+                if first_of(step, edges) != vertex or not rider_may(kind, edges[i], step):
+                    continue
+                onward, reached = last_of(step, edges), length + edges[i].length
+                if reached < best.get(onward, math.inf):
+                    best[onward] = reached
+                    came[onward] = step
+                    heapq.heappush(queue, (reached, onward))
+    if target not in best:
+        return None
+    path, vertex = [], target
+    while vertex != source:
+        path.append(came[vertex])
+        vertex = first_of(came[vertex], edges)
+    return path[::-1]
+
+
+def reach(steps: list[Step], edges: list[Edge]) -> list[float]:
+    """The metres widened by taking the first 0, 1, 2… of steps, as far as WIDEN_METRES allows."""
+    metres = [0.0]
+    for step in steps:
+        if metres[-1] + edges[step.edge].length > WIDEN_METRES:
+            break
+        metres.append(metres[-1] + edges[step.edge].length)
+    return metres
+
+
+def repair(kind: str, behind: list[Step], run: list[Step], ahead: list[Step], edges: list[Edge],
+           at: dict[int, list[int]], ridden: Counter) -> tuple[int, int, list[Step]] | None:
+    """docs/phase-7b.md § 6: the run's repair, widened by the fewest metres of the walk behind it (nearest first)
+    and ahead of it, no gap between, that lets one fit, as (steps taken behind, steps taken ahead, the repair)."""
+    behind = behind[:next((j + 1 for j, step in enumerate(behind) if step.breaks), len(behind))]
+    ahead = ahead[:next((j for j, step in enumerate(ahead) if step.breaks), len(ahead))]
+    widened = [(b + a, j, m) for j, b in enumerate(reach(behind, edges)) for m, a in enumerate(reach(ahead, edges))]
+    for _, taken, onward in sorted(widened):
+        replaced = [*behind[:taken][::-1], *run, *ahead[:onward]]
+        found = shortest_ride(kind, first_of(replaced[0], edges), last_of(replaced[-1], edges), edges, at, ridden,
+                              Counter(step.edge for step in replaced))
+        if found is not None:
+            return taken, onward, found
+    return None
+
+
+def with_the_ride(kind: str, steps: list[Step], edges: list[Edge], route_edges: list[int]) -> list[Step]:
+    """docs/phase-7b.md § 6: each run of steps a rider of the route's kind may not take replaced by the shortest run
+    over the route's own edges that the rider may take and that rides no edge the walk rides elsewhere, the run
+    widened along the walk until one fits, or a gap where none does."""
+    at: dict[int, list[int]] = {}
+    for i in sorted(set(route_edges)):
+        at.setdefault(edges[i].points[0][0], []).append(i)
+        at.setdefault(edges[i].points[-1][0], []).append(i)
+    ridden = Counter(step.edge for step in steps)
+    walked: list[Step] = []
+    gap = False
+    k = 0
+    while k < len(steps):
+        if rider_may(kind, edges[steps[k].edge], steps[k]):
+            run = [steps[k]]
+            k += 1
+        else:
+            end = k + 1
+            while end < len(steps) and not steps[end].breaks and not rider_may(kind, edges[steps[end].edge], steps[end]):
+                end += 1
+            gap = gap or steps[k].breaks
+            fit = repair(kind, [] if gap else walked[::-1], steps[k:end], steps[end:], edges, at, ridden)
+            if fit is None:
+                ridden -= Counter(step.edge for step in steps[k:end])
+                gap = True
+                k = end
+                continue
+            taken, onward, run = fit
+            if taken:
+                gap = walked[-taken].breaks
+                ridden -= Counter(step.edge for step in walked[-taken:])
+                del walked[-taken:]
+            ridden -= Counter(step.edge for step in steps[k:end + onward])
+            ridden += Counter(step.edge for step in run)
+            k = end + onward
+        if run:
+            gap = gap or run[0].breaks
+            walked.append(replace(run[0], breaks=gap and bool(walked)))
+            walked.extend(replace(step, breaks=False) for step in run[1:])
+            gap = False
+    return walked
 
 
 def signed(tags: dict[str, str]) -> bool:
@@ -1349,21 +1478,38 @@ def outermost(sections: dict[int, list[int]]) -> dict[int, int]:
     return {member: top(member, frozenset({member})) for member in parents if member not in sections}
 
 
+def against_the_ride(row: TrailRow, edges: list[Edge]) -> list[Step]:
+    """The steps of the Bike route's walks a rider of its kind may not take, which docs/phase-7b.md § 6 leaves none of."""
+    walks = [row.walk.steps] + ([] if row.one_way else [row.back if row.back is not None else turned_steps(row.walk.steps)])
+    return [step for steps in walks for step in steps if not rider_may(row.line.kind, edges[step.edge], step)]
+
+
+def own_back(row: TrailRow) -> list[Step]:
+    """The row's back walk where it is not its walk turned, else nothing."""
+    if row.back is None or row.back == turned_steps(row.walk.steps):
+        return []
+    return row.back
+
+
 def write_walks(rows: list[TrailRow], target: Path) -> int:
-    """docs/phase-6c.md § 2's `trails.edges`, little-endian: each Trail's walk as steps into the network's
-    edges, a step being its edge's index shifted left two, its second bit a gap before it, its first the
-    edge walked from its last point to its first."""
+    """docs/phase-6c.md § 2's `trails.edges` in docs/phase-7b.md § 6's format 2, little-endian: each route's walk
+    and then its back walk, as steps into the network's edges, a step being its edge's index shifted left two, its
+    second bit a gap before it, its first the edge walked from its last point to its first. A back walk of no steps
+    is the walk turned."""
     rows = sorted(rows, key=lambda row: row.number)
-    steps = [s for row in rows for s in row.walk.steps]
+    walks = [(row.walk.steps, own_back(row)) for row in rows]
+    steps = [s for there, back in walks for s in (*there, *back)]
     out = io.BytesIO()
     out.write(WALK_MAGIC + struct.pack("<HHII", WALK_FORMAT_VERSION, 0, len(rows), len(steps)))
     out.write(struct.pack(f"<{len(rows)}q", *(row.number for row in rows)))
     firsts, first = [], 0
-    for row in rows:
-        firsts.append(first)
-        first += len(row.walk.steps)
-    out.write(struct.pack(f"<{len(rows)}I", *firsts))
-    out.write(struct.pack(f"<{len(rows)}I", *(len(row.walk.steps) for row in rows)))
+    for there, back in walks:
+        firsts.append((first, first + len(there)))
+        first += len(there) + len(back)
+    out.write(struct.pack(f"<{len(rows)}I", *(there for there, _ in firsts)))
+    out.write(struct.pack(f"<{len(rows)}I", *(len(there) for there, _ in walks)))
+    out.write(struct.pack(f"<{len(rows)}I", *(back for _, back in firsts)))
+    out.write(struct.pack(f"<{len(rows)}I", *(len(back) for _, back in walks)))
     out.write(struct.pack(f"<{len(steps)}I", *(s.edge << 2 | s.breaks << 1 | s.reversed for s in steps)))
     target.write_bytes(out.getvalue())
     return len(steps)
@@ -1489,7 +1635,9 @@ def main() -> None:
             f"{len({row.long_distance for row in found if row.long_distance})} {of}; walks: "
             + ", ".join(f"{count} {shape}" for shape, count in sorted(shapes.items()))
             + f"; {sum(row.walk.estimated for row in found)} of them past the longest-path search, taken by the farthest ends instead")
-    log(f"{sum(row.one_way for row in ridden_rows)} Bike routes ridden one way")
+    log(f"{sum(row.one_way for row in ridden_rows)} Bike routes ridden one way, {sum(bool(own_back(row)) for row in ridden_rows)} "
+        f"with a back walk of their own; {sum(1 for row in ridden_rows if against_the_ride(row, edges))} with a walk "
+        f"against the rider")
     args.out.mkdir(parents=True, exist_ok=True)
     nodes, edge_count, points = write_network(edges, args.out / "trails.network")
     log(f"trails.network: {nodes} nodes, {edge_count} edges, {points} points, "
