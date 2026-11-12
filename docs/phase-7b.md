@@ -362,7 +362,8 @@ the Trails.
   point off the Bike routes joins at the rough flat speed, weighted ten times while choosing and once in
   the time. Fails toward a Route a rider may not take, or a slower one than the network holds.
 - **`EdgePart`'s riding half**: run over a whole edge's points, it gives the riding seconds the build
-  stored for that edge, so the app's mirror cannot drift from `build-network.py`'s constants.
+  stored for that edge, so the app's mirror cannot drift from `build-network.py`'s constants; the
+  fixture holds a ride each constant moves, and `test_build_network.py` fails when one stops moving.
 - **The sheet's figures**: the time rounded to 5 minutes and never under 5, and each point's time
   rounded as it is, none without G; no Pace line in Cycling; the warning from S2 only, uphill read from
   `mtb:scale:uphill` where it is tagged, in its own string.

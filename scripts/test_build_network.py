@@ -11,6 +11,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from dataclasses import fields, replace
 from pathlib import Path
 
 network = runpy.run_path(str(Path(__file__).with_name("build-network.py")), run_name="test")
@@ -36,6 +37,9 @@ def fixture_edges() -> list:
     graded S2, uphill S4. Then docs/phase-7b.md's rides: P–Q a rough Trail and Touring route straight across,
     P–R–Q the same but paved and longer; Q–S unpaved, on both kinds, its MTB route alone directing it towards S
     and graded S1; S–T a rough MTB route that climbs with a wobble, then drops a little, graded S3, uphill S2.
+    Last an island of Bike routes alone, so every constant in RIDING moves a stored second: U–V paved, V–W unpaved
+    and W–X rough, each an ungraded Touring route dropping 20 m then running flat; X–Y an MTB route graded S4 that
+    climbs 5 %, its cap the time uphill and the push the time down.
 
     Node refs are OSM-like ids; only the ends of an edge are nodes of the network."""
     a, b, c, d = (49.0, 20.0), (49.0, 20.01), (49.0, 20.02), (49.01, 20.01)
@@ -44,6 +48,7 @@ def fixture_edges() -> list:
     ridge = [(round(49.01 - k / 1000, 3), round(20.01 + k / 1000, 3)) for k in range(1, 8)]
     p, q, r, s, t = (49.5, 20.5), (49.5, 20.52), (49.506, 20.51), (49.5, 20.54), (49.51, 20.55)
     climb = [(round(49.5 + k / 600, 5), round(20.54 + k / 600, 5)) for k in range(1, 6)]
+    u, v, w, x, y = (49.7, 20.7), (49.7, 20.72), (49.7, 20.74), (49.7, 20.76), (49.7, 20.78)
     trail_and_touring = network["SET_TRAIL"] | network["SET_TOURING"]
     return [
         edge(100, [1, 2], [a, b], [500.0, 500.0]),
@@ -62,6 +67,13 @@ def fixture_edges() -> list:
              ride_mtb=network["FORWARD_ONLY"]),
         edge(112, [23] + [0] * 5 + [24], [s, *climb, t], [400.0, 403.0, 420.0, 417.0, 450.0, 440.0, 436.0], sets=4,
              surface=network["ROUGH"], mtb=4, mtb_up=3),
+        edge(113, [30, 0, 31], [u, (49.7, 20.71), v], [420.0, 400.0, 400.0], sets=network["SET_TOURING"],
+             surface=network["PAVED"]),
+        edge(114, [31, 0, 32], [v, (49.7, 20.73), w], [400.0, 380.0, 380.0], sets=network["SET_TOURING"],
+             surface=network["UNPAVED"]),
+        edge(115, [32, 0, 33], [w, (49.7, 20.75), x], [380.0, 360.0, 360.0], sets=network["SET_TOURING"],
+             surface=network["ROUGH"]),
+        edge(116, [33, 34], [x, y], [360.0, 433.0], sets=network["SET_MTB"], surface=network["ROUGH"], mtb=5),
     ]
 
 
@@ -999,16 +1011,42 @@ class FormatTest(unittest.TestCase):
             network["write_network"](edges, target)
             read = read_network(target.read_bytes())
         self.assertEqual((read["magic"], read["version"], read["left"]), (b"KZTN", 3, 0))
-        self.assertEqual(read["sets"], (1, 1, 1, 1, 1, 3, 1, 4, 3, 3, 3, 6, 4))
+        self.assertEqual(read["sets"], (1, 1, 1, 1, 1, 3, 1, 4, 3, 3, 3, 6, 4, 2, 2, 2, 4))
         self.assertEqual(read["surface"], (ROUGH, ROUGH, ROUGH, ROUGH, ROUGH, PAVED, ROUGH, UNPAVED, ROUGH, PAVED,
-                                           PAVED, UNPAVED, ROUGH))
-        self.assertEqual(read["ride_touring"], (0,) * 13)
-        self.assertEqual(read["ride_mtb"], (0,) * 7 + (FORWARD,) + (0,) * 3 + (FORWARD, 0))
+                                           PAVED, UNPAVED, ROUGH, PAVED, UNPAVED, ROUGH, ROUGH))
+        self.assertEqual(read["ride_touring"], (0,) * 17)
+        self.assertEqual(read["ride_mtb"], (0,) * 7 + (FORWARD,) + (0,) * 3 + (FORWARD,) + (0,) * 5)
         riding = list(zip(read["riding_forward"], read["riding_backward"]))
         self.assertTrue(all(math.isnan(f) and math.isnan(b) for k, (f, b) in enumerate(riding) if k < 8 and k not in (5, 7)))
         self.assertFalse(any(math.isnan(f) or math.isnan(b) for f, b in riding[8:]))
         self.assertAlmostEqual(riding[5][0], edges[5].length / (network["RIDING"].flat[PAVED] / 3.6), places=2)
         self.assertAlmostEqual(riding[7][1], edges[7].length / (10 / 3.6), places=2)
+
+
+class RidingFixtureTest(unittest.TestCase):
+    def test_every_riding_constant_moves_a_stored_second(self):
+        """CyclingRouterTest holds EdgePart.kt's mirror to the fixture's seconds within 0.05 s, so a constant no
+        ride depends on could drift there unseen."""
+        rides = [e for e in fixture_edges() if not math.isnan(e.riding_forward)]
+        lengths = [[network["distance"](*a[1:], *b[1:]) for a, b in zip(e.points, e.points[1:])] for e in rides]
+
+        stored = [s for e in rides for s in (e.riding_forward, e.riding_backward)]
+
+        def moves(constants) -> bool:
+            seconds = [s for e, ls in zip(rides, lengths)
+                       for s in network["riding_seconds"](ls, e.heights, e.surface, e.mtb, e.mtb_up, constants)]
+            return max(abs(a - b) for a, b in zip(seconds, stored)) > 0.05
+
+        riding = network["RIDING"]
+        for field in fields(riding):
+            value = getattr(riding, field.name)
+            for k in range(len(value)) if isinstance(value, tuple) else [None]:
+                def scaled(factor: float):
+                    if k is None:
+                        return value * factor
+                    return value[:k] + (value[k] * factor,) + value[k + 1:]
+                with self.subTest(field=field.name, index=k):
+                    self.assertTrue(any(moves(replace(riding, **{field.name: scaled(f)})) for f in (0.8, 1.25)))
 
 
 if __name__ == "__main__":
