@@ -234,7 +234,8 @@ and from then on D, E and F plan on them, still shown nowhere until G. The reser
 - **In Cycling it minimises B's riding seconds**, whether or not § 1's gate passed: a failed gate hides
   the time, never the cost, so a ride takes a rider's fastest line rather than a walker's. A* keeps phase
   5's straight line to the end as its heuristic, at the fastest speed the rule gives anywhere, the
-  highest descent cap (19.28 km/h, the paved one, at R3's constants: every class rides its descents at
+  highest of the flats and the descent caps, so a refit that leaves a flat above every cap keeps it
+  admissible (19.28 km/h, the paved descent cap, at R3's constants: every class rides its descents at
   its cap, and no flat is faster), so it never overestimates and the leg found is the fastest. At phase
   5's 4 km/h it would overestimate a ride about threefold, miss the fastest leg, and misplace 6c § 5's
   via points with it. The constants are R3's from C on, `build-network.py`'s `RIDING`: the first

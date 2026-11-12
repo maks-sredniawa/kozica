@@ -52,7 +52,8 @@ internal class Travel(
         if (cycling) kmh(RIDING_FLAT_KMH[TrailNetwork.ROUGH]) else FLAT_METRES_PER_SECOND
 
     /** No edge and no join is counted faster than this, so A*'s straight line at it never overestimates. */
-    val fastestMetresPerSecond: Double = if (cycling) kmh(RIDING_DESCENT_CAP_KMH.max()) else FLAT_METRES_PER_SECOND
+    val fastestMetresPerSecond: Double =
+        if (cycling) kmh(maxOf(RIDING_FLAT_KMH.max(), RIDING_DESCENT_CAP_KMH.max())) else FLAT_METRES_PER_SECOND
 
     private fun kmh(speed: Double) = speed / 3.6
 }
