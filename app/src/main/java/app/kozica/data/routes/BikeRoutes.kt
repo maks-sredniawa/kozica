@@ -1,5 +1,6 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
 import kotlin.math.roundToInt
 
 /** The kinds the build stores for a Bike route, which the tiles carry too (docs/phase-7a.md § 2). */
@@ -14,6 +15,17 @@ enum class BikeRouteKind(
         fun of(stored: String): BikeRouteKind = entries.firstOrNull { it.stored == stored } ?: TOURING
     }
 }
+
+/**
+ * docs/phase-7b.md § 5: the chip a Route along a Bike route of this kind is planned under, the
+ * [current] one where it already allows the kind, else the kind's own.
+ */
+fun BikeRouteKind.chipFrom(current: BikeRouteFilter): BikeRouteFilter =
+    when {
+        current == BikeRouteFilter.ALL -> BikeRouteFilter.ALL
+        this == BikeRouteKind.MTB -> BikeRouteFilter.MTB
+        else -> BikeRouteFilter.TOURING
+    }
 
 /**
  * A row of `places.sqlite`'s `bike_routes` table (docs/phase-7a.md § 2). [ascent] and [descent] are

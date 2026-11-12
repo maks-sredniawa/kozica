@@ -1,9 +1,11 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** docs/phase-6c.md § Tests, the via points, over the fixture `scripts/test_build_network.py` writes. */
+/** docs/phase-6c.md § Tests and docs/phase-7b.md § 5, the via points, over the fixture `scripts/test_build_network.py` writes. */
 class TrailRouteTest {
     private val network = TrailNetwork.read(javaClass.getResource("/trails-fixture.network")!!.readBytes())
     private val router = Router(network)
@@ -18,11 +20,21 @@ class TrailRouteTest {
         gapBefore: Boolean = false,
     ) = (edge shl 2) or (if (gapBefore) 2 else 0) or (if (reversed) 1 else 0)
 
-    private fun along(vararg steps: Int) =
-        network.pointsAlong(steps, router).map {
-            Math.round(it.latitude * 1e4) / 1e4 to
-                Math.round(it.longitude * 1e4) / 1e4
-        }
+    private val p = 49.5 to 20.5
+    private val q = 49.5 to 20.52
+    private val s = 49.5 to 20.54
+    private val t = 49.51 to 20.55
+
+    private fun along(vararg steps: Int) = along(Mode.HIKING, BikeRouteFilter.ALL, *steps)
+
+    private fun along(
+        mode: Mode,
+        filter: BikeRouteFilter,
+        vararg steps: Int,
+    ) = network.pointsAlong(steps, router, mode, filter).map {
+        Math.round(it.latitude * 1e4) / 1e4 to
+            Math.round(it.longitude * 1e4) / 1e4
+    }
 
     private fun routeMetres(vararg steps: Int) =
         RoutePlanner(network, router).plan(along(*steps).map { RoutePoint(it.first, it.second) }).metres
@@ -62,5 +74,17 @@ class TrailRouteTest {
     @Test
     fun `a gap gets a point on each side`() {
         assertEquals(listOf(d, a, b, c), along(step(2, reversed = true), step(1, gapBefore = true)))
+    }
+
+    @Test
+    fun `a ride along a rough Touring route is held there where a paved one is faster, and a walk needs no point`() {
+        assertEquals(listOf(p, 49.5 to 20.51, q), along(Mode.CYCLING, BikeRouteFilter.TOURING, step(8)))
+        assertEquals(listOf(p, q), along(step(8)))
+    }
+
+    @Test
+    fun `in Cycling a stretch one-way for the chip's kind is a span of its own, and under All it is not one-way`() {
+        assertEquals(listOf(q, s, t), along(Mode.CYCLING, BikeRouteFilter.MTB, step(11), step(12)))
+        assertEquals(listOf(q, t), along(Mode.CYCLING, BikeRouteFilter.ALL, step(11), step(12)))
     }
 }

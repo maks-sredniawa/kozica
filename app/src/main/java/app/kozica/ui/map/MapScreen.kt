@@ -789,6 +789,11 @@ fun MapScreen(
                     onClose = viewModel::closeSelection,
                     onShowWhole = viewModel::showWholeBikeRoute,
                     onShowSections = viewModel::showBikeRouteSections,
+                    planningRoute = state.bikeRoute.planningRoute,
+                    onPlanRoute = viewModel::planAlongBikeRoute.takeIf { state.route.following == null },
+                    gpx = gpx,
+                    onExportGpx = viewModel::exportBikeRouteGpx,
+                    onDismissGpxFailure = viewModel::dismissGpxFailure,
                     modifier = Modifier.heightIn(max = sheetHeight),
                 )
             } else if (state.trail.choices.isNotEmpty()) {

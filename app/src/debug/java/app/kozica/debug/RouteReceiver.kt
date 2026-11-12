@@ -16,6 +16,7 @@ import app.kozica.data.routes.Step
 import app.kozica.data.routes.TrailNetworks
 import app.kozica.data.routes.TrailWalks
 import app.kozica.data.routes.WalkedEdge
+import app.kozica.data.routes.chipFrom
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -41,6 +42,10 @@ import kotlin.concurrent.thread
  * With `--es mode CYCLING` and `--es filter ALL|TOURING|MTB` it plans as the map would in that Mode under
  * that chip, for phase 7b's R4 and R5, and logs each leg's ways.
  *
+ * With `--el bikeRoute <id>` (and `--ez reversed true`) it does the same along that Bike route, by
+ * "Plan a Route along it"'s code with `--es filter` as the map's chip, and logs the chip it planned
+ * under, the nodes the search visited and the Route's own planning, for phase 7b's R8.
+ *
  * With `--ez show true` it also saves the Route as "Reading" and opens it on the map's sheet, so
  * Follow is one tap, for phase 6b's R3 and R4.
  */
@@ -49,6 +54,29 @@ class RouteReceiver : BroadcastReceiver() {
         context: Context,
         intent: Intent,
     ) {
+        if (intent.hasExtra("bikeRoute")) {
+            val id = intent.getLongExtra("bikeRoute", 0)
+            val reversed = intent.getBooleanExtra("reversed", false)
+            val current =
+                intent.getStringExtra("filter")?.let { name -> BikeRouteFilter.entries.firstOrNull { it.name == name } }
+            if (intent.hasExtra("filter") && current == null) {
+                resultCode = 1
+                resultData = "filter is ALL, TOURING or MTB"
+                return
+            }
+            val pending = goAsync()
+            val app = context.applicationContext as MainApplication
+            thread(name = "RouteReceiver") {
+                try {
+                    alongBikeRoute(app, id, reversed, current ?: BikeRouteFilter.ALL)
+                } catch (e: Exception) {
+                    Log.e(TAG, "planning along a Bike route failed", e)
+                } finally {
+                    pending.finish()
+                }
+            }
+            return
+        }
         if (intent.hasExtra("trail")) {
             val trail = intent.getLongExtra("trail", 0)
             val reversed = intent.getBooleanExtra("reversed", false)
@@ -218,14 +246,29 @@ class RouteReceiver : BroadcastReceiver() {
                 )
             }.orEmpty().let { if (reversed) it.reversed() else it }
         Log.i(TAG, "along: ${points.size} points in ${SystemClock.elapsedRealtime() - started} ms")
-        val route = runBlocking { app.container.planRoute(points) } ?: return
+        matchWalk(app, id, reversed, points, Mode.HIKING, BikeRouteFilter.ALL)
+    }
+
+    /** Plans [points] as the map would, logs how much of the walk [id] it follows in order, then plans them again. */
+    private fun matchWalk(
+        app: MainApplication,
+        id: Long,
+        reversed: Boolean,
+        points: List<RoutePoint>,
+        mode: Mode,
+        filter: BikeRouteFilter,
+    ) {
+        val started = SystemClock.elapsedRealtime()
+        val route = runBlocking { app.container.planRoute(points, mode, filter) } ?: return
         Log.i(
             TAG,
-            "route: %.1f m, ascent %.1f m, descent %.1f m, %d legs".format(
+            "route: %.1f m, ascent %.1f m, descent %.1f m, %d legs, planned in %d ms, %d nodes visited".format(
                 route.metres,
                 route.ascent,
                 route.descent,
                 route.legs.size,
+                SystemClock.elapsedRealtime() - started,
+                route.legs.sumOf { it?.nodesVisited ?: 0 },
             ),
         )
         val network = TrailNetworks.load(app) ?: return
@@ -262,8 +305,50 @@ class RouteReceiver : BroadcastReceiver() {
         }
         Log.i(TAG, "follows $next of the walk's ${walk.size} edges in order")
         val again =
-            runBlocking { app.container.planRoute(points.map { RoutePoint(it.latitude, it.longitude) }) } ?: return
+            runBlocking { app.container.planRoute(points.map { RoutePoint(it.latitude, it.longitude) }, mode, filter) }
+                ?: return
         Log.i(TAG, "again: %.1f m, ascent %.1f m, descent %.1f m".format(again.metres, again.ascent, again.descent))
+    }
+
+    private fun alongBikeRoute(
+        app: MainApplication,
+        id: Long,
+        reversed: Boolean,
+        current: BikeRouteFilter,
+    ) {
+        val bikeRoute = app.container.bikeRoute(id)
+        if (bikeRoute == null) {
+            Log.i(TAG, "no Bike route $id in this build")
+            return
+        }
+        val facts = bikeRoute.facts
+        Log.i(
+            TAG,
+            "bike route $id, ${facts.kind}${if (facts.oneWay) ", one way" else ""}: " +
+                "%.1f m, ascent %.1f m, descent %.1f m, %d gaps".format(
+                    facts.metres,
+                    facts.ascent,
+                    facts.descent,
+                    facts.gaps,
+                ),
+        )
+        val chip = facts.kind.chipFrom(current)
+        var legs = 0
+        var visited = 0
+        val started = SystemClock.elapsedRealtime()
+        val points =
+            runBlocking {
+                app.container.routeAlongBikeRoute(bikeRoute, chip) { leg ->
+                    legs++
+                    visited += leg?.nodesVisited ?: 0
+                }
+            }.orEmpty().let { if (reversed) it.reversed() else it }
+        Log.i(
+            TAG,
+            "along under $chip, the map's chip $current: ${points.size} points in " +
+                "${SystemClock.elapsedRealtime() - started} ms, $legs legs searched, $visited nodes visited",
+        )
+        if (points.size >= 2) matchWalk(app, id, reversed, points, Mode.CYCLING, chip)
     }
 
     private fun position(text: String): RoutePoint? {

@@ -8,10 +8,12 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import app.kozica.data.AppPreferences
+import app.kozica.data.BikeRouteFilter
 import app.kozica.data.HikeEntity
 import app.kozica.data.MapCamera
 import app.kozica.data.Mode
 import app.kozica.data.SavedRoute
+import app.kozica.data.gpx.Gpx
 import app.kozica.data.hikes.TrackPoint
 import app.kozica.data.hikes.encodeTrack
 import app.kozica.data.regions.GeoBounds
@@ -33,6 +35,7 @@ import app.kozica.data.routes.TrailColour
 import app.kozica.data.routes.TrailDetail
 import app.kozica.data.routes.TrailFacts
 import app.kozica.data.routes.TrailNetwork
+import app.kozica.data.routes.TrailPoint
 import app.kozica.data.routes.bikeRouteFacts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -69,6 +72,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.seconds
@@ -1212,6 +1216,149 @@ class MapViewModelTest {
             }
         }
 
+    private val alongTwister = listOf(RoutePoint(49.0, 20.0), RoutePoint(49.0, 20.02))
+
+    private suspend fun cycling(): AppPreferences =
+        AppPreferences(MemoryPreferences()).also { it.setMapMode(Mode.CYCLING) }
+
+    @Test
+    fun `a Route along an MTB route under Touring is planned under MTB, and under All stays under All`() =
+        runTest {
+            for (
+            (current, expected) in
+            listOf(BikeRouteFilter.TOURING to BikeRouteFilter.MTB, BikeRouteFilter.ALL to BikeRouteFilter.ALL)
+            ) {
+                val searched = mutableListOf<BikeRouteFilter>()
+                val plans = mutableListOf<Pair<Mode, BikeRouteFilter>>()
+                val viewModel =
+                    routingViewModel(
+                        preferences = cycling(),
+                        loadBikeRoute = ::bikeRouteDetail,
+                        routeAlongBikeRoute = { _, chip ->
+                            searched += chip
+                            alongTwister
+                        },
+                        planUnder = { points, mode, filter ->
+                            plans += mode to filter
+                            RoutePlanner(fixture).plan(points)
+                        },
+                    )
+                settled(viewModel) { it.mode == Mode.CYCLING }
+                viewModel.setBikeRouteFilter(current)
+                viewModel.tapBikeRoutes(listOf(7))
+                settled(viewModel) { it.bikeRoute.shown != null }
+
+                viewModel.planAlongBikeRoute("Twister")
+
+                val state = settled(viewModel) { it.route.planned != null && !it.route.planning }
+                assertEquals(listOf(expected), searched)
+                assertEquals(listOf(Mode.CYCLING to expected), plans)
+                assertEquals(expected, state.bikeRouteFilter)
+                assertEquals("Twister", state.route.suggestedName)
+                assertNull(state.bikeRoute.shown)
+            }
+        }
+
+    @Test
+    fun `with a saved Route open under Touring, a Route along an MTB route plans only it, once, under MTB`() =
+        runTest {
+            val asked = MutableStateFlow<String?>(null)
+            val saved = SavedRoute("r", "Kopa", listOf(RoutePoint(49.0, 20.0, "A"), RoutePoint(49.01, 20.01, "D")))
+            val plans = mutableListOf<Pair<List<RoutePoint>, BikeRouteFilter>>()
+            val viewModel =
+                routingViewModel(
+                    preferences = cycling(),
+                    routeToShow = asked,
+                    loadRoute = { if (it == "r") saved else null },
+                    loadBikeRoute = ::bikeRouteDetail,
+                    routeAlongBikeRoute = { _, _ -> alongTwister },
+                    planUnder = { points, _, filter ->
+                        plans += points to filter
+                        RoutePlanner(fixture).plan(points)
+                    },
+                )
+            settled(viewModel) { it.mode == Mode.CYCLING }
+            viewModel.setBikeRouteFilter(BikeRouteFilter.TOURING)
+            asked.value = "r"
+            settled(viewModel) { it.route.savedId == "r" && it.route.planned != null && !it.route.planning }
+            plans.clear()
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+
+            viewModel.planAlongBikeRoute("Twister")
+
+            val route =
+                settled(viewModel) { state ->
+                    state.route.points.map { it.copy(label = null) } == alongTwister && !state.route.planning
+                }.route
+            assertEquals(listOf(alongTwister to BikeRouteFilter.MTB), plans)
+            assertNull(route.savedId)
+        }
+
+    @Test
+    fun `while Following a Route along a Bike route does nothing, the chip and the followed Route kept`() =
+        runTest {
+            var searched = 0
+            val viewModel =
+                routingViewModel(
+                    preferences = cycling(),
+                    loadBikeRoute = ::bikeRouteDetail,
+                    routeAlongBikeRoute = { _, _ ->
+                        searched++
+                        alongTwister
+                    },
+                )
+            settled(viewModel) { it.mode == Mode.CYCLING }
+            viewModel.setBikeRouteFilter(BikeRouteFilter.TOURING)
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned?.complete == true && !it.route.planning }
+            viewModel.follow()
+            val followed = settled(viewModel) { it.route.following != null }.route.points
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+
+            viewModel.planAlongBikeRoute("Twister")
+
+            val state = settled(viewModel) { true }
+            assertEquals(0, searched)
+            assertFalse(state.bikeRoute.planningRoute)
+            assertEquals(BikeRouteFilter.TOURING, state.bikeRouteFilter)
+            assertEquals(followed, state.route.points)
+            assertNotNull(state.route.following)
+        }
+
+    @Test
+    fun `a Bike route's GPX is its walk, from OSM, and plans nothing`() =
+        runTest {
+            val written = CompletableDeferred<Gpx>()
+            var plans = 0
+            val line =
+                listOf(TrailPoint(49.0, 20.0, 0.0, 500.0, false), TrailPoint(49.0, 20.02, 1458.0, 450.0, false))
+            val viewModel =
+                routingViewModel(
+                    loadBikeRoute = { bikeRouteDetail(it).copy(line = line) },
+                    planUnder = { _, _, _ ->
+                        plans++
+                        null
+                    },
+                    writeGpx = { gpx, _ ->
+                        written.complete(gpx)
+                        File("twister.gpx")
+                    },
+                )
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+
+            viewModel.exportBikeRouteGpx("Twister")
+
+            val gpx = written.await()
+            assertEquals("Twister", gpx.name)
+            assertTrue(gpx.fromOsm)
+            assertEquals(listOf(listOf(20.0, 20.02)), gpx.segments.map { segment -> segment.map { it.longitude } })
+            assertEquals(0, plans)
+        }
+
     private suspend fun settled(
         viewModel: MapViewModel,
         until: (MapUiState) -> Boolean,
@@ -1296,6 +1443,9 @@ private fun routingViewModel(
     loadTrail: (Long) -> TrailDetail? = { null },
     sectionsOf: (Long) -> List<Long> = { emptyList() },
     routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
+    routeAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
+    planUnder: (suspend (List<RoutePoint>, Mode, BikeRouteFilter) -> PlannedRoute?)? = null,
+    writeGpx: suspend (Gpx, LocalDate) -> File = { _, _ -> error("No GPX in this test") },
     loadBikeRoute: (Long) -> BikeRouteDetail? = { null },
     bikeRouteWhole: (Long) -> List<Long> = { emptyList() },
     io: CoroutineDispatcher = Dispatchers.Main,
@@ -1312,7 +1462,7 @@ private fun routingViewModel(
     fetch = {},
     confirmFetch = { false },
     places = places,
-    planRoute = { points, _, _ -> planRoute(points) },
+    planRoute = planUnder ?: { points, _, _ -> planRoute(points) },
     io = io,
     compute = Dispatchers.Main,
     routeToShow = routeToShow,
@@ -1324,6 +1474,8 @@ private fun routingViewModel(
     loadTrail = loadTrail,
     sectionsOf = sectionsOf,
     routeAlong = routeAlong,
+    routeAlongBikeRoute = routeAlongBikeRoute,
+    writeGpx = writeGpx,
     loadBikeRoute = loadBikeRoute,
     bikeRouteWhole = bikeRouteWhole,
     now = now,

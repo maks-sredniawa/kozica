@@ -32,6 +32,7 @@ import app.kozica.data.regions.RegionState
 import app.kozica.data.regions.regionStates
 import app.kozica.data.regions.reliefState
 import app.kozica.data.routes.BikeRouteDetail
+import app.kozica.data.routes.Leg
 import app.kozica.data.routes.PlaceSearch
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePlanner
@@ -249,12 +250,28 @@ class AppContainer(
     fun bikeRouteWhole(parent: Long): List<Long> = placeIndex?.bikeRouteWhole(parent).orEmpty()
 
     /** The points that hold a Route on the Trail's walk (docs/phase-6c.md § 5), null in a build without them. */
-    suspend fun routeAlong(trail: TrailDetail): List<RoutePoint>? =
+    suspend fun routeAlong(trail: TrailDetail): List<RoutePoint>? = pointsAlongWalk(trail.id, Mode.HIKING)
+
+    /** The same along a Bike route's walk, ridden under [filter] (docs/phase-7b.md § 5). */
+    suspend fun routeAlongBikeRoute(
+        bikeRoute: BikeRouteDetail,
+        filter: BikeRouteFilter,
+        legPlanned: (Leg?) -> Unit = {},
+    ): List<RoutePoint>? = pointsAlongWalk(bikeRoute.id, Mode.CYCLING, filter, legPlanned)
+
+    private suspend fun pointsAlongWalk(
+        id: Long,
+        mode: Mode,
+        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+        legPlanned: (Leg?) -> Unit = {},
+    ): List<RoutePoint>? =
         planning.withLock {
             val network = TrailNetworks.load(appContext) ?: return@withLock null
-            val steps = TrailNetworks.walks(appContext)?.steps(trail.id) ?: return@withLock null
+            val steps = TrailNetworks.walks(appContext)?.steps(id) ?: return@withLock null
             val context = currentCoroutineContext()
-            router?.let { network.pointsAlong(steps, it) { context.ensureActive() } }
+            router?.let {
+                network.pointsAlong(steps, it, mode, filter, checkCancelled = { context.ensureActive() }, legPlanned)
+            }
         }
 
     fun sections(longDistance: Long): List<Long> = placeIndex?.sections(longDistance).orEmpty()
