@@ -10,12 +10,12 @@ internal const val SECONDS_PER_METRE_UP = 600.0 / 100
 internal const val SECONDS_PER_METRE_STEEP_DOWN = 300.0 / 100
 internal const val STEEP_GRADE = 0.10
 
-// docs/phase-7b.md § 2's riding rule; scripts/build-network.py's RidingConstants are the source. Indexed by surface class.
-internal val RIDING_FLAT_KMH = doubleArrayOf(20.0, 15.0, 10.0)
-internal val RIDING_DESCENT_CAP_KMH = doubleArrayOf(40.0, 25.0, 15.0)
-internal const val RIDING_SECONDS_PER_METRE_UP = 10.0
-internal const val RIDING_DESCENT_FACTOR = 1.5
-internal const val RIDING_PUSHING_FACTOR = 1.0
+// docs/phase-7b.md § 2's riding rule; scripts/build-network.py's RIDING is the source. Indexed by surface class.
+internal val RIDING_FLAT_KMH = doubleArrayOf(17.53, 15.26, 11.6)
+internal val RIDING_DESCENT_CAP_KMH = doubleArrayOf(19.28, 16.79, 18.2)
+internal const val RIDING_SECONDS_PER_METRE_UP = 3.22
+internal const val RIDING_DESCENT_FACTOR = 1.92
+internal const val RIDING_PUSHING_FACTOR = 0.92
 
 /** S2's, S3's, and S4's and over. */
 internal val RIDING_MTB_CAP_KMH = doubleArrayOf(10.0, 6.0, 4.0)

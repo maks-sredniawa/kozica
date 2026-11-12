@@ -75,7 +75,7 @@ class CyclingRouterTest {
     @Test
     fun `its heuristic never exceeds a leg's riding seconds`() {
         val fastest = Travel(network, Mode.CYCLING, BikeRouteFilter.ALL).fastestMetresPerSecond
-        assertEquals(40 / 3.6, fastest, 1e-9)
+        assertEquals(19.28 / 3.6, fastest, 1e-9)
         for (edge in bikeEdges) {
             assertTrue(network.edgeRidingForward[edge] >= network.edgeLength[edge] / fastest)
             assertTrue(network.edgeRidingBackward[edge] >= network.edgeLength[edge] / fastest)
@@ -94,7 +94,7 @@ class CyclingRouterTest {
 
     @Test
     fun `a point off the Bike routes joins at the rough flat speed, ten times while choosing and once in the time`() {
-        val rough = 10 / 3.6
+        val rough = 11.6 / 3.6
         val near = Snap(8, 0.5, 49.5, 20.51, 50.0)
         val far = Snap(10, 0.5, 49.503, 20.515, 200.0)
         val end = Snap(10, 1.0, q.latitude, q.longitude, 0.0)
