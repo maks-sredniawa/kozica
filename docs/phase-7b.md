@@ -369,8 +369,11 @@ way** (the same day).
 - **Two walks, there and back.** A two-way Bike route's *there* walk is 7a's, its start and direction
   kept; its *back* walk is the same line turned. In each, every run of edges the rider of the route's
   kind may not take that way (`ride_touring` or `ride_mtb`) is replaced by the shortest run over the
-  route's own edges between the same two vertices that the rider may take; where there is none, the walk
-  breaks there, as 6c's gaps break it. A one-way route has its there walk only, repaired the same way. A
+  route's own edges between the same two vertices that the rider may take **and that rides no edge the
+  walk already rides**; where there is none, the walk breaks there, as 6c's gaps break it. The bound is
+  the owner's (2026-11-12): without it a loop's repair is the rest of the loop ridden back, and 4020
+  Okruh Stolové hory's walk went from 126.8 km to 252.9 km round 414 m of a one-way street. With it a
+  dual carriageway's other strand and a roundabout's other side are taken, and the rest of a loop never. A one-way route has its there walk only, repaired the same way. A
   Trail's walk is as it was: a walker has no direction.
 - **A roundabout is one-way for a rider.** `ride()` reads `junction=roundabout` and `junction=circular`
   as one-way along the way where no `oneway` or `oneway:bicycle` says otherwise, as OSM implies; at pin
@@ -379,7 +382,8 @@ way** (the same day).
   of 0 meaning the there walk turned (every Trail, and every Bike route with nothing to repair). The
   app reads format 2 and refuses 1 by name.
 - **The there walk is the route's on screen**: the sheet's length, ascent and descent, the profile, the
-  line below zoom 10 and "Export GPX" are its, so they move only where a strand was swapped.
+  line below zoom 10 and "Export GPX" are its, so they move where a strand was swapped and where the walk
+  now breaks.
 - **"Plan a Route along it" holds both walks.** A span holds when the leg from its start to its end
   rides the there walk's edges between them in order, and the leg back rides the back walk's between the
   same two vertices, so a via point stands only where both walks pass, where the strands rejoin. Reverse
