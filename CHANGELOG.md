@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.17.0](https://github.com/maks-sredniawa/kozica/compare/v0.16.0...v0.17.0) (2026-11-12)
+
+
+### Features
+
+* a saved Route keeps its Mode and chip, and opens and replans in them ([0cd47c1](https://github.com/maks-sredniawa/kozica/commit/0cd47c185b5febd27a3c88e4ce419e5273844994))
+* cut only a Bike route's edges by surface class, so the Hiking network keeps 7a's edges ([e118dc5](https://github.com/maks-sredniawa/kozica/commit/e118dc556e3b8fce985eb32648638bb38331e9ff))
+* follow a ride with no time yet, its window reaching as far as the rule rides ([3303b76](https://github.com/maks-sredniawa/kozica/commit/3303b760a081eb25d90d678cf95c5c38342c7733))
+* give the network each edge's surface, Bike route kinds, rider direction per kind and riding seconds, at a fresh pin ([6312a2f](https://github.com/maks-sredniawa/kozica/commit/6312a2f8563f4917e8d35a29188d536ef6470c0e))
+* plan a ride over the Bike routes the chips allow, by riding seconds and never against a one-way line ([cb348a3](https://github.com/maks-sredniawa/kozica/commit/cb348a33b5c41231f1fbf9191786427c1c1ffe59))
+* plan a Route along a Bike route under its own kind, and export its walk as GPX ([2b4bed5](https://github.com/maks-sredniawa/kozica/commit/2b4bed53d3c0f8117d274ff44bf3f6e3e4c3cdba))
+* read a Bike route relation's own oneway as the direction it is ridden in ([d9fbc69](https://github.com/maks-sredniawa/kozica/commit/d9fbc69f9ca64d363950f45b0df866ae8e9667e7))
+* show the riding time on the Route sheet and in Following ([522512e](https://github.com/maks-sredniawa/kozica/commit/522512e4b3cdf27efc4a27445d1f24c885a857e5))
+
+
+### Bug Fixes
+
+* bound Cycling's heuristic by the fastest flat or descent cap ([315d38e](https://github.com/maks-sredniawa/kozica/commit/315d38e326f5668054a2a669931beded8cc8bc12))
+* hide the other Mode's search hint while Following ([1e618ce](https://github.com/maks-sredniawa/kozica/commit/1e618ce3508bc226bd71c564521d9155cbe80697))
+* let a chip picked during a Route along a Bike route win over it ([04da7a4](https://github.com/maks-sredniawa/kozica/commit/04da7a4dbb25e9833cc9fd4d6c810e993ceefc52))
+* say the surface class cuts a Trail's edge shared with a Bike route, and test it ([c817ad1](https://github.com/maks-sredniawa/kozica/commit/c817ad102cc54331fe3aa6dc1976fb4dd570c4e5))
+* start riding-time.py's fit and its starting report from § 2's constants ([7c4f293](https://github.com/maks-sredniawa/kozica/commit/7c4f29355b8a3465a17286d15b3a03f5453d0a96))
+
 ## [0.16.0](https://github.com/maks-sredniawa/kozica/compare/v0.15.0...v0.16.0) (2026-11-10)
 
 
