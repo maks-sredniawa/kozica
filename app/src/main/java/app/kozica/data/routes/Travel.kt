@@ -62,10 +62,7 @@ internal class Travel(
 
 /** No edge and no join in [mode] is counted faster than this, so A*'s straight line at it never overestimates. */
 internal fun fastestMetresPerSecondIn(mode: Mode): Double =
-    if (mode ==
-        Mode.CYCLING
-    ) {
-        maxOf(RIDING_FLAT_KMH.max(), RIDING_DESCENT_CAP_KMH.max()) / 3.6
-    } else {
-        FLAT_METRES_PER_SECOND
+    when (mode) {
+        Mode.CYCLING -> maxOf(RIDING_FLAT_KMH.max(), RIDING_DESCENT_CAP_KMH.max()) / 3.6
+        Mode.HIKING -> FLAT_METRES_PER_SECOND
     }

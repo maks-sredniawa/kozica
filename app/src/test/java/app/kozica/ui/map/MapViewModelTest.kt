@@ -1296,6 +1296,36 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `a chip picked while a Route along a Bike route is still being found wins over it`() =
+        runTest {
+            val found = CompletableDeferred<Unit>()
+            val viewModel =
+                routingViewModel(
+                    preferences = cycling(),
+                    loadBikeRoute = ::bikeRouteDetail,
+                    routeAlongBikeRoute = { _, _ ->
+                        found.await()
+                        alongTwister
+                    },
+                )
+            settled(viewModel) { it.mode == Mode.CYCLING }
+            viewModel.setBikeRouteFilter(BikeRouteFilter.TOURING)
+            viewModel.tapBikeRoutes(listOf(7))
+            settled(viewModel) { it.bikeRoute.shown != null }
+            viewModel.planAlongBikeRoute("Twister")
+            assertTrue(settled(viewModel) { true }.bikeRoute.planningRoute)
+
+            viewModel.setBikeRouteFilter(BikeRouteFilter.ALL)
+            found.complete(Unit)
+
+            val state = settled(viewModel) { it.bikeRouteFilter == BikeRouteFilter.ALL }
+            assertEquals(BikeRouteFilter.ALL, state.bikeRouteFilter)
+            assertFalse(state.bikeRoute.planningRoute)
+            assertTrue(state.route.points.isEmpty())
+            assertNotNull(state.bikeRoute.shown)
+        }
+
+    @Test
     fun `while Following a Route along a Bike route does nothing, the chip and the followed Route kept`() =
         runTest {
             var searched = 0

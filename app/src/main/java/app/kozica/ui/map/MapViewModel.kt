@@ -496,6 +496,7 @@ class MapViewModel(
     }
 
     fun setBikeRouteFilter(filter: BikeRouteFilter) {
+        if (filter != bikeRouteFilter.value) planningAlong?.cancel()
         bikeRouteFilter.value = filter
     }
 
