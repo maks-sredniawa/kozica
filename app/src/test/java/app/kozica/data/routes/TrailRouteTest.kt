@@ -77,6 +77,11 @@ class TrailRouteTest {
     }
 
     @Test
+    fun `an empty walk has no points`() {
+        assertEquals(emptyList<Pair<Double, Double>>(), along())
+    }
+
+    @Test
     fun `a ride along a rough Touring route is held there where a paved one is faster, and a walk needs no point`() {
         assertEquals(listOf(p, 49.5 to 20.51, q), along(Mode.CYCLING, BikeRouteFilter.TOURING, step(8)))
         assertEquals(listOf(p, q), along(step(8)))
@@ -95,11 +100,13 @@ class TrailRouteTest {
     private val there = intArrayOf(step(17), step(18), step(20))
     private val back = intArrayOf(step(20, reversed = true), step(19), step(17, reversed = true))
 
-    private fun alongBoth(filter: BikeRouteFilter) =
-        network.pointsAlong(there, router, Mode.CYCLING, filter, back = back).map {
-            Math.round(it.latitude * 1e4) / 1e4 to
-                Math.round(it.longitude * 1e4) / 1e4
-        }
+    private fun alongBoth(
+        filter: BikeRouteFilter,
+        back: IntArray = this.back,
+    ) = network.pointsAlong(there, router, Mode.CYCLING, filter, back = back).map {
+        Math.round(it.latitude * 1e4) / 1e4 to
+            Math.round(it.longitude * 1e4) / 1e4
+    }
 
     private fun ridden(points: List<Pair<Double, Double>>) =
         RoutePlanner(network, router)
@@ -118,5 +125,11 @@ class TrailRouteTest {
     @Test
     fun `no halfway point stands on a strand only one walk rides`() {
         assertEquals(listOf(k, l, m, n), alongBoth(BikeRouteFilter.ALL))
+    }
+
+    @Test
+    fun `a gap in the back walk alone gets a via point on each side`() {
+        val gapped = intArrayOf(step(20, reversed = true), step(17, reversed = true, gapBefore = true))
+        assertEquals(listOf(k, l, m, n), alongBoth(BikeRouteFilter.TOURING, gapped))
     }
 }
