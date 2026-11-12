@@ -41,6 +41,10 @@ internal class Travel(
         return seconds[edge].toDouble()
     }
 
+    /** Whether [edge] may be taken one way only, so a Route along it is checked only its own way (docs/phase-6c.md § 5). */
+    fun oneWay(edge: Int): Boolean =
+        if (cycling) !(forward(edge) && backward(edge)) else network.edgeOneway[edge].toInt() != 0
+
     fun part(
         edge: Int,
         from: Double,
@@ -51,9 +55,17 @@ internal class Travel(
     val offNetworkMetresPerSecond: Double =
         if (cycling) kmh(RIDING_FLAT_KMH[TrailNetwork.ROUGH]) else FLAT_METRES_PER_SECOND
 
-    /** No edge and no join is counted faster than this, so A*'s straight line at it never overestimates. */
-    val fastestMetresPerSecond: Double =
-        if (cycling) kmh(maxOf(RIDING_FLAT_KMH.max(), RIDING_DESCENT_CAP_KMH.max())) else FLAT_METRES_PER_SECOND
+    val fastestMetresPerSecond: Double = fastestMetresPerSecondIn(mode)
 
     private fun kmh(speed: Double) = speed / 3.6
 }
+
+/** No edge and no join in [mode] is counted faster than this, so A*'s straight line at it never overestimates. */
+internal fun fastestMetresPerSecondIn(mode: Mode): Double =
+    if (mode ==
+        Mode.CYCLING
+    ) {
+        maxOf(RIDING_FLAT_KMH.max(), RIDING_DESCENT_CAP_KMH.max()) / 3.6
+    } else {
+        FLAT_METRES_PER_SECOND
+    }

@@ -1,5 +1,6 @@
 package app.kozica.data.routes
 
+import app.kozica.data.Mode
 import kotlinx.serialization.Serializable
 import kotlin.math.PI
 import kotlin.math.abs
@@ -93,6 +94,10 @@ class FollowedLine(
     private val planned: PlannedRoute,
 ) {
     private val line = planned.line
+
+    /** docs/phase-7b.md § 5: in Cycling as far as the rule's fastest speed reaches, so a ride never outruns it. */
+    private val windowMetresPerSecond =
+        if (planned.mode == Mode.CYCLING) fastestMetresPerSecondIn(Mode.CYCLING) else WINDOW_METRES_PER_SECOND
     private val pointMetres: List<Double> =
         planned.metresToPoint.map {
             requireNotNull(it) { "a Route with a gap cannot be followed" }
@@ -169,7 +174,7 @@ class FollowedLine(
         fix: FollowFix,
     ): Double {
         val elapsed = progress?.let { (fix.atMillis - it.atMillis).coerceAtLeast(0) / 1000.0 } ?: Double.MAX_VALUE
-        return max(WINDOW_LEAST_METRES, elapsed * WINDOW_METRES_PER_SECOND)
+        return max(WINDOW_LEAST_METRES, elapsed * windowMetresPerSecond)
     }
 
     private fun pointAt(at: Double): RoutePoint {

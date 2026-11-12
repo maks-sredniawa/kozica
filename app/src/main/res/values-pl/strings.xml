@@ -64,6 +64,8 @@
     <string name="following_find_me">Znajdź mnie na trasie</string>
     <string name="following_next">Dalej: %1$s · %2$s · ↑ %3$s · %4$s</string>
     <string name="following_to_end">Do końca: %1$s · ↑ %2$s · %3$s</string>
+    <string name="following_next_no_time">Dalej: %1$s · %2$s · ↑ %3$s</string>
+    <string name="following_to_end_no_time">Do końca: %1$s · ↑ %2$s</string>
     <string name="following_ended">Jesteś na końcu trasy</string>
     <string name="following_route_changed">Prowadzenie zakończone: trasa się zmieniła</string>
     <string name="following_not_found">Nie udało się jeszcze znaleźć cię na trasie</string>
@@ -74,6 +76,9 @@
     <string name="following_back_leg">Powrót na trasę: %1$s · %2$s</string>
     <string name="following_back_off_trail">Powrót na trasę od najbliższego szlaku, %1$s stąd</string>
     <string name="following_back_no_way">Brak przejścia szlakami z powrotem na trasę</string>
+    <string name="following_back_leg_no_time">Powrót na trasę: %1$s</string>
+    <string name="following_back_off_bike_route">Powrót na trasę od najbliższego szlaku rowerowego, %1$s stąd</string>
+    <string name="following_back_no_way_bike_routes">Brak przejazdu szlakami rowerowymi z powrotem na trasę</string>
     <string name="route_time_signposts">wg drogowskazów %1$s</string>
     <plurals name="pace_yours">
         <item quantity="one">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczki</item>
@@ -284,6 +289,7 @@
     <string name="hike_delete">Usuń</string>
     <string name="gpx_export">Eksportuj GPX</string>
     <string name="gpx_export_no_way">Ta trasa nie ma teraz przejścia szlakami, więc nie ma czego wyeksportować do GPX.</string>
+    <string name="gpx_export_no_way_bike_routes">Ta trasa nie ma teraz przejazdu szlakami rowerowymi, więc nie ma czego wyeksportować do GPX.</string>
     <string name="gpx_export_failed">Nie udało się zapisać pliku GPX. Sprawdź, czy na telefonie jest wolne miejsce.</string>
     <string name="hike_delete_title">Usunąć wycieczkę?</string>
     <string name="hike_delete_body">Tego nie można cofnąć.</string>

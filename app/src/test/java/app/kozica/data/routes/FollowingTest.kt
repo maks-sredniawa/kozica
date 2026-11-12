@@ -1,5 +1,6 @@
 package app.kozica.data.routes
 
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Pace
 import app.kozica.data.hikes.minutes
 import org.junit.Assert.assertEquals
@@ -262,6 +263,54 @@ class FollowingTest {
         val off = fix(800.0, 600_000, east = 150.0)
 
         assertNear(at(800.0), 20.0 + 90.0 * degreesPerMetre / 0.656, line.rejoin(Progress(500.0, 0), off))
+    }
+
+    /** 2 km straight north, a ride's or a walk's, so a fix [metres] on lies on the line. */
+    private fun straight(mode: Mode) =
+        FollowedLine(
+            PlannedRoute(
+                legs = listOf(leg(600.0)),
+                line = (0..20).map { RouteSample(at(it * 100.0), 20.0, it * 100.0, 500.0, Approach.TRAIL) },
+                ascent = 0.0,
+                descent = 0.0,
+                seconds = 600.0,
+                secondsToPoint = listOf(0.0, 600.0),
+                demanding = emptyList(),
+                metresToPoint = listOf(0.0, 2000.0),
+                mode = mode,
+            ),
+        )
+
+    private val twentyKmh = 20 / 3.6
+
+    @Test
+    fun `in Cycling a fix 340 m on after a minute's gap moves Progress, where Hiking's 200 m window does not`() {
+        val from = Progress(100.0, 0)
+        val on = fix(100.0 + 60 * twentyKmh + 7, 60_000, turn = Double.MAX_VALUE)
+
+        assertTrue(straight(Mode.CYCLING).follow(from, on)!!.metres > 400.0)
+        assertEquals(from, straight(Mode.HIKING).follow(from, on))
+    }
+
+    @Test
+    fun `R9's gap, 340 m and 61 s, moves Progress in Cycling, and the next fix catches up`() {
+        val ride = straight(Mode.CYCLING)
+        val after = ride.follow(Progress(100.0, 0), fix(440.0, 61_000, turn = Double.MAX_VALUE))!!
+        assertTrue(after.metres > 100.0 + 61 * fastestMetresPerSecondIn(Mode.CYCLING) - 1)
+
+        assertEquals(450.0, ride.follow(after, fix(450.0, 62_800, turn = Double.MAX_VALUE))!!.metres, 1.0)
+    }
+
+    @Test
+    fun `with a fix every few seconds a ride and a walk both keep up`() {
+        for (mode in Mode.entries) {
+            var progress: Progress? = Progress(0.0, 0)
+            for (second in 2..180 step 2) {
+                progress =
+                    straight(mode).follow(progress, fix(second * twentyKmh, second * 1000L, turn = Double.MAX_VALUE))
+            }
+            assertEquals("$mode", 180 * twentyKmh, progress!!.metres, 1.0)
+        }
     }
 
     @Test
