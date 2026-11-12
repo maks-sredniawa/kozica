@@ -13,7 +13,6 @@ import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
 import app.kozica.data.gpx.routeGpx
 import app.kozica.data.hikes.Pace
-import app.kozica.data.hikes.minutes
 import app.kozica.data.routes.PlanKey
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePoint
@@ -23,6 +22,7 @@ import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxExports
 import app.kozica.ui.common.GpxFailure
 import app.kozica.ui.map.modeOf
+import app.kozica.ui.map.shownTime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,8 +43,8 @@ import java.text.Collator
 import java.time.LocalDate
 
 /**
- * A saved Route with its totals, null until it is planned or where it cannot be. A ride has no
- * [minutes] and no [signpostMinutes]: its time waits for its gate, and the walking Pace never touches it
+ * A saved Route with its totals, null until it is planned or where it cannot be. A ride's [minutes] are
+ * the riding rule's, [approximate], with no [signpostMinutes]: the walking Pace never touches it
  * (docs/phase-7b.md § 4).
  */
 data class RouteRow(
@@ -52,6 +52,7 @@ data class RouteRow(
     val metres: Double? = null,
     val minutes: Int? = null,
     val signpostMinutes: Int? = null,
+    val approximate: Boolean = false,
 )
 
 /** @param routes null until the first read, then by name. */
@@ -86,12 +87,13 @@ class RoutesViewModel(
                             routes.map { route ->
                                 val key = route.planKey()
                                 val totals = planned[key]
-                                val walk = key.mode == Mode.HIKING
+                                val time = totals?.seconds?.let { shownTime(it, key.mode, pace) }
                                 RouteRow(
                                     route,
                                     totals?.metres,
-                                    totals?.seconds?.takeIf { walk }?.let(pace::minutes),
-                                    totals?.seconds?.takeIf { walk }?.let(::roundedUpToFiveMinutes),
+                                    time?.minutes,
+                                    totals?.seconds?.takeIf { key.mode == Mode.HIKING }?.let(::roundedUpToFiveMinutes),
+                                    key.mode == Mode.CYCLING,
                                 )
                             }
                         send(RoutesUiState(rows))

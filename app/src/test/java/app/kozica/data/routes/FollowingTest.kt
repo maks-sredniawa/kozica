@@ -1,5 +1,6 @@
 package app.kozica.data.routes
 
+import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import app.kozica.data.hikes.Pace
 import app.kozica.data.hikes.minutes
@@ -311,6 +312,90 @@ class FollowingTest {
             }
             assertEquals("$mode", 180 * twentyKmh, progress!!.metres, 1.0)
         }
+    }
+
+    /** 2 km flat north in one leg of [seconds], its first km on [first] and its second on [second]. */
+    private fun twoWays(
+        mode: Mode,
+        first: RideWay,
+        second: RideWay,
+        seconds: Double = 600.0,
+    ) = FollowedLine(
+        PlannedRoute(
+            legs = listOf(leg(seconds)),
+            line =
+                (0..20).map {
+                    RouteSample(
+                        at(it * 100.0),
+                        20.0,
+                        it * 100.0,
+                        500.0,
+                        Approach.TRAIL,
+                        if (it <=
+                            10
+                        ) {
+                            first
+                        } else {
+                            second
+                        },
+                    )
+                },
+            ascent = 0.0,
+            descent = 0.0,
+            seconds = seconds,
+            secondsToPoint = listOf(0.0, seconds),
+            demanding = emptyList(),
+            metresToPoint = listOf(0.0, 2000.0),
+            mode = mode,
+        ),
+    )
+
+    private val paved = RideWay(TrailNetwork.PAVED, 0, 0)
+    private val rough = RideWay(TrailNetwork.ROUGH, 0, 0)
+
+    @Test
+    fun `in Cycling the time to go is the leg's riding seconds spread by the riding rule, slower on rough ground`() {
+        val ride = twoWays(Mode.CYCLING, paved, rough)
+        val onPaved = 1000 * 3.6 / RIDING_FLAT_KMH[TrailNetwork.PAVED]
+        val onRough = 1000 * 3.6 / RIDING_FLAT_KMH[TrailNetwork.ROUGH]
+
+        assertEquals(600.0, ride.left(Progress(0.0, 0)).toEnd.seconds, 1e-9)
+        assertEquals(600.0 * onRough / (onPaved + onRough), ride.left(Progress(1000.0, 0)).toEnd.seconds, 1e-6)
+        assertEquals(300.0, twoWays(Mode.HIKING, paved, rough).left(Progress(1000.0, 0)).toEnd.seconds, 1e-6)
+    }
+
+    @Test
+    fun `in Cycling up a valley and back the time to go is exact at each point and never rises`() {
+        val ride =
+            FollowedLine(
+                outAndBackRoute.copy(
+                    line = outAndBackRoute.line.map { it.copy(ride = RideWay(TrailNetwork.UNPAVED, 4, 0)) },
+                    mode = Mode.CYCLING,
+                ),
+            )
+        val lefts = (0..2000).map { ride.left(Progress(it.toDouble(), 0)).toEnd.seconds }
+
+        assertTrue(lefts.zipWithNext().all { (a, b) -> b <= a })
+        assertEquals(3300.0, lefts.first(), 1e-9)
+        assertEquals(1500.0, lefts[1000], 1e-6)
+        assertEquals(0.0, lefts.last(), 1e-6)
+    }
+
+    @Test
+    fun `a ride planned over the network is followed by its own riding seconds`() {
+        val network = TrailNetwork.read(javaClass.getResource("/trails-fixture.network")!!.readBytes())
+        val planned =
+            RoutePlanner(network).plan(
+                listOf(RoutePoint(49.5, 20.52), RoutePoint(49.51, 20.55)),
+                Mode.CYCLING,
+                BikeRouteFilter.MTB,
+            )
+        val line = FollowedLine(planned)
+        val lefts = (0..planned.metres.toInt()).map { line.left(Progress(it.toDouble(), 0)).toEnd.seconds }
+
+        assertTrue(planned.line.any { it.ride != null })
+        assertEquals(planned.seconds, lefts.first(), 1e-6)
+        assertTrue(lefts.zipWithNext().all { (a, b) -> b <= a + 1e-9 })
     }
 
     @Test

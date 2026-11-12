@@ -1,8 +1,8 @@
 package app.kozica.ui.map
 
 import android.util.Log
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Pace
-import app.kozica.data.hikes.minutes
 import app.kozica.data.routes.FIX_OLDEST_MILLIS
 import app.kozica.data.routes.FIX_WORST_ACCURACY_METRES
 import app.kozica.data.routes.FollowFix
@@ -13,7 +13,7 @@ import java.util.Locale
  * One line per fix while following, under `KozicaFollow`, for phase 6b's R3 to R5
  * (docs/phase-6b.md, Readings). `moved` is whether this fix moved Progress on from [before]; `why` names
  * a reason it could not, `-` when none applies. `_min` is the time left as the sheet shows it, `_s`
- * the seconds at the Pace before rounding.
+ * the seconds before rounding, at the Pace in Hiking.
  */
 fun logFollow(
     fix: FollowFix,
@@ -23,6 +23,7 @@ fun logFollow(
     following: FollowingUiState?,
     note: FollowingNote?,
     pace: Pace?,
+    mode: Mode,
 ) {
     val why =
         when {
@@ -49,11 +50,11 @@ fun logFollow(
             leaving?.let { ((it.lastMillis - it.sinceMillis) / 1000).toString() } ?: "-",
             leaving?.shown == true,
             left?.nextPoint ?: "-",
-            left?.let { pace.minutes(it.toNext.seconds) } ?: "-",
-            left?.let { atPace(pace, it.toNext.seconds) } ?: "-",
+            left?.let { shownTime(it.toNext.seconds, mode, pace).minutes } ?: "-",
+            left?.let { atPace(pace.takeIf { mode == Mode.HIKING }, it.toNext.seconds) } ?: "-",
             left?.let { String.format(Locale.ROOT, "%.0f", it.toEnd.metres) } ?: "-",
-            left?.let { pace.minutes(it.toEnd.seconds) } ?: "-",
-            left?.let { atPace(pace, it.toEnd.seconds) } ?: "-",
+            left?.let { shownTime(it.toEnd.seconds, mode, pace).minutes } ?: "-",
+            left?.let { atPace(pace.takeIf { mode == Mode.HIKING }, it.toEnd.seconds) } ?: "-",
             note ?: "-",
         )
     // JVM unit tests run the debug source set, where android.util.Log is a stub that throws.

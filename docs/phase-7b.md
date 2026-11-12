@@ -320,6 +320,14 @@ names no Trail, hike or signpost and is Hiking's as it is.
   leaving distance of it inside the window, at the window's end itself on a straight line, so R9's fix 12 m past
   the window moves Progress, and a ride at 20 km/h outruns the window by more than 40 m only after a gap of about
   200 s. A faster descent outruns it sooner: at 30 km/h, after a gap of about 29 s.
+- **Settled in G** (by the agent, 2026-11-12, the owner's to reverse). "Rounded to 5 minutes" is to the
+  nearest 5, a half up, then never under 5, where a walk's time rounds up as a signpost's does. Every riding
+  time shown carries "≈": the sheet's total under "Riding time", each point's, Following's next point, end
+  and leg back, and the Routes tab's row. The leg back in Cycling is timed by its own riding seconds, as a
+  walk's is by its walking ones. The riding rule spreads a leg's time over the line by `climb()`'s runs,
+  each vertex carrying the surface class and `mtb:scale` of the edge it is reached along, a run also ending
+  where they change, as the build's runs end with each edge; the line off the Bike routes is the rough
+  class's. Following's three lines without a time went with G.
 - **"Plan a Route along it"** on a Bike route's sheet is 6c § 5's, over the Bike route's walk, planned
   under the route's own kind: where the current chip excludes it, the chip is set to that kind first,
   and All stays All. Search in Cycling finds both kinds whatever the chip and a chip change leaves a

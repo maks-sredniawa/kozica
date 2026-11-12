@@ -19,6 +19,8 @@ import app.kozica.data.routes.TrailWalks
 import app.kozica.data.routes.Travel
 import app.kozica.data.routes.WalkedEdge
 import app.kozica.data.routes.chipFrom
+import app.kozica.data.routes.ridingMinutes
+import app.kozica.data.routes.roundedUpToFiveMinutes
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -174,7 +176,7 @@ class RouteReceiver : BroadcastReceiver() {
                 TAG,
                 "leg ${i + 1}: joined ${leg.start.metresAway.toInt()} m and ${leg.end.metresAway.toInt()} m " +
                     "from its points, ${leg.steps.size} edges, ${leg.nodesVisited} nodes visited, " +
-                    "${route.minutesTo(i + 1)} min to its end",
+                    "${route.secondsToPoint[i + 1]?.let { minutesIn(mode, it) }} min to its end",
             )
             val ways =
                 leg.steps.map { network.edgeWay[it.edge] }.fold(listOf<Long>()) { kept, way ->
@@ -185,7 +187,7 @@ class RouteReceiver : BroadcastReceiver() {
         Log.i(
             TAG,
             "route: ${route.metres.toInt()} m, ascent ${route.ascent.toInt()} m, descent ${route.descent.toInt()} m, " +
-                "${route.minutes} min (${(route.seconds / 60).toInt()} unrounded)",
+                "${minutesIn(mode, route.seconds)} min (${(route.seconds / 60).toInt()} unrounded)",
         )
         route.hardestRide?.let { Log.i(TAG, "demanding ride: S${it.scale}${if (it.uphill) " uphill" else ""}") }
         for (stretch in route.demanding) {
@@ -446,6 +448,12 @@ class RouteReceiver : BroadcastReceiver() {
         )
         if (points.size >= 2) matchWalk(app, id, reversed, points, Mode.CYCLING, chip)
     }
+
+    /** As the sheet rounds a time in [mode], with no Pace. */
+    private fun minutesIn(
+        mode: Mode,
+        seconds: Double,
+    ) = if (mode == Mode.CYCLING) ridingMinutes(seconds) else roundedUpToFiveMinutes(seconds)
 
     private fun position(text: String): RoutePoint? {
         val parts = text.split(",").mapNotNull { it.trim().toDoubleOrNull() }

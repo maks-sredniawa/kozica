@@ -4,6 +4,7 @@ import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import kotlinx.serialization.Serializable
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 /**
  * A position the user put on a Route: its start, its end or a via point.
@@ -28,13 +29,24 @@ enum class Approach {
     NO_WAY,
 }
 
-/** One vertex of the drawn line and the profile, [metres] along the Route. */
+/**
+ * One vertex of the drawn line and the profile, [metres] along the Route; in Cycling, [ride] is what
+ * the riding rule reads of the edge the line comes to it along, null off the Bike routes.
+ */
 data class RouteSample(
     val latitude: Double,
     val longitude: Double,
     val metres: Double,
     val heightMetres: Double,
     val approach: Approach,
+    val ride: RideWay? = null,
+)
+
+/** An edge's surface class and its `mtb:scale` bytes, as [ridingStretch] takes them. */
+data class RideWay(
+    val surface: Int,
+    val mtb: Int,
+    val mtbUphill: Int,
 )
 
 /** A stretch graded `demanding_mountain_hiking` or harder, by distance along the Route, at its hardest [sac]. */
@@ -81,6 +93,9 @@ data class PlannedRoute(
 /** As a signpost gives it: the unrounded sum, rounded up to the next 5 minutes. */
 fun roundedUpToFiveMinutes(seconds: Double): Int = ceil(seconds / 300 - 1e-9).toInt() * 5
 
+/** docs/phase-7b.md § 3: a riding time, rounded to the nearest 5 minutes and never under 5. */
+fun ridingMinutes(seconds: Double): Int = maxOf(5, (seconds / 300).roundToInt() * 5)
+
 class RoutePlanner(
     private val network: TrailNetwork,
     private val router: Router = Router(network),
@@ -120,7 +135,7 @@ class RoutePlanner(
                 ascent += part.ascent
                 descent += part.descent
                 val from = line.last().metres
-                walk(step, line)
+                walk(step, line, if (cycling) rideWay(step.edge) else null)
                 if (cycling) {
                     hardestRide = harder(hardestRide, rideGrade(step.edge, uphill = part.ascent > part.descent))
                     continue
@@ -131,7 +146,7 @@ class RoutePlanner(
                     acrossNoWay = false
                 }
             }
-            line.join(leg.end.latitude, leg.end.longitude, heightAt(leg.end), Approach.TRAIL)
+            line.join(leg.end.latitude, leg.end.longitude, heightAt(leg.end), Approach.TRAIL, line.last().ride)
             line.join(points[i + 1].latitude, points[i + 1].longitude, heightAt(leg.end), Approach.OFF_TRAIL)
             metresToPoint[i + 1] = line.last().metres
         }
@@ -172,10 +187,18 @@ class RoutePlanner(
             else -> a
         }
 
+    private fun rideWay(edge: Int) =
+        RideWay(
+            network.edgeSurface[edge].toInt(),
+            network.edgeMtb[edge].toInt(),
+            network.edgeMtbUphill[edge].toInt(),
+        )
+
     /** The step's stretch of its edge's line, in walking order, ends interpolated. */
     private fun walk(
         step: Step,
         line: MutableList<RouteSample>,
+        ride: RideWay?,
     ) {
         val first = network.edgeFirstPoint[step.edge]
         val along = network.along(step.edge)
@@ -192,7 +215,9 @@ class RoutePlanner(
                     network.pointHeight[first + k] / 10.0,
                 )
             }
-        for ((lat, lon, height) in listOf(start) + between + listOf(end)) line.join(lat, lon, height, Approach.TRAIL)
+        for ((lat, lon, height) in listOf(start) + between + listOf(end)) {
+            line.join(lat, lon, height, Approach.TRAIL, ride)
+        }
     }
 
     private fun sampleAt(
@@ -226,12 +251,13 @@ class RoutePlanner(
         longitude: Double,
         heightMetres: Double,
         approach: Approach,
+        ride: RideWay? = null,
     ) {
         val last = lastOrNull()
         val step = last?.let { Router.metres(it.latitude, it.longitude, latitude, longitude) } ?: 0.0
         if (last != null && step < SAME_PLACE_METRES) return
         val metres = (last?.metres ?: 0.0) + if (approach == Approach.NO_WAY) 0.0 else step
-        add(RouteSample(latitude, longitude, metres, heightMetres, approach))
+        add(RouteSample(latitude, longitude, metres, heightMetres, approach, ride))
     }
 
     private fun MutableList<DemandingStretch>.extend(
