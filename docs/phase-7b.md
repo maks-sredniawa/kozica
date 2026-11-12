@@ -370,10 +370,14 @@ way** (the same day).
   kept; its *back* walk is the same line turned. In each, every run of edges the rider of the route's
   kind may not take that way (`ride_touring` or `ride_mtb`) is replaced by the shortest run over the
   route's own edges between the same two vertices that the rider may take **and that rides no edge the
-  walk already rides**; where there is none, the walk breaks there, as 6c's gaps break it. The bound is
-  the owner's (2026-11-12): without it a loop's repair is the rest of the loop ridden back, and 4020
-  Okruh Stolové hory's walk went from 126.8 km to 252.9 km round 414 m of a one-way street. With it a
-  dual carriageway's other strand and a roundabout's other side are taken, and the rest of a loop never. A one-way route has its there walk only, repaired the same way. A
+  walk already rides**. Where there is none, the run widens along the walk a step at a time, up to 150 m
+  past either end, its widened steps replaced with it rather than ridden twice, until a repair fits; where
+  none fits within that, the walk breaks at the run, as 6c's gaps break it. Both are the owner's
+  (2026-11-12). Without the bound a loop's repair is the rest of the loop ridden back: 4020 Okruh Stolové
+  hory's walk went from 126.8 km to 252.9 km round 414 m of a one-way street. Without the widening a
+  dual carriageway whose other strand leaves one two-way edge before the run, and a roundabout reached by
+  one-way slip roads, broke too: 88 runs on 43 routes at pin 4965. With both, those are repaired, and the
+  rest of a loop, kilometres away, never is. A one-way route has its there walk only, repaired the same way. A
   Trail's walk is as it was: a walker has no direction.
 - **A roundabout is one-way for a rider.** `ride()` reads `junction=roundabout` and `junction=circular`
   as one-way along the way where no `oneway` or `oneway:bicycle` says otherwise, as OSM implies; at pin
