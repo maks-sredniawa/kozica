@@ -278,13 +278,11 @@ class RouteReceiver : BroadcastReceiver() {
             ),
         )
         val network = TrailNetworks.load(app) ?: return
-        val walk =
-            TrailNetworks
-                .walks(app)
-                ?.steps(id)
-                ?.map { WalkedEdge(TrailWalks.edge(it), !TrailWalks.reversed(it)) }
-                .orEmpty()
-                .let { if (reversed) it.asReversed().map(WalkedEdge::reversed) else it }
+        val walks = TrailNetworks.walks(app) ?: return
+        val there = walks.steps(id) ?: return
+        // Reversed, the Route is held on the back walk (docs/phase-7b.md § 6).
+        val steps = if (reversed) walks.back(id) ?: TrailWalks.turned(there) else there
+        val walk = steps.map { WalkedEdge(TrailWalks.edge(it), !TrailWalks.reversed(it)) }
         // pointsAlong's test over the whole Route: each edge walked is the walk's next, its way; a point inside an
         // edge splits it into two steps, so the edge just matched may come again.
         var next = 0
@@ -310,7 +308,7 @@ class RouteReceiver : BroadcastReceiver() {
             }
         }
         Log.i(TAG, "follows $next of the walk's ${walk.size} edges in order")
-        logWalkCover(network, id, app, walk, route, mode, filter)
+        logWalkCover(network, steps, walk, route, mode, filter)
         val again =
             runBlocking { app.container.planRoute(points.map { RoutePoint(it.latitude, it.longitude) }, mode, filter) }
                 ?: return
@@ -324,8 +322,7 @@ class RouteReceiver : BroadcastReceiver() {
      */
     private fun logWalkCover(
         network: TrailNetwork,
-        id: Long,
-        app: MainApplication,
+        steps: IntArray,
         walk: List<WalkedEdge>,
         route: PlannedRoute,
         mode: Mode,
@@ -336,7 +333,6 @@ class RouteReceiver : BroadcastReceiver() {
         var on = 0.0
         var off = 0.0
         var acrossGaps = 0.0
-        val steps = TrailNetworks.walks(app)?.steps(id) ?: return
         val gapSides =
             steps.indices
                 .filter { TrailWalks.gapBefore(steps[it]) }

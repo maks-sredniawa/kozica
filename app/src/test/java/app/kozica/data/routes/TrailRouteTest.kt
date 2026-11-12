@@ -5,7 +5,7 @@ import app.kozica.data.Mode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** docs/phase-6c.md § Tests and docs/phase-7b.md § 5, the via points, over the fixture `scripts/test_build_network.py` writes. */
+/** docs/phase-6c.md § Tests and docs/phase-7b.md §§ 5 and 6, the via points, over the fixture `scripts/test_build_network.py` writes. */
 class TrailRouteTest {
     private val network = TrailNetwork.read(javaClass.getResource("/trails-fixture.network")!!.readBytes())
     private val router = Router(network)
@@ -86,5 +86,37 @@ class TrailRouteTest {
     fun `in Cycling a stretch one-way for the chip's kind is a span of its own, and under All it is not one-way`() {
         assertEquals(listOf(q, s, t), along(Mode.CYCLING, BikeRouteFilter.MTB, step(11), step(12)))
         assertEquals(listOf(q, t), along(Mode.CYCLING, BikeRouteFilter.ALL, step(11), step(12)))
+    }
+
+    private val k = 49.9 to 20.9
+    private val l = 49.905 to 20.91
+    private val m = 49.905 to 20.93
+    private val n = 49.9 to 20.94
+    private val there = intArrayOf(step(17), step(18), step(20))
+    private val back = intArrayOf(step(20, reversed = true), step(19), step(17, reversed = true))
+
+    private fun alongBoth(filter: BikeRouteFilter) =
+        network.pointsAlong(there, router, Mode.CYCLING, filter, back = back).map {
+            Math.round(it.latitude * 1e4) / 1e4 to
+                Math.round(it.longitude * 1e4) / 1e4
+        }
+
+    private fun ridden(points: List<Pair<Double, Double>>) =
+        RoutePlanner(network, router)
+            .plan(points.map { RoutePoint(it.first, it.second) }, Mode.CYCLING, BikeRouteFilter.TOURING)
+            .legs
+            .flatMap { leg -> leg!!.steps.filter { it.from != it.to }.map { it.edge to it.forward } }
+
+    @Test
+    fun `along a pair of strands the via points stand where they rejoin, the Route rides there and Reverse back`() {
+        val points = alongBoth(BikeRouteFilter.TOURING)
+        assertEquals(listOf(k, m, n), points)
+        assertEquals(listOf(17 to true, 18 to true, 20 to true), ridden(points))
+        assertEquals(listOf(20 to false, 19 to true, 17 to false), ridden(points.asReversed()))
+    }
+
+    @Test
+    fun `no halfway point stands on a strand only one walk rides`() {
+        assertEquals(listOf(k, l, m, n), alongBoth(BikeRouteFilter.ALL))
     }
 }
