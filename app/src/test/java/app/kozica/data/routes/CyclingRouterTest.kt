@@ -20,7 +20,9 @@ class CyclingRouterTest {
     private val q = RoutePoint(49.5, 20.52)
     private val s = RoutePoint(49.5, 20.54)
     private val t = RoutePoint(49.51, 20.55)
-    private val bikeEdges = listOf(5, 7, 8, 9, 10, 11, 12)
+    private val u = RoutePoint(49.7, 20.7)
+    private val y = RoutePoint(49.7, 20.78)
+    private val bikeEdges = listOf(5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
 
     private fun ways(
         from: RoutePoint,
@@ -80,7 +82,7 @@ class CyclingRouterTest {
             assertTrue(network.edgeRidingForward[edge] >= network.edgeLength[edge] / fastest)
             assertTrue(network.edgeRidingBackward[edge] >= network.edgeLength[edge] / fastest)
         }
-        val points = listOf(g, i, p, q, s, t)
+        val points = listOf(g, i, p, q, s, t, u, y)
         for (filter in BikeRouteFilter.entries) {
             for (from in points) {
                 for (to in points) {
