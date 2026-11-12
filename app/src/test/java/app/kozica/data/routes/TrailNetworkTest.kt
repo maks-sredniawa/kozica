@@ -16,16 +16,19 @@ class TrailNetworkTest {
 
     @Test
     fun `reads every array the writer wrote`() {
-        assertEquals(19, network.nodeCount)
-        assertEquals(17, network.edgeCount)
-        assertEquals((100L..116L).toList(), network.edgeWay.toList())
+        assertEquals(23, network.nodeCount)
+        assertEquals(23, network.edgeCount)
+        assertEquals((100L..122L).toList(), network.edgeWay.toList())
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeOneway[1].toInt())
         assertEquals(3, network.edgeSac[2].toInt())
         assertEquals(490_000_000, network.nodeLat[0])
         assertEquals(7000.toShort(), network.nodeHeight[3])
         assertEquals(3, network.edgePointCount[2])
         assertTrue(network.edgeAscent[2] > 150)
-        assertEquals(listOf<Byte>(1, 1, 1, 1, 1, 3, 1, 4, 3, 3, 3, 6, 4, 2, 2, 2, 4), network.edgeSets.toList())
+        assertEquals(
+            listOf<Byte>(1, 1, 1, 1, 1, 3, 1, 4, 3, 3, 3, 6, 4, 2, 2, 2, 4, 2, 2, 2, 2, 2, 4),
+            network.edgeSets.toList(),
+        )
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRide[7].toInt())
         assertEquals(3, network.edgeMtb[7].toInt())
         assertEquals(5, network.edgeMtbUphill[7].toInt())
@@ -38,7 +41,7 @@ class TrailNetworkTest {
         assertEquals(TrailNetwork.PAVED, network.edgeSurface[5].toInt())
         assertEquals(TrailNetwork.UNPAVED, network.edgeSurface[7].toInt())
         assertEquals(TrailNetwork.ROUGH, network.edgeSurface[0].toInt())
-        assertEquals(List(17) { 0 }, network.edgeRideTouring.map { it.toInt() })
+        assertEquals(List(18) { 0 } + listOf(1, 1, 0, 0, 0), network.edgeRideTouring.map { it.toInt() })
         assertEquals(TrailNetwork.FORWARD_ONLY, network.edgeRideMtb[7].toInt())
         assertEquals(network.edgeLength[5] / (17.53f / 3.6f), network.edgeRidingForward[5], 0.01f)
         assertEquals(network.edgeLength[7] / (10f / 3.6f), network.edgeRidingBackward[7], 0.01f)

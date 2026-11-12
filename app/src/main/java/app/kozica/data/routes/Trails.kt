@@ -82,13 +82,16 @@ data class TrailPoint(
 )
 
 /**
- * `trails.edges`, each Trail's walk as steps into the network's edges: `scripts/build-network.py`'s
- * `write_walks` is the other end of this format, and `TrailWalksTest` holds the two together.
+ * `trails.edges`, each route's walk as steps into the network's edges, and a Bike route's back walk where it is
+ * not the walk turned (docs/phase-7b.md § 6): `scripts/build-network.py`'s `write_walks` is the other end of this
+ * format, and `TrailWalksTest` holds the two together.
  */
 class TrailWalks private constructor(
     private val ids: LongArray,
     private val firstStep: IntArray,
     private val stepCount: IntArray,
+    private val backFirstStep: IntArray,
+    private val backStepCount: IntArray,
     private val steps: IntArray,
 ) {
     val trailCount: Int get() = ids.size
@@ -100,8 +103,15 @@ class TrailWalks private constructor(
         return steps.copyOfRange(firstStep[at], firstStep[at] + stepCount[at])
     }
 
+    /** The route's back walk in its own walking order, or null where it is [steps] turned. */
+    fun back(trail: Long): IntArray? {
+        val at = ids.binarySearch(trail)
+        if (at < 0 || backStepCount[at] == 0) return null
+        return steps.copyOfRange(backFirstStep[at], backFirstStep[at] + backStepCount[at])
+    }
+
     companion object {
-        const val FORMAT_VERSION = 1
+        const val FORMAT_VERSION = 2
         private val MAGIC = "KZTE".toByteArray(Charsets.US_ASCII)
 
         fun edge(step: Int): Int = step ushr 2
@@ -110,6 +120,14 @@ class TrailWalks private constructor(
 
         /** Walked from the edge's last point to its first. */
         fun reversed(step: Int): Boolean = step and 1 != 0
+
+        /** The steps from the far end, each gap still between the same two stretches. */
+        fun turned(steps: IntArray): IntArray =
+            IntArray(steps.size) { k ->
+                val i = steps.lastIndex - k
+                val gap = i < steps.lastIndex && gapBefore(steps[i + 1])
+                (edge(steps[i]) shl 2) or (if (gap) 2 else 0) or (if (reversed(steps[i])) 0 else 1)
+            }
 
         fun read(bytes: ByteArray): TrailWalks {
             val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
@@ -130,9 +148,11 @@ class TrailWalks private constructor(
                 }
             val first = ints(trails)
             val count = ints(trails)
+            val backFirst = ints(trails)
+            val backCount = ints(trails)
             val steps = ints(stepTotal)
             require(!buffer.hasRemaining()) { "${buffer.remaining()} bytes past the end of the Trail walks" }
-            return TrailWalks(ids, first, count, steps)
+            return TrailWalks(ids, first, count, backFirst, backCount, steps)
         }
     }
 }

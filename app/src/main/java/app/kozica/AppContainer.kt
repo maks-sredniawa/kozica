@@ -270,10 +270,19 @@ class AppContainer(
     ): List<RoutePoint>? =
         planning.withLock {
             val network = TrailNetworks.load(appContext) ?: return@withLock null
-            val steps = TrailNetworks.walks(appContext)?.steps(id) ?: return@withLock null
+            val walks = TrailNetworks.walks(appContext) ?: return@withLock null
+            val steps = walks.steps(id) ?: return@withLock null
             val context = currentCoroutineContext()
             router?.let {
-                network.pointsAlong(steps, it, mode, filter, checkCancelled = { context.ensureActive() }, legPlanned)
+                network.pointsAlong(
+                    steps,
+                    it,
+                    mode,
+                    filter,
+                    back = walks.back(id),
+                    checkCancelled = { context.ensureActive() },
+                    legPlanned = legPlanned,
+                )
             }
         }
 
