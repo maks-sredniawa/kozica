@@ -95,7 +95,7 @@ class FollowedLine(
 ) {
     private val line = planned.line
 
-    /** docs/phase-7b.md § 5: in Cycling as far as the rule's fastest speed reaches, so a ride never outruns it. */
+    /** docs/phase-7b.md § 5. */
     private val windowMetresPerSecond =
         if (planned.mode == Mode.CYCLING) fastestMetresPerSecondIn(Mode.CYCLING) else WINDOW_METRES_PER_SECOND
     private val pointMetres: List<Double> =
