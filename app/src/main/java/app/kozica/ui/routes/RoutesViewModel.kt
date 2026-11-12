@@ -7,17 +7,22 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
 import app.kozica.data.gpx.routeGpx
 import app.kozica.data.hikes.Pace
 import app.kozica.data.hikes.minutes
+import app.kozica.data.routes.PlanKey
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.RouteTotals
 import app.kozica.data.routes.roundedUpToFiveMinutes
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxExports
+import app.kozica.ui.common.GpxFailure
+import app.kozica.ui.map.modeOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +42,11 @@ import java.io.File
 import java.text.Collator
 import java.time.LocalDate
 
-/** A saved Route with its totals, null until it is planned or where it cannot be. */
+/**
+ * A saved Route with its totals, null until it is planned or where it cannot be. A ride has no
+ * [minutes] and no [signpostMinutes]: its time waits for its gate, and the walking Pace never touches it
+ * (docs/phase-7b.md § 4).
+ */
 data class RouteRow(
     val route: SavedRoute,
     val metres: Double? = null,
@@ -61,7 +70,7 @@ class RoutesViewModel(
     private val deleteRoute: suspend (id: String) -> Unit,
     private val routeToShow: MutableStateFlow<String?>,
     private val compute: CoroutineDispatcher = Dispatchers.Default,
-    private val planRoute: suspend (List<RoutePoint>) -> PlannedRoute? = { null },
+    private val planRoute: suspend (List<RoutePoint>, Mode, BikeRouteFilter) -> PlannedRoute? = { _, _, _ -> null },
     private val writeGpx: suspend (Gpx, LocalDate) -> File = { _, _ -> error("No GPX in this view model") },
     pace: Flow<Pace?> = flowOf(null),
 ) : ViewModel() {
@@ -71,16 +80,18 @@ class RoutesViewModel(
             .map { routes -> routes.sortedWith(compareBy(Collator.getInstance()) { it.name }) }
             .flatMapLatest { routes ->
                 channelFlow {
-                    launch { for (route in routes) withContext(compute) { totals.plan(route.points) } }
+                    launch { for (route in routes) withContext(compute) { totals.plan(route.planKey()) } }
                     combine(totals.planned, pace, ::Pair).collect { (planned, pace) ->
                         val rows =
                             routes.map { route ->
-                                val totals = planned[route.points]
+                                val key = route.planKey()
+                                val totals = planned[key]
+                                val walk = key.mode == Mode.HIKING
                                 RouteRow(
                                     route,
                                     totals?.metres,
-                                    totals?.seconds?.let(pace::minutes),
-                                    totals?.seconds?.let(::roundedUpToFiveMinutes),
+                                    totals?.seconds?.takeIf { walk }?.let(pace::minutes),
+                                    totals?.seconds?.takeIf { walk }?.let(::roundedUpToFiveMinutes),
                                 )
                             }
                         send(RoutesUiState(rows))
@@ -106,14 +117,19 @@ class RoutesViewModel(
     private val gpxExports = GpxExports(viewModelScope, writeGpx)
     val gpx: StateFlow<GpxExport> = gpxExports.state
 
-    /** [id] as a GPX file for the share sheet, planned again from today's network and dated today (docs/phase-6.md § 8). */
+    /**
+     * [id] as a GPX file for the share sheet, planned again from today's network under its own Mode and
+     * chip and dated today (docs/phase-6.md § 8, docs/phase-7b.md § 4).
+     */
     fun exportGpx(id: String) {
         val route =
             state.value.routes
                 ?.firstOrNull { it.route.id == id }
                 ?.route ?: return
-        gpxExports.start(LocalDate.now()) {
-            withContext(compute) { planRoute(route.points) }
+        val key = route.planKey()
+        val noWay = if (key.mode == Mode.CYCLING) GpxFailure.NoWayOverBikeRoutes else GpxFailure.NoWay
+        gpxExports.start(LocalDate.now(), noWay) {
+            withContext(compute) { planRoute(key.points, key.mode, key.filter) }
                 ?.takeIf { it.complete }
                 ?.let { routeGpx(route.name, it, route.points) }
         }
@@ -142,3 +158,6 @@ class RoutesViewModel(
             }
     }
 }
+
+/** Through the map's own seam, so a release build plans a saved ride as the walk it opens as. */
+private fun SavedRoute.planKey() = PlanKey(points, modeOf(mode), bikeRouteFilter)

@@ -70,6 +70,7 @@ fun ModeSwitch(
     onMode: (Mode) -> Unit,
     onFilter: (BikeRouteFilter) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
@@ -83,6 +84,7 @@ fun ModeSwitch(
                 SegmentedButton(
                     selected = mode == each,
                     onClick = { onMode(each) },
+                    enabled = enabled,
                     shape = SegmentedButtonDefaults.itemShape(index, Mode.entries.size),
                     colors =
                         SegmentedButtonDefaults.colors(
@@ -108,6 +110,7 @@ fun ModeSwitch(
                     FilterChip(
                         selected = filter == each,
                         onClick = { onFilter(each) },
+                        enabled = enabled,
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 containerColor = MaterialTheme.colorScheme.surface,

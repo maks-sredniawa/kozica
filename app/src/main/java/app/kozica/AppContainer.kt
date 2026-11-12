@@ -195,11 +195,14 @@ class AppContainer(
     /** Null in a build without the name index. Blocks on its first call, which copies it out of the assets. */
     fun places(): PlaceSearch? = placeIndex
 
-    /** Null in a build without the network. Blocks on its first call, which loads it (docs/phase-5.md § 1). */
+    /**
+     * Null in a build without the network. Blocks on its first call, which loads it (docs/phase-5.md § 1).
+     * No default Mode or chip, so nothing plans a ride as a walk by leaving them out (docs/phase-7b.md § 4).
+     */
     suspend fun planRoute(
         points: List<RoutePoint>,
-        mode: Mode = Mode.HIKING,
-        filter: BikeRouteFilter = BikeRouteFilter.ALL,
+        mode: Mode,
+        filter: BikeRouteFilter,
     ): PlannedRoute? = planning.withLock { planner?.plan(points, mode, filter) }
 
     /** A Trail as the map shows it (docs/phase-6c.md § 3); reads the index and the network, so off the main thread. */

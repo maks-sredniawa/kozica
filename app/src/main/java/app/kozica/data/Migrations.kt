@@ -55,6 +55,18 @@ val MIGRATION_2_3 =
     }
 
 /**
+ * A saved Route keeps its Mode and chip (docs/phase-7b.md § 4): two columns, every Route before them a
+ * walk under All. Transcribed from `schemas/…/4.json`.
+ */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `routes` ADD COLUMN `mode` TEXT NOT NULL DEFAULT 'HIKING'")
+            db.execSQL("ALTER TABLE `routes` ADD COLUMN `bikeRouteFilter` TEXT NOT NULL DEFAULT 'ALL'")
+        }
+    }
+
+/**
  * Every migration this build can run, in the order they were written.
  *
  * **Registering it here is the half that is easy to forget**, and forgetting it fails silently: the
@@ -65,7 +77,7 @@ val MIGRATION_2_3 =
  * and `*APP_MIGRATIONS` spreads an array into one. `SchemaGate` converts it to a list of integer
  * pairs so the reachability rule can be a pure function.
  */
-val APP_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val APP_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
 /*
  * ---------------------------------------------------------------------------------------------

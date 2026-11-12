@@ -70,6 +70,8 @@
     <string name="route_reverse">Reverse</string>
     <!-- On the Route sheet's button, and as the title and confirm button of the dialog that names the Route. -->
     <string name="route_save">Save route</string>
+    <!-- Under a saved route's name on the map once its points, Mode or chip differ from what was saved, until "Save route" stores them. -->
+    <string name="route_unsaved">Unsaved changes</string>
     <!-- The label of the field holding a Route's name, such as "Kuźnice – Morskie Oko". -->
     <string name="route_name">Name</string>
     <string name="route_move_up">Move up</string>

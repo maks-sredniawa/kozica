@@ -33,4 +33,16 @@ class Converters {
 
     @TypeConverter
     fun nameToThemeMode(value: String?): ThemeMode? = value?.let { enumValueOf<ThemeMode>(it) }
+
+    @TypeConverter
+    fun modeToName(value: Mode?): String? = value?.name
+
+    @TypeConverter
+    fun nameToMode(value: String?): Mode? = value?.let { enumValueOf<Mode>(it) }
+
+    @TypeConverter
+    fun bikeRouteFilterToName(value: BikeRouteFilter?): String? = value?.name
+
+    @TypeConverter
+    fun nameToBikeRouteFilter(value: String?): BikeRouteFilter? = value?.let { enumValueOf<BikeRouteFilter>(it) }
 }

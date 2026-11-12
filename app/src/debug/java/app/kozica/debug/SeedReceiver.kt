@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import app.kozica.MainApplication
+import app.kozica.data.BikeRouteFilter
+import app.kozica.data.Mode
 import app.kozica.data.SampleData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +52,10 @@ class SeedReceiver : BroadcastReceiver() {
                     // being the same fixture it was last week.
                     "" -> SampleData.seed(app.container.routes)
                     "hikes" -> SampleData.seedHikes(app.container.hikes)
-                    "route-hike" -> SampleData.seedRouteHike(app.container.hikes, app.container::planRoute)
+                    "route-hike" ->
+                        SampleData.seedRouteHike(app.container.hikes) {
+                            app.container.planRoute(it, Mode.HIKING, BikeRouteFilter.ALL)
+                        }
                     "pace" -> SampleData.seedPace(app.container.hikes)
                     else -> {
                         pending.setResult(1, "unknown variant: $variant", null)

@@ -1,5 +1,6 @@
 package app.kozica.data
 
+import android.database.Cursor
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -82,6 +83,55 @@ class MigrationTest {
             assertEquals(1, it.getInt(0))
         }
     }
+
+    @Test
+    fun migrate3To4KeepsEverySavedRouteAndItsPointsAsAWalkUnderAll() {
+        helper.createDatabase(TEST_DB, 3).apply {
+            execSQL("INSERT INTO routes (id, name, createdAt, updatedAt) VALUES ('r', 'Kuźnice – Morskie Oko', 1, 2)")
+            execSQL("INSERT INTO routes (id, name, createdAt, updatedAt) VALUES ('k', 'Kasprowy Wierch', 3, 4)")
+            execSQL("INSERT INTO route_points VALUES ('r', 0, 49.2702, 19.9808, 'Kuźnice')")
+            execSQL("INSERT INTO route_points VALUES ('r', 1, 49.2191, 20.0164, 'Zawrat')")
+            execSQL("INSERT INTO route_points VALUES ('r', 2, 49.1972, 20.0700, NULL)")
+            execSQL("INSERT INTO route_points VALUES ('k', 0, 49.2702, 19.9808, 'Kuźnice')")
+            execSQL("INSERT INTO route_points VALUES ('k', 1, 49.2318, 19.9818, 'Kasprowy Wierch')")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT id, name, createdAt, updatedAt, mode, bikeRouteFilter FROM routes ORDER BY id").use {
+            val read = mutableListOf<List<Any>>()
+            while (it.moveToNext()) {
+                val dates = listOf(it.getLong(2), it.getLong(3))
+                read += listOf(it.getString(0), it.getString(1)) + dates + listOf(it.getString(4), it.getString(5))
+            }
+            assertEquals(
+                listOf(
+                    listOf("k", "Kasprowy Wierch", 3L, 4L, "HIKING", "ALL"),
+                    listOf("r", "Kuźnice – Morskie Oko", 1L, 2L, "HIKING", "ALL"),
+                ),
+                read,
+            )
+        }
+        db.query("SELECT routeId, position, latitude, longitude, label FROM route_points ORDER BY 1, 2").use {
+            val read = mutableListOf<List<Any?>>()
+            while (it.moveToNext()) {
+                read += listOf(it.getString(0), it.getInt(1), it.getDouble(2), it.getDouble(3), it.getStringOrNull(4))
+            }
+            assertEquals(
+                listOf(
+                    listOf("k", 0, 49.2702, 19.9808, "Kuźnice"),
+                    listOf("k", 1, 49.2318, 19.9818, "Kasprowy Wierch"),
+                    listOf("r", 0, 49.2702, 19.9808, "Kuźnice"),
+                    listOf("r", 1, 49.2191, 20.0164, "Zawrat"),
+                    listOf("r", 2, 49.1972, 20.0700, null),
+                ),
+                read,
+            )
+        }
+    }
+
+    private fun Cursor.getStringOrNull(column: Int): String? = if (isNull(column)) null else getString(column)
 
     private companion object {
         const val TEST_DB = "migration-test.db"

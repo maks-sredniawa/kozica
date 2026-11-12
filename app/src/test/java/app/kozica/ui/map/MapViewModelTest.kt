@@ -791,7 +791,7 @@ class MapViewModelTest {
         runTest {
             val writes = mutableListOf<Pair<String?, String>>()
             val viewModel =
-                routingViewModel(saveRoute = { id, name, _ ->
+                routingViewModel(saveRoute = { id, name, _, _, _ ->
                     writes += id to name
                     id ?: "new"
                 })
@@ -809,7 +809,7 @@ class MapViewModelTest {
     @Test
     fun `removing every point forgets the saved Route, so the next is saved as new`() =
         runTest {
-            val viewModel = routingViewModel(saveRoute = { _, _, _ -> "r" })
+            val viewModel = routingViewModel(saveRoute = { _, _, _, _, _ -> "r" })
             viewModel.addPoint(49.0, 20.0)
             viewModel.save("Kopa")
             settled(viewModel) { it.route.savedId == "r" }
@@ -829,7 +829,7 @@ class MapViewModelTest {
                 routingViewModel(
                     routeToShow = asked,
                     loadRoute = { other },
-                    saveRoute = { _, _, _ -> written.await() },
+                    saveRoute = { _, _, _, _, _ -> written.await() },
                 )
             viewModel.addPoint(49.0, 20.0)
             viewModel.addPoint(49.0, 20.01)
@@ -866,7 +866,7 @@ class MapViewModelTest {
     @Test
     fun `the Save dialog closes on Save and goes with the Route it names`() =
         runTest {
-            val viewModel = routingViewModel(saveRoute = { _, _, _ -> "r" })
+            val viewModel = routingViewModel(saveRoute = { _, _, _, _, _ -> "r" })
             viewModel.addPoint(49.0, 20.0)
             viewModel.addPoint(49.0, 20.02)
 
@@ -1263,7 +1263,14 @@ class MapViewModelTest {
     fun `with a saved Route open under Touring, a Route along an MTB route plans only it, once, under MTB`() =
         runTest {
             val asked = MutableStateFlow<String?>(null)
-            val saved = SavedRoute("r", "Kopa", listOf(RoutePoint(49.0, 20.0, "A"), RoutePoint(49.01, 20.01, "D")))
+            val saved =
+                SavedRoute(
+                    "r",
+                    "Kopa",
+                    listOf(RoutePoint(49.0, 20.0, "A"), RoutePoint(49.01, 20.01, "D")),
+                    Mode.CYCLING,
+                    BikeRouteFilter.TOURING,
+                )
             val plans = mutableListOf<Pair<List<RoutePoint>, BikeRouteFilter>>()
             val viewModel =
                 routingViewModel(
@@ -1278,9 +1285,10 @@ class MapViewModelTest {
                     },
                 )
             settled(viewModel) { it.mode == Mode.CYCLING }
-            viewModel.setBikeRouteFilter(BikeRouteFilter.TOURING)
             asked.value = "r"
-            settled(viewModel) { it.route.savedId == "r" && it.route.planned != null && !it.route.planning }
+            val opened =
+                settled(viewModel) { it.route.savedId == "r" && it.route.planned != null && !it.route.planning }
+            assertEquals(BikeRouteFilter.TOURING, opened.bikeRouteFilter)
             plans.clear()
             viewModel.tapBikeRoutes(listOf(7))
             settled(viewModel) { it.bikeRoute.shown != null }
@@ -1389,6 +1397,172 @@ class MapViewModelTest {
             assertEquals(0, plans)
         }
 
+    @Test
+    fun `a change of Mode or chip replans an open Route and marks a saved one changed, and Save stores them`() =
+        runTest {
+            val asked = MutableStateFlow<String?>(null)
+            val plans = mutableListOf<Pair<Mode, BikeRouteFilter>>()
+            val writes = mutableListOf<Pair<Mode, BikeRouteFilter>>()
+            val viewModel =
+                routingViewModel(
+                    planUnder = { points, mode, filter ->
+                        plans += mode to filter
+                        RoutePlanner(fixture).plan(points, mode, filter)
+                    },
+                    routeToShow = asked,
+                    loadRoute = { SavedRoute("r", "Kopa", ride) },
+                    saveRoute = { id, _, _, mode, filter ->
+                        writes += mode to filter
+                        id ?: "new"
+                    },
+                )
+            asked.value = "r"
+            settled(viewModel) { it.route.planned?.mode == Mode.HIKING && !it.route.planning }
+
+            viewModel.setMode(Mode.CYCLING)
+            val ridden = settled(viewModel) { it.route.planned?.mode == Mode.CYCLING && !it.route.planning }
+            assertTrue("a saved Route replanned in another Mode is a change", ridden.route.changed)
+            assertEquals(
+                RoutePlanner(fixture).plan(ride, Mode.CYCLING, BikeRouteFilter.ALL).metres,
+                ridden.route.planned!!.metres,
+                1e-9,
+            )
+
+            viewModel.setBikeRouteFilter(BikeRouteFilter.MTB)
+            settled(viewModel) { it.route.bikeRouteFilter == BikeRouteFilter.MTB && !it.route.planning }
+            assertEquals(
+                listOf(
+                    Mode.HIKING to BikeRouteFilter.ALL,
+                    Mode.CYCLING to BikeRouteFilter.ALL,
+                    Mode.CYCLING to BikeRouteFilter.MTB,
+                ),
+                plans,
+            )
+
+            viewModel.save("Kopa")
+            assertFalse(settled(viewModel) { !it.route.changed }.route.changed)
+            assertEquals(listOf(Mode.CYCLING to BikeRouteFilter.MTB), writes)
+        }
+
+    @Test
+    fun `a change of Mode replans a Route never saved without marking it`() =
+        runTest {
+            val viewModel =
+                routingViewModel(planUnder = {
+                    points,
+                    mode,
+                    filter,
+                    ->
+                    RoutePlanner(fixture).plan(points, mode, filter)
+                })
+            viewModel.addPoint(ride[0].latitude, ride[0].longitude)
+            viewModel.addPoint(ride[1].latitude, ride[1].longitude)
+            settled(viewModel) { it.route.planned?.mode == Mode.HIKING && !it.route.planning }
+
+            viewModel.setMode(Mode.CYCLING)
+
+            assertFalse(
+                settled(viewModel) { it.route.planned?.mode == Mode.CYCLING && !it.route.planning }.route.changed,
+            )
+        }
+
+    @Test
+    fun `the switch and the chips are refused while Following`() =
+        runTest {
+            var plans = 0
+            val viewModel =
+                routingViewModel(planUnder = { points, mode, filter ->
+                    plans++
+                    RoutePlanner(fixture).plan(points, mode, filter)
+                })
+            followedMidway(viewModel)
+            val before = plans
+
+            viewModel.setMode(Mode.CYCLING)
+            viewModel.setBikeRouteFilter(BikeRouteFilter.MTB)
+
+            val state = settled(viewModel) { true }
+            assertEquals(Mode.HIKING, state.mode)
+            assertEquals(BikeRouteFilter.ALL, state.bikeRouteFilter)
+            assertNotNull(state.route.following)
+            assertEquals(Mode.HIKING, state.route.mode)
+            assertEquals(before, plans)
+        }
+
+    @Test
+    fun `opening a saved ride with a walk open plans only the ride, in its own Mode and chip, and marks nothing`() =
+        runTest {
+            val asked = MutableStateFlow<String?>(null)
+            val plans = mutableListOf<Pair<Mode, BikeRouteFilter>>()
+            val saved = SavedRoute("r", "Przejazd", ride, Mode.CYCLING, BikeRouteFilter.TOURING)
+            val viewModel =
+                routingViewModel(
+                    planUnder = { points, mode, filter ->
+                        plans += mode to filter
+                        RoutePlanner(fixture).plan(points, mode, filter)
+                    },
+                    routeToShow = asked,
+                    loadRoute = { saved },
+                )
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned != null && !it.route.planning }
+
+            asked.value = "r"
+
+            val state =
+                settled(viewModel) {
+                    it.mode == Mode.CYCLING && it.route.savedId == "r" && it.route.planned != null && !it.route.planning
+                }
+            assertEquals(BikeRouteFilter.TOURING, state.bikeRouteFilter)
+            assertEquals(Mode.CYCLING, state.route.planned?.mode)
+            assertFalse(state.route.changed)
+            assertEquals(listOf(Mode.HIKING to BikeRouteFilter.ALL, Mode.CYCLING to BikeRouteFilter.TOURING), plans)
+        }
+
+    @Test
+    fun `a followed Route stored before phase 7b decodes as a walk under All`() =
+        runTest {
+            val key = stringPreferencesKey("followed_route")
+            val stored = "{\"points\":[{\"latitude\":49.0,\"longitude\":20.0},{\"latitude\":49.0,\"longitude\":20.02}]}"
+            val preferences = AppPreferences(MemoryPreferences().apply { data.value = preferencesOf(key to stored) })
+
+            val followed = preferences.followedRoute.first()
+
+            assertEquals(Mode.HIKING, followed?.mode)
+            assertEquals(BikeRouteFilter.ALL, followed?.bikeRouteFilter)
+        }
+
+    @Test
+    fun `a followed ride is resumed in its own Mode and chip, set before it plans`() =
+        runTest {
+            val preferences = AppPreferences(MemoryPreferences())
+            preferences.setFollowedRoute(
+                FollowedRoute(
+                    ride,
+                    progress = Progress(0.0, 0),
+                    touchedAtMillis = 0,
+                    mode = Mode.CYCLING,
+                    bikeRouteFilter = BikeRouteFilter.TOURING,
+                ),
+            )
+            val plans = mutableListOf<Pair<Mode, BikeRouteFilter>>()
+            val viewModel =
+                routingViewModel(
+                    planUnder = { points, mode, filter ->
+                        plans += mode to filter
+                        RoutePlanner(fixture).plan(points, mode, filter)
+                    },
+                    preferences = preferences,
+                    now = { 0 },
+                )
+
+            val state = settled(viewModel) { it.route.following != null && it.mode == Mode.CYCLING }
+            assertEquals(BikeRouteFilter.TOURING, state.bikeRouteFilter)
+            assertEquals(listOf(Mode.CYCLING to BikeRouteFilter.TOURING), plans)
+            assertEquals(Mode.CYCLING, stored(preferences) { it?.mode == Mode.CYCLING }?.mode)
+        }
+
     private suspend fun settled(
         viewModel: MapViewModel,
         until: (MapUiState) -> Boolean,
@@ -1407,6 +1581,9 @@ class MapViewModelTest {
 private val viewModels = mutableListOf<MapViewModel>()
 
 private fun MapViewModel.tracked() = also { viewModels += it }
+
+// The fixture's p to q (CyclingRouterTest): a ride takes a longer paved line than a walk does.
+private val ride = listOf(RoutePoint(49.5, 20.5), RoutePoint(49.5, 20.52))
 
 private val fixture =
     TrailNetwork.read(
@@ -1466,15 +1643,15 @@ private fun routingViewModel(
     planRoute: suspend (List<RoutePoint>) -> PlannedRoute? = {
         RoutePlanner(fixture).plan(it)
     },
+    planUnder: (suspend (List<RoutePoint>, Mode, BikeRouteFilter) -> PlannedRoute?)? = null,
     routeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
     loadRoute: suspend (String) -> SavedRoute? = { null },
-    saveRoute: suspend (String?, String, List<RoutePoint>) -> String = { _, _, _ -> "" },
+    saveRoute: suspend (String?, String, List<RoutePoint>, Mode, BikeRouteFilter) -> String = { _, _, _, _, _ -> "" },
     observeName: (String) -> Flow<String?> = { emptyFlow() },
     loadTrail: (Long) -> TrailDetail? = { null },
     sectionsOf: (Long) -> List<Long> = { emptyList() },
     routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
     routeAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
-    planUnder: (suspend (List<RoutePoint>, Mode, BikeRouteFilter) -> PlannedRoute?)? = null,
     writeGpx: suspend (Gpx, LocalDate) -> File = { _, _ -> error("No GPX in this test") },
     loadBikeRoute: (Long) -> BikeRouteDetail? = { null },
     bikeRouteWhole: (Long) -> List<Long> = { emptyList() },
