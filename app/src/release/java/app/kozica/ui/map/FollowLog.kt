@@ -1,5 +1,6 @@
 package app.kozica.ui.map
 
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Pace
 import app.kozica.data.routes.FollowFix
 import app.kozica.data.routes.Progress
@@ -14,4 +15,5 @@ fun logFollow(
     following: FollowingUiState?,
     note: FollowingNote?,
     pace: Pace?,
+    mode: Mode,
 ) = Unit

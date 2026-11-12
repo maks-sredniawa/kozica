@@ -10,6 +10,7 @@ import app.kozica.data.routes.RoutePlanner
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.RouteTotals
 import app.kozica.data.routes.TrailNetwork
+import app.kozica.data.routes.ridingMinutes
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxFailure
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -98,7 +100,7 @@ class RoutesViewModelTest {
         }
 
     @Test
-    fun `a ride's row is planned under its Mode and chip, with its length and no time, apart from the same walk`() =
+    fun `a ride's row is planned under its Mode and chip, with its length and riding time, apart from the same walk`() =
         runTest {
             val asked = mutableListOf<PlanKey>()
             val totals =
@@ -127,10 +129,12 @@ class RoutesViewModelTest {
             assertEquals(walked.metres, walk.metres!!, 1e-9)
             assertEquals(walked.minutes, walk.minutes)
             assertEquals(walked.minutes, walk.signpostMinutes)
+            assertFalse(walk.approximate)
             val ridden = planner.plan(pq, Mode.CYCLING, BikeRouteFilter.TOURING)
             assertEquals(ridden.metres, ride.metres!!, 1e-9)
             assertTrue("the ride takes its own line", ride.metres != walk.metres)
-            assertNull("no walking time on a ride", ride.minutes)
+            assertEquals(ridingMinutes(ridden.seconds), ride.minutes)
+            assertTrue(ride.approximate)
             assertNull("no signposts' time on a ride", ride.signpostMinutes)
         }
 

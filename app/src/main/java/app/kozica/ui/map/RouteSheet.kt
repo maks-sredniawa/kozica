@@ -48,6 +48,7 @@ import app.kozica.data.routes.Approach
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RideGrade
 import app.kozica.data.routes.RoutePoint
+import app.kozica.data.routes.ridingMinutes
 import app.kozica.theme.Spacing
 import java.util.Locale
 
@@ -118,10 +119,9 @@ internal fun RouteSheet(
                 route.unavailable -> Text(stringResource(R.string.map_planning_missing))
                 route.points.size < 2 -> Unit
                 planned == null -> LinearProgressIndicator(Modifier.fillMaxWidth())
-                route.following != null ->
-                    Following(route, route.following, pace, figures?.time == true, planned.mode == Mode.CYCLING, locale)
+                route.following != null -> Following(route, route.following, pace, planned.mode, locale)
                 else -> {
-                    Totals(planned, pace, figures?.time == true, locale)
+                    Totals(planned, pace, locale)
                     if (figures?.paceLine == true) PaceLine(pace, locale)
                 }
             }
@@ -166,13 +166,12 @@ internal fun RouteSheet(
                         index = i,
                         point = point,
                         count = route.points.size,
-                        minutes =
+                        time =
                             planned
-                                ?.takeIf { figures?.time == true }
                                 ?.secondsToPoint
                                 ?.get(i)
                                 ?.takeIf { i > 0 }
-                                ?.let(pace::minutes),
+                                ?.let { shownTime(it, planned.mode, pace) },
                         offTrailMetres = planned?.offTrailMetres(i),
                         cycling = planned?.mode == Mode.CYCLING,
                         locale = locale,
@@ -226,9 +225,8 @@ internal fun RouteNameDialog(
     )
 }
 
-/** What the sheet shows beside a Route's distance, ascent and descent, which it always shows. */
+/** What the sheet shows beside a Route's distance, ascent, descent and time, which it always shows. */
 internal data class SheetFigures(
-    val time: Boolean,
     val paceLine: Boolean,
     val warnings: List<RouteWarning>,
 )
@@ -249,10 +247,7 @@ internal sealed interface RouteWarning {
     ) : RouteWarning
 }
 
-/**
- * docs/phase-7b.md § 3: a ride shows no time, no point's time and no Pace line, since the riding time
- * waits for its gate and the walking Pace never touches a ride; its warning is the MTB scale's.
- */
+/** docs/phase-7b.md § 3: a ride shows no Pace line, since the walking Pace never touches it, and its warning is the MTB scale's. */
 internal fun sheetFigures(
     planned: PlannedRoute,
     stretches: List<NamedStretch>,
@@ -266,29 +261,53 @@ internal fun sheetFigures(
         } else {
             stretches.map(RouteWarning::Demanding)
         }
-    return SheetFigures(time = !cycling, paceLine = !cycling, warnings = noWay + demanding)
+    return SheetFigures(paceLine = !cycling, warnings = noWay + demanding)
+}
+
+/** A time as shown: a walk's at the Pace and rounded up as a signpost's, a ride's by the riding rule alone, "≈" (docs/phase-7b.md § 3). */
+internal data class ShownTime(
+    val minutes: Int,
+    val approximate: Boolean,
+)
+
+internal fun shownTime(
+    seconds: Double,
+    mode: Mode,
+    pace: Pace?,
+): ShownTime =
+    if (mode == Mode.CYCLING) {
+        ShownTime(ridingMinutes(seconds), approximate = true)
+    } else {
+        ShownTime(pace.minutes(seconds), approximate = false)
+    }
+
+@Composable
+internal fun ShownTime.text(locale: Locale): String {
+    val time = walkingTime(minutes, locale)
+    return if (approximate) stringResource(R.string.route_time_approximate, time) else time
 }
 
 @Composable
 private fun Totals(
     planned: PlannedRoute,
     pace: Pace?,
-    time: Boolean,
     locale: Locale,
 ) {
+    val time = shownTime(planned.seconds, planned.mode, pace)
     val signposts = planned.minutes
-    val yours = pace.minutes(planned.seconds)
     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
         Total(stringResource(R.string.route_length), length(planned.metres, locale))
         Total(stringResource(R.string.route_ascent), wholeMetres(planned.ascent, locale))
         Total(stringResource(R.string.route_descent), wholeMetres(planned.descent, locale))
-        if (time) {
+        if (time.approximate) {
+            Total(stringResource(R.string.route_riding_time), time.text(locale))
+        } else {
             Total(
                 stringResource(R.string.route_walking_time),
-                walkingTime(yours, locale),
+                time.text(locale),
                 beside =
                     stringResource(R.string.route_time_signposts, walkingTime(signposts, locale))
-                        .takeIf { yours != signposts },
+                        .takeIf { time.minutes != signposts },
             )
         }
     }
@@ -309,17 +328,13 @@ private fun Total(
     }
 }
 
-/**
- * docs/phase-6b.md § 3: what is left to the next point and to the end, from the user's Progress; with no
- * [time] where the sheet shows none, as in Cycling (docs/phase-7b.md § 5).
- */
+/** docs/phase-6b.md § 3: what is left to the next point and to the end, from the user's Progress, timed by [mode]'s rule. */
 @Composable
 private fun Following(
     route: RouteUiState,
     following: FollowingUiState,
     pace: Pace?,
-    time: Boolean,
-    cycling: Boolean,
+    mode: Mode,
     locale: Locale,
 ) {
     val left = following.left
@@ -329,36 +344,28 @@ private fun Following(
             val metres = length(left.toNext.metres, locale)
             val ascent = wholeMetres(left.toNext.ascent, locale)
             Text(
-                if (time) {
-                    stringResource(
-                        R.string.following_next,
-                        name,
-                        metres,
-                        ascent,
-                        walkingTime(pace.minutes(left.toNext.seconds), locale),
-                    )
-                } else {
-                    stringResource(R.string.following_next_no_time, name, metres, ascent)
-                },
+                stringResource(
+                    R.string.following_next,
+                    name,
+                    metres,
+                    ascent,
+                    shownTime(left.toNext.seconds, mode, pace).text(locale),
+                ),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
         val metres = length(left.toEnd.metres, locale)
         val ascent = wholeMetres(left.toEnd.ascent, locale)
         Text(
-            if (time) {
-                stringResource(
-                    R.string.following_to_end,
-                    metres,
-                    ascent,
-                    walkingTime(pace.minutes(left.toEnd.seconds), locale),
-                )
-            } else {
-                stringResource(R.string.following_to_end_no_time, metres, ascent)
-            },
+            stringResource(
+                R.string.following_to_end,
+                metres,
+                ascent,
+                shownTime(left.toEnd.seconds, mode, pace).text(locale),
+            ),
             style = MaterialTheme.typography.titleMedium,
         )
-        following.back?.let { LegBackLines(it, pace, time, cycling, locale) }
+        following.back?.let { LegBackLines(it, pace, mode == Mode.CYCLING, locale) }
     }
 }
 
@@ -367,7 +374,6 @@ private fun Following(
 private fun LegBackLines(
     back: LegBack,
     pace: Pace?,
-    time: Boolean,
     cycling: Boolean,
     locale: Locale,
 ) {
@@ -384,15 +390,11 @@ private fun LegBackLines(
         is LegBack.Found -> {
             val metres = distance(back.planned.metres, locale)
             Text(
-                if (time) {
-                    stringResource(
-                        R.string.following_back_leg,
-                        metres,
-                        walkingTime(pace.minutes(back.planned.seconds), locale),
-                    )
-                } else {
-                    stringResource(R.string.following_back_leg_no_time, metres)
-                },
+                stringResource(
+                    R.string.following_back_leg,
+                    metres,
+                    shownTime(back.planned.seconds, back.planned.mode, pace).text(locale),
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -481,7 +483,7 @@ private fun PointRow(
     index: Int,
     point: RoutePoint,
     count: Int,
-    minutes: Int?,
+    time: ShownTime?,
     offTrailMetres: Double?,
     cycling: Boolean,
     locale: Locale,
@@ -509,7 +511,7 @@ private fun PointRow(
                 if (index == 0 || index == count - 1) name else stringResource(R.string.route_via, name),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            if (minutes != null) Text(walkingTime(minutes, locale), style = MaterialTheme.typography.bodyMedium)
+            if (time != null) Text(time.text(locale), style = MaterialTheme.typography.bodyMedium)
             if (offTrailMetres != null && offTrailMetres > OFF_TRAIL_SHOWN_METRES) {
                 Text(
                     stringResource(

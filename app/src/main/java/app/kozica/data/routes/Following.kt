@@ -57,7 +57,7 @@ data class FollowedRoute(
     val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
 )
 
-/** What is left to a place along the Route, by the signposts' rule; a Pace applies to [seconds]. */
+/** What is left to a place along the Route, by its Mode's rule; in Hiking a Pace applies to [seconds]. */
 data class Ahead(
     val metres: Double,
     val ascent: Double,
@@ -107,7 +107,10 @@ class FollowedLine(
             requireNotNull(it) { "a Route with a gap cannot be followed" }
         }
 
-    /** At each vertex, the rule's seconds from the start, the dead band committed in walking order so they never fall. */
+    /**
+     * At each vertex, the rule's seconds from the start, the dead band committed in walking order so they
+     * never fall: the walking rule's, or in Cycling the riding rule's (docs/phase-7b.md § 5).
+     */
     private val rule = DoubleArray(line.size)
 
     /** At each vertex, the climb from the start by the same walk, scaled so the whole line climbs the sheet's Ascent. */
@@ -134,6 +137,30 @@ class FollowedLine(
         for (k in climb.indices) {
             climb[k] =
                 if (ascent > 0) climb[k] * planned.ascent / ascent else planned.ascent * line[k].metres / metres
+        }
+        if (planned.mode == Mode.CYCLING) rideRule()
+    }
+
+    /**
+     * [ridingStretch] over `climb()`'s runs along the line, a run also ending where the way's surface or
+     * grade changes, as the build's runs end with each edge; each run's seconds spread over it by metres.
+     */
+    private fun rideRule() {
+        var start = 0
+        var seconds = 0.0
+        for (k in 1 until line.size) {
+            val change = line[k].heightMetres - line[start].heightMetres
+            val last = k == line.lastIndex
+            if (abs(change) < DEAD_BAND_METRES && !last && line[k + 1].ride == line[k].ride) continue
+            val run = line[k].metres - line[start].metres
+            val way = line[k].ride ?: OFF_NETWORK
+            val runSeconds = ridingStretch(run, change, way.surface, way.mtb, way.mtbUphill)
+            for (j in start + 1..k) {
+                val share = if (run > 0) (line[j].metres - line[start].metres) / run else 1.0
+                rule[j] = seconds + runSeconds * share
+            }
+            seconds += runSeconds
+            start = k
         }
     }
 
@@ -346,5 +373,6 @@ class FollowedLine(
         const val METRES_PER_DEGREE = 6_371_008.8 * PI / 180
         const val SAME_PLACE = 1.0
         const val PASS_RISE = 5.0
+        val OFF_NETWORK = RideWay(TrailNetwork.ROUGH, 0, 0)
     }
 }

@@ -40,7 +40,9 @@ import app.kozica.ui.common.DetailScaffold
 import app.kozica.ui.common.GpxFailureNotice
 import app.kozica.ui.common.shareGpx
 import app.kozica.ui.map.RouteNameDialog
+import app.kozica.ui.map.ShownTime
 import app.kozica.ui.map.length
+import app.kozica.ui.map.text
 import app.kozica.ui.map.walkingTime
 
 /** The Routes tab (docs/phase-5.md § 5): saved Routes by name; one opens on the map. */
@@ -155,7 +157,7 @@ private fun RouteRowItem(
         Column(Modifier.weight(1f)) {
             Text(row.route.name, style = MaterialTheme.typography.bodyLarge)
             if (row.metres != null) {
-                val time = row.minutes?.let { " · " + walkingTime(it, locale) }.orEmpty()
+                val time = row.minutes?.let { " · " + ShownTime(it, row.approximate).text(locale) }.orEmpty()
                 val signposts =
                     row.signpostMinutes
                         ?.takeIf { it != row.minutes }

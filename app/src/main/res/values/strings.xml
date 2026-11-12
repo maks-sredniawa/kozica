@@ -93,18 +93,18 @@
     <string name="route_ascent">Ascent</string>
     <string name="route_descent">Descent</string>
     <string name="route_walking_time">Walking time</string>
+    <!-- In Cycling, in place of route_walking_time: an estimate by the app's own rule, as no signpost gives a riding time (docs/phase-7b.md § 3). -->
+    <string name="route_riding_time">Riding time</string>
+    <!-- A riding time, which is an estimate: %1$s is a time, such as "1 h 40 min". -->
+    <string name="route_time_approximate">≈ %1$s</string>
     <!-- Following a Route on the map (docs/phase-6b.md § 3): the user walks it with the map keeping them in view. -->
     <string name="following_follow">Follow</string>
     <string name="following_stop">Stop</string>
     <string name="following_find_me">Find me on the Route</string>
-    <!-- What is left to the next point of the Route. %1$s is its name, such as "Hala Gąsienicowa"; %2$s a distance, such as "1.8 km"; %3$s the climb, such as "240 m"; %4$s a time, such as "1 h 05 min". -->
+    <!-- What is left to the next point of the Route. %1$s is its name, such as "Hala Gąsienicowa"; %2$s a distance, such as "1.8 km"; %3$s the climb, such as "240 m"; %4$s a time, such as "1 h 05 min", or in Cycling an estimate, such as "≈ 1 h 05 min". -->
     <string name="following_next">Next: %1$s · %2$s · ↑ %3$s · %4$s</string>
     <!-- What is left to the Route's end. %1$s is a distance, %2$s the climb, %3$s a time. -->
     <string name="following_to_end">To the end: %1$s · ↑ %2$s · %3$s</string>
-    <!-- As following_next, in Cycling, which shows no time yet (docs/phase-7b.md § 5): %1$s is the next point's name, %2$s a distance, %3$s the climb. -->
-    <string name="following_next_no_time">Next: %1$s · %2$s · ↑ %3$s</string>
-    <!-- As following_to_end, in Cycling, with no time: %1$s is a distance, %2$s the climb. -->
-    <string name="following_to_end_no_time">To the end: %1$s · ↑ %2$s</string>
     <string name="following_ended">You\'ve reached the end of the Route</string>
     <!-- Following stops when the user adds, moves, removes or reverses a point. -->
     <string name="following_route_changed">Following stopped: the Route changed</string>
@@ -115,13 +115,11 @@
     <string name="following_left">You\'ve left the Route · %1$s from it</string>
     <!-- The banner's action: plans a way over the Trails, or in Cycling over the Bike routes, from the user back to the Route. A noun phrase, not an instruction. -->
     <string name="following_back">Back to the Route</string>
-    <!-- The way back, under what is left. %1$s is a distance, such as "650 m"; %2$s a time, such as "15 min". -->
+    <!-- The way back, under what is left. %1$s is a distance, such as "650 m"; %2$s a time, such as "15 min", or in Cycling "≈ 15 min". -->
     <string name="following_back_leg">Back to the Route: %1$s · %2$s</string>
     <!-- Under the way back when the user is away from every Trail. %1$s is a distance, such as "80 m". -->
     <string name="following_back_off_trail">Back to the Route from the nearest Trail, %1$s away</string>
     <string name="following_back_no_way">No way back to the Route over the Trails</string>
-    <!-- As following_back_leg, in Cycling, with no time: %1$s is a distance, such as "650 m". -->
-    <string name="following_back_leg_no_time">Back to the Route: %1$s</string>
     <!-- As following_back_off_trail, in Cycling: the user is away from every Bike route. %1$s is a distance, such as "80 m". -->
     <string name="following_back_off_bike_route">Back to the Route from the nearest Bike route, %1$s away</string>
     <string name="following_back_no_way_bike_routes">No way back to the Route over the Bike routes</string>

@@ -1272,6 +1272,7 @@ class MapViewModel(
             route.value.following,
             route.value.followingNote,
             state.value.pace,
+            route.value.planned?.mode ?: Mode.HIKING,
         )
     }
 
