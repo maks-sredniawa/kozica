@@ -225,7 +225,8 @@ internal fun shownClimb(
 /**
  * @param available null until the name index has been looked for, false in a build without one.
  * @param offered the result picked, centred on the map and offered as a point.
- * @param otherModeMatches how many routes the other Mode would find for the same text, behind the switch's seam.
+ * @param otherModeMatches how many routes the other Mode would find for the same text, behind the switch's seam;
+ *   none while Following, which locks the switch.
  */
 data class SearchUiState(
     val available: Boolean? = null,
@@ -492,7 +493,7 @@ class MapViewModel(
             map.copy(
                 mode = mode,
                 bikeRouteFilter = bikeRouteFilter,
-                search = search,
+                search = if (route.following != null) search.copy(otherModeMatches = 0) else search,
                 route = route,
                 recording = recording,
                 track = track,
@@ -1182,7 +1183,6 @@ class MapViewModel(
         if (now() - stored.touchedAtMillis > FOLLOWED_KEPT_MILLIS) return
         if (route.value.points.isNotEmpty() || shownHike.value != null) return
         routeGeneration++
-        // The map keeps its Mode across a closed app but not its chip, so both come from the Route.
         val under = modeOf(stored.mode) to stored.bikeRouteFilter
         switchMap(under.first, under.second)
         route.value = RouteUiState(savedId = stored.savedId, name = stored.name)

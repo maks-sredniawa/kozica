@@ -1467,26 +1467,46 @@ class MapViewModelTest {
         }
 
     @Test
-    fun `the switch and the chips are refused while Following`() =
+    fun `the switch, the chips and the other Mode's hint are refused while Following`() =
         runTest {
             var plans = 0
+            val index =
+                object : PlaceSearch by NearbyNames {
+                    override fun searchAll(
+                        text: String,
+                        latitude: Double,
+                        longitude: Double,
+                        limit: Int,
+                        mode: Mode,
+                    ) = listOf(SearchResult.AtPlace(Place(1, PlaceKind.TOWN, latitude, longitude, "tatry", text)))
+
+                    override fun matchesIn(
+                        mode: Mode,
+                        text: String,
+                    ) = 3
+                }
             val viewModel =
-                routingViewModel(planUnder = { points, mode, filter ->
-                    plans++
-                    RoutePlanner(fixture).plan(points, mode, filter)
-                })
+                routingViewModel(
+                    places = { index },
+                    planUnder = { points, mode, filter ->
+                        plans++
+                        RoutePlanner(fixture).plan(points, mode, filter)
+                    },
+                )
             followedMidway(viewModel)
             val before = plans
 
             viewModel.setMode(Mode.CYCLING)
             viewModel.setBikeRouteFilter(BikeRouteFilter.MTB)
+            viewModel.search("wisla")
 
-            val state = settled(viewModel) { true }
+            val state = settled(viewModel) { it.search.results.isNotEmpty() }
             assertEquals(Mode.HIKING, state.mode)
             assertEquals(BikeRouteFilter.ALL, state.bikeRouteFilter)
             assertNotNull(state.route.following)
             assertEquals(Mode.HIKING, state.route.mode)
             assertEquals(before, plans)
+            assertEquals(0, state.search.otherModeMatches)
         }
 
     @Test
