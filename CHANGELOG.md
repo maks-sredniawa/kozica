@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.0](https://github.com/maks-sredniawa/kozica/compare/v0.17.0...v0.18.0) (2026-11-12)
+
+
+### Features
+
+* give a Bike route a walk each way it is ridden, each keeping to the rider direction ([7bf63bb](https://github.com/maks-sredniawa/kozica/commit/7bf63bb5f49c3e3b95aee2f98e4e6bbee57d3cb6))
+* hold a Route along a Bike route on its there walk, and its Reverse on the back walk ([39d3502](https://github.com/maks-sredniawa/kozica/commit/39d35023283013b1a015763c8bd1ef46e1992705))
+
+
+### Bug Fixes
+
+* give an empty walk no points, and test a gap in the back walk alone ([529a9ab](https://github.com/maks-sredniawa/kozica/commit/529a9ab8fe3eac225f79db85dcc57a14935d7dad))
+
 ## [0.17.0](https://github.com/maks-sredniawa/kozica/compare/v0.16.0...v0.17.0) (2026-11-12)
 
 
