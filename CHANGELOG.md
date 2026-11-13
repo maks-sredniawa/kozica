@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/maks-sredniawa/kozica/compare/v0.19.0...v0.20.0) (2026-11-13)
+
+
+### Features
+
+* label a changed saved Route's Save button Save changes ([4f7fdf9](https://github.com/maks-sredniawa/kozica/commit/4f7fdf9815a117e17103814455ef979657876fd8))
+* let Back close a Route, with Undo for a few seconds, rather than leave the app ([75f7b85](https://github.com/maks-sredniawa/kozica/commit/75f7b8585e53b50a0cafd458a80f05ca55234d63))
+
+
+### Bug Fixes
+
+* let the Route's Undo expire on its own, follow the system's action time and be announced ([113621c](https://github.com/maks-sredniawa/kozica/commit/113621c85bb6a9675edcf23e10b66dcd8329f093))
+* show a ride under 5 minutes as &lt; 5 min rather than ≈ 5 min ([575e8fd](https://github.com/maks-sredniawa/kozica/commit/575e8fd136f558a91c0e8dd9b03be9a6411f93d6))
+
 ## [0.19.0](https://github.com/maks-sredniawa/kozica/compare/v0.18.1...v0.19.0) (2026-11-13)
 
 
