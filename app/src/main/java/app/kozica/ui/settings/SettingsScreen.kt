@@ -26,10 +26,8 @@ import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.common.DetailScaffold
 import app.kozica.ui.common.SectionHeader
 import app.kozica.ui.common.SwitchRow
-import app.kozica.ui.support.SupportRequest
-import app.kozica.ui.support.hintRes
-import app.kozica.ui.support.sendSupportMail
-import app.kozica.ui.support.titleRes
+import app.kozica.ui.support.AboutSection
+import app.kozica.ui.support.LanguageReportRow
 
 @Composable
 fun SettingsScreen(
@@ -86,18 +84,9 @@ fun SettingsScreen(
 
             SectionHeader(stringResource(R.string.settings_language))
             LanguageRow()
-            // The channel that stands in for a native read-through (docs/translator-brief.md §8),
-            // beside the picker because that is where somebody is standing the moment a translation
-            // reads wrong. Its wording lives with the other two requests, in ui/support/.
-            SettingsRow(
-                title = stringResource(SupportRequest.Language.titleRes()),
-                subtitle = stringResource(SupportRequest.Language.hintRes()),
-                onClick = { context.sendSupportMail(SupportRequest.Language) },
-            )
+            LanguageReportRow()
 
-            SectionHeader(stringResource(R.string.settings_about))
-            SettingsRow(stringResource(R.string.settings_support), onClick = onOpenSupport)
-            SettingsRow(stringResource(R.string.settings_licences), onClick = onOpenLicences)
+            AboutSection(onOpenSupport, onOpenLicences)
 
             // The developer-only section. In a release build this composable is a no-op that
             // renders nothing — see `src/release/…/DebugSettings.kt`. It is a source-set seam

@@ -180,34 +180,9 @@
     <string name="settings_language_system">System</string>
     <string name="settings_language_english" translatable="false">English</string>
     <string name="settings_language_polish" translatable="false">Polski</string>
-    <string name="settings_language_report">Something read wrong?</string>
-    <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
     <!-- A Settings section holding the backup row. -->
     <string name="settings_data">Your data</string>
     <string name="settings_backup">Backup and restore</string>
-    <string name="settings_about">About</string>
-    <string name="settings_support">Help and feedback</string>
-    <string name="settings_licences">Open-source licences</string>
-
-    <!-- Help and feedback. The three `support_subject_*` are translatable="false" on purpose:
-         they are the filter tag you sort your own mail on and the user never reads them, while
-         the prompt beside each one is a sentence addressed to them and is translated. A Polish
-         report arriving under "Kozica #bug" is the correct outcome. -->
-    <string name="support_title">Help and feedback</string>
-    <string name="support_report">Report a problem</string>
-    <string name="support_report_hint">Opens your email app with what the app knows about your phone already filled in.</string>
-    <string name="support_feature">Suggest a feature</string>
-    <string name="support_feature_hint">Say what you would like the app to do, and what you would use it for.</string>
-    <string name="support_subject_bug" translatable="false">Kozica #bug</string>
-    <string name="support_subject_feature" translatable="false">Kozica #feature</string>
-    <string name="support_subject_language" translatable="false">Kozica #language</string>
-    <string name="support_body_bug">What happened, and what you expected instead:</string>
-    <string name="support_body_feature">What would you like the app to do?</string>
-    <string name="support_body_language">Which word read wrong, and on which screen?</string>
-    <string name="support_no_mail_app">No email app on this phone to open.</string>
-    <string name="support_rate">Rate this app on Google Play</string>
-    <string name="support_rate_hint">Opens this app on Google Play. Rating is optional and unlocks nothing.</string>
-    <string name="support_no_play">No Google Play or web browser on this phone to open.</string>
 
     <!-- Backup and restore (docs/phase-6.md § 7). "Records" and "Everything" are the two export scopes. -->
     <string name="backup_auto_title">Automatic backup</string>
@@ -300,9 +275,8 @@
     <!-- Licences -->
     <string name="licences_map_data">The map data of this version</string>
     <string name="licences_map_data_hint">Opens this version\'s release on GitHub, where the map\'s files are offered under the Open Database License.</string>
-    <!-- Under the relief's two licence entries: what Kozica did to the agencies' terrain models. -->
+    <!-- Under the relief's CC BY 4.0 entry: what Kozica did to the agencies' terrain models. -->
     <string name="licences_relief_modified">Resampled, merged and traced into contours by Kozica.</string>
-    <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>
 
     <!-- The schema gate's screen. Deliberately plain: someone reading it is already worried. -->
     <string name="schema_mismatch_title">This data was saved by a different version</string>
@@ -480,4 +454,39 @@
     <!-- From the grades on the route's ways; %1$d is the hardest digit, %2$d the percentage of its length that carries any grade, so the rest is unknown, not easy. -->
     <string name="mtb_grade_hardest">S%1$d at its hardest · graded over %2$d %% of its length</string>
     <string name="mtb_grade_hardest_uphill">Uphill S%1$d at its hardest</string>
+
+    <!-- shared:support begin. Synced into every app by android-starter's scripts/sync-support.py:
+         change it there, never in an app. -->
+    <string name="settings_about">About</string>
+    <string name="settings_support">Help and feedback</string>
+    <string name="settings_licences">Open-source licences</string>
+    <string name="settings_language_report">Something read wrong?</string>
+    <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
+    <string name="support_title">Help and feedback</string>
+    <string name="support_report">Report a problem</string>
+    <string name="support_report_hint">Opens your email app with the app version, Android version, phone model and language filled in. Nothing is sent until you tap send.</string>
+    <string name="support_feature">Suggest a feature</string>
+    <string name="support_feature_hint">Say what you would like the app to do, and what you would use it for.</string>
+    <string name="support_body_bug">What happened, and what you expected instead:</string>
+    <string name="support_body_feature">What would you like the app to do?</string>
+    <string name="support_body_language">Which word read wrong, and on which screen?</string>
+    <string name="support_no_mail_app">No email app on this phone to open. You can copy the address above.</string>
+    <string name="support_address_hint">Write directly. Tap to copy the address.</string>
+    <string name="support_rate">Rate this app on Google Play</string>
+    <string name="support_rate_hint">Opens this app on Google Play. Rating is optional and unlocks nothing.</string>
+    <string name="support_no_play">No Google Play or web browser on this phone to open.</string>
+    <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>
+    <string name="support_no_browser">No web browser on this phone to open.</string>
+    <string name="support_site">App web page</string>
+    <string name="support_privacy">Privacy policy</string>
+    <string name="support_privacy_hint">Opens in your browser.</string>
+    <string name="support_credits">Credits</string>
+    <string name="support_credits_hint">Open-source licences</string>
+    <string name="support_more_apps">More MaksForge apps</string>
+    <string name="support_more_apps_hint">Other free apps by the same developer.</string>
+    <!-- %1$s is the version, e.g. "1.4.0 (23)". -->
+    <string name="support_version">Version %1$s</string>
+    <string name="support_version_hint">Tap to copy.</string>
+    <string name="support_copied">Copied.</string>
+    <!-- shared:support end -->
 </resources>
