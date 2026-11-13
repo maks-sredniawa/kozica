@@ -1,12 +1,14 @@
 package app.kozica.ui.common
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +22,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import app.kozica.R
 import app.kozica.theme.Spacing
@@ -159,6 +163,73 @@ fun SwitchRow(
             )
         }
         Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
+    }
+}
+
+/** Where a [LinkRow] goes, which decides its trailing icon. */
+enum class LinkTarget {
+    /** Another screen of this app: a chevron. */
+    Inside,
+
+    /** Another app or a system screen: "open in new". */
+    Outside,
+
+    /** Nowhere: an action done on this screen, at most behind a dialog. No icon. */
+    Here,
+}
+
+/**
+ * A row that goes somewhere.
+ *
+ * A row that **leaves** the app — a mail composer, the Play listing, a system settings page — takes
+ * [LinkTarget.Outside] and a subtitle saying where, because a tap that hands the user to another app
+ * with no warning is the kind they back out of and never repeat.
+ */
+@Composable
+fun LinkRow(
+    title: String,
+    target: LinkTarget,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = Spacing.base, vertical = Spacing.snug),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.base),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RowText(title, subtitle, Modifier.weight(1f))
+        val icon =
+            when (target) {
+                LinkTarget.Inside -> rememberVectorPainter(Icons.AutoMirrored.Filled.KeyboardArrowRight)
+                LinkTarget.Outside -> painterResource(R.drawable.ic_open_in_new)
+                LinkTarget.Here -> null
+            }
+        if (icon != null) {
+            Icon(painter = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun RowText(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.hair)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

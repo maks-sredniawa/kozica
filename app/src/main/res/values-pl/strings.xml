@@ -114,7 +114,6 @@
     <string name="place_clearing">Polana</string>
     <string name="place_place">Miejsce</string>
 
-
     <string name="settings_title">Ustawienia</string>
     <string name="settings_appearance">Wygląd</string>
     <string name="settings_theme_system">Systemowy</string>
@@ -124,26 +123,8 @@
     <string name="settings_material_you_hint">Android 12 i nowsze. Domyślnie wyłączone, aby aplikacja zachowała własną paletę.</string>
     <string name="settings_language">Język</string>
     <string name="settings_language_system">Systemowy</string>
-    <string name="settings_language_report">Coś brzmi nie tak?</string>
-    <string name="settings_language_report_hint">Napisz, jeśli jakieś słowo jest nie tak w twoim języku. Otwiera aplikację pocztową z już wpisanym językiem, w którym czytasz.</string>
     <string name="settings_data">Twoje dane</string>
     <string name="settings_backup">Kopia zapasowa i przywracanie</string>
-    <string name="settings_about">O aplikacji</string>
-    <string name="settings_support">Pomoc i opinie</string>
-    <string name="settings_licences">Licencje open source</string>
-
-    <string name="support_title">Pomoc i opinie</string>
-    <string name="support_report">Zgłoś problem</string>
-    <string name="support_report_hint">Otwiera aplikację pocztową z już wpisanymi informacjami o telefonie, które aplikacja zna.</string>
-    <string name="support_feature">Zaproponuj funkcję</string>
-    <string name="support_feature_hint">Napisz, co aplikacja mogłaby robić i do czego byś tego używał.</string>
-    <string name="support_body_bug">Co się stało i co powinno się stać zamiast tego:</string>
-    <string name="support_body_feature">Co aplikacja mogłaby robić?</string>
-    <string name="support_body_language">Które słowo jest nie tak i na którym ekranie?</string>
-    <string name="support_no_mail_app">Na tym telefonie nie ma aplikacji pocztowej do otwarcia.</string>
-    <string name="support_rate">Oceń tę aplikację w Google Play</string>
-    <string name="support_rate_hint">Otwiera stronę aplikacji w Google Play. Ocena jest dobrowolna i niczego nie odblokowuje.</string>
-    <string name="support_no_play">Na tym telefonie nie ma Google Play ani przeglądarki do otwarcia.</string>
 
     <string name="backup_auto_title">Automatyczna kopia zapasowa</string>
     <string name="backup_auto_never">Na tym telefonie nie odnotowano automatycznej kopii zapasowej</string>
@@ -226,7 +207,6 @@
     <string name="licences_map_data">Dane mapy tej wersji</string>
     <string name="licences_map_data_hint">Otwiera stronę wydania tej wersji na GitHubie, gdzie pliki mapy są udostępnione na licencji Open Database License.</string>
     <string name="licences_relief_modified">Przepróbkowane, scalone i przetworzone na poziomice przez Kozicę.</string>
-    <string name="licence_text_missing">Treść tej licencji nie jest dołączona do aplikacji.</string>
 
     <string name="schema_mismatch_title">Te dane zapisała inna wersja</string>
     <string name="schema_mismatch_body">Dane na tym telefonie zapisano w wersji %1$d, a ta kompilacja odczytuje wersję %2$d.</string>
@@ -356,4 +336,38 @@
     <string name="mtb_grade_uphill">Pod górę S%1$d</string>
     <string name="mtb_grade_hardest">Najtrudniej S%1$d · skala podana dla %2$d %% długości</string>
     <string name="mtb_grade_hardest_uphill">Pod górę najtrudniej S%1$d</string>
+
+    <!-- shared:support begin. Synced into every app by android-starter's scripts/sync-support.py:
+         change it there, never in an app. -->
+    <string name="settings_about">O aplikacji</string>
+    <string name="settings_support">Pomoc i opinie</string>
+    <string name="settings_licences">Licencje open source</string>
+    <string name="settings_language_report">Coś brzmi nie tak?</string>
+    <string name="settings_language_report_hint">Napisz, jeśli jakieś słowo jest nie tak w twoim języku. Otwiera aplikację pocztową z już wpisanym językiem, w którym czytasz.</string>
+    <string name="support_title">Pomoc i opinie</string>
+    <string name="support_report">Zgłoś problem</string>
+    <string name="support_report_hint">Otwiera aplikację pocztową z wpisaną wersją aplikacji, wersją Androida, modelem telefonu i językiem. Nic nie zostanie wysłane, dopóki nie dotkniesz „Wyślij”.</string>
+    <string name="support_feature">Zaproponuj funkcję</string>
+    <string name="support_feature_hint">Napisz, co aplikacja mogłaby robić i do czego byś tego używał.</string>
+    <string name="support_body_bug">Co się stało i co powinno się stać zamiast tego:</string>
+    <string name="support_body_feature">Co aplikacja mogłaby robić?</string>
+    <string name="support_body_language">Które słowo jest nie tak i na którym ekranie?</string>
+    <string name="support_no_mail_app">Na tym telefonie nie ma aplikacji pocztowej do otwarcia. Możesz skopiować adres powyżej.</string>
+    <string name="support_address_hint">Napisz bezpośrednio. Dotknij, aby skopiować adres.</string>
+    <string name="support_rate">Oceń tę aplikację w Google Play</string>
+    <string name="support_rate_hint">Otwiera stronę aplikacji w Google Play. Ocena jest dobrowolna i niczego nie odblokowuje.</string>
+    <string name="support_no_play">Na tym telefonie nie ma Google Play ani przeglądarki do otwarcia.</string>
+    <string name="licence_text_missing">Treść tej licencji nie jest dołączona do aplikacji.</string>
+    <string name="support_no_browser">Na tym telefonie nie ma przeglądarki do otwarcia.</string>
+    <string name="support_site">Strona aplikacji</string>
+    <string name="support_privacy">Polityka prywatności</string>
+    <string name="support_privacy_hint">Otwiera się w przeglądarce.</string>
+    <string name="support_credits">Podziękowania</string>
+    <string name="support_credits_hint">Licencje open source</string>
+    <string name="support_more_apps">Więcej aplikacji MaksForge</string>
+    <string name="support_more_apps_hint">Inne darmowe aplikacje tego samego twórcy.</string>
+    <string name="support_version">Wersja %1$s</string>
+    <string name="support_version_hint">Dotknij, aby skopiować.</string>
+    <string name="support_copied">Skopiowano.</string>
+    <!-- shared:support end -->
 </resources>

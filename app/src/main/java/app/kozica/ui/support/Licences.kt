@@ -17,20 +17,6 @@ import kotlinx.serialization.json.Json
 /** The asset the build's `BundleLicences` task writes. Kept in step with `app/build.gradle.kts`. */
 const val LICENCES_ASSET = "licences.json"
 
-/**
- * What the app ships that is not a dependency, so Licensee cannot list it: the map's data, its
- * relief and its font. Each has its text in [LICENCE_TEXT_DIRECTORY] under its SPDX id.
- */
-const val ODBL = "ODbL-1.0"
-const val OFL = "OFL-1.1"
-const val CC_BY = "CC-BY-4.0"
-
-/**
- * The ODbL §4.6 offer: every release attaches its Regions' archives to its GitHub release
- * (docs/phase-2b.md § 6), so this version's tag is where the derivative database is.
- */
-const val MAP_DATA_RELEASE = "https://github.com/maks-sredniawa/kozica/releases/tag/v"
-
 /** Where a licence's own text lives, when it is ours to ship — `licences/Apache-2.0.txt`. */
 const val LICENCE_TEXT_DIRECTORY = "licences"
 
@@ -48,11 +34,16 @@ data class LicensedArtifact(
     val artifactId: String,
     val version: String,
     val name: String? = null,
+    /** Where a file the build fetched itself came from, and its SHA-256; Licensee never writes it. */
+    val source: String? = null,
     val spdxLicenses: List<SpdxLicence> = emptyList(),
     val unknownLicenses: List<UnknownLicence> = emptyList(),
 ) {
     /** `androidx.room:room-runtime:2.8.4` — the identity a reader can actually look up. */
     val coordinates: String get() = "$groupId:$artifactId:$version"
+
+    /** What the screen lists for this artifact: its coordinates, and its source under them when known. */
+    val listing: String get() = source?.let { "$coordinates\n$it" } ?: coordinates
 
     /** The POM's own name where there is one; the artifact id is a better fallback than nothing. */
     val displayName: String get() = name?.takeIf(String::isNotBlank) ?: artifactId
@@ -114,8 +105,11 @@ private val json = Json { ignoreUnknownKeys = true }
  * which the sort at the end then replaces; it is used for determinism while building, not for the
  * final order.
  */
-fun groupLicences(report: String): List<LicenceGroup> {
-    val artifacts = json.decodeFromString<List<LicensedArtifact>>(report)
+fun groupLicences(
+    report: String,
+    bundled: List<LicensedArtifact> = emptyList(),
+): List<LicenceGroup> {
+    val artifacts = json.decodeFromString<List<LicensedArtifact>>(report) + bundled
 
     // Key → (title, spdxId, url). The key is the identity of the licence itself: an SPDX identifier
     // where there is one, and the terms' own URL otherwise, so two POMs spelling the same terms with
