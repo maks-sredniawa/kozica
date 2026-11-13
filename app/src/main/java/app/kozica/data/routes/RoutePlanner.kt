@@ -91,7 +91,7 @@ data class PlannedRoute(
 /** As a signpost gives it: the unrounded sum, rounded up to the next 5 minutes. */
 fun roundedUpToFiveMinutes(seconds: Double): Int = ceil(seconds / 300 - 1e-9).toInt() * 5
 
-/** docs/phase-7b.md § 3: a riding time, rounded to the nearest 5 minutes and never under 5. */
+/** docs/phase-7b.md § 3: a riding time, rounded to the nearest 5 minutes, or 0 under 5, which the sheet shows as "< 5 min". */
 fun ridingMinutes(seconds: Double): Int = if (seconds < 300) 0 else (seconds / 300).roundToInt() * 5
 
 class RoutePlanner(

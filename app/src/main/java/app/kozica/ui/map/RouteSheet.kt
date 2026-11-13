@@ -265,7 +265,7 @@ internal fun sheetFigures(
     return SheetFigures(paceLine = !cycling, warnings = noWay + demanding)
 }
 
-/** A time as shown: a walk's at the Pace and rounded up as a signpost's, a ride's by the riding rule alone, "≈" (docs/phase-7b.md § 3). */
+/** A time as shown: a walk's at the Pace and rounded up as a signpost's, a ride's by the riding rule alone, "≈", or "< 5 min" under 5 (docs/phase-7b.md § 3). */
 internal data class ShownTime(
     val minutes: Int,
     val approximate: Boolean,
