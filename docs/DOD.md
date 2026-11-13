@@ -55,7 +55,7 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       contrast pair passes. Phase 2's R9 read it against the Trail colours on the map: no seed moved.
 - [x] **Choose a dedicated support address.** `kozica.support@maksforge.com` since 2026-10-20, on
       the owner's own domain: Cloudflare Email Routing forwards it to the developer's Gmail, which
-      sends as it. `ui/support/SupportHandoff.kt` compiles it in, and the Play listing's contact
+      sends as it. `ui/support/SupportConfig.kt` compiles it in, and the Play listing's contact
       field and the privacy policy's *Contact* give it too. The item once ruled out an alias on
       personal mail, and this is one (replies still carry the Gmail in `Return-Path`); it was relaxed
       because what a build freezes is the address, not the mailbox. Moving the mailbox is now only a

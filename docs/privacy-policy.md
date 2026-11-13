@@ -5,7 +5,7 @@ title: Privacy Policy
 
 # Privacy Policy
 
-_Last updated: 31 October 2026_
+_Last updated: 13 November 2026_
 
 Kozica is an Android app for hiking in the Polish mountains: an offline map of the trails, drawn in
 their signpost colours. This policy describes what the app does with information about you. It is
@@ -70,8 +70,12 @@ feature, and Settings' Language section has **Something read wrong?**. Each open
 app** with a draft addressed to the developer. The draft carries the app's version, your Android
 version, your phone's make and model, and the language you are reading the app in, so a report can be
 acted on. You see every line before sending, can change or delete any of it, and nothing is sent
-unless you send it yourself. The screen's third row, rating the app on Google Play, opens Play and
-sends no mail.
+unless you send it yourself.
+
+The screen's other rows send nothing. One shows the developer's address and copies it when tapped,
+and another copies the app's version; both stay on your phone until you paste them somewhere. Rating
+the app opens Google Play, and the app's web page, this privacy policy and More MaksForge apps open
+in your web browser, which then works under its own privacy policy. Credits stays inside the app.
 
 ## The two things that happen outside the app
 

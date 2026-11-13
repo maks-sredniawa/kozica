@@ -134,6 +134,9 @@ app/src/main/java/<namespace>/
   media/       MediaFiles.kt — the single path for persisting images, kind-aware
   theme/       generated palette, type scale, spacing, the night-mode window half
   ui/          Compose screens + ViewModels, one package per area; ui/map/ is Home
+  ui/support/  Help and feedback, Credits and Settings' About rows — shared by every app. Only
+               SupportConfig.kt and LicencesScreen.kt (scripts/support-sync.keep) are this app's; the rest, and each strings.xml's shared:support block,
+               arrive from android-starter's scripts/sync-support.py, so change them there
 
 app/src/debug/    the developer-only build: the sample-data seeder, Settings' debug section and its
                   strings, the schema-mismatch screen's continue button, SeedReceiver for the
