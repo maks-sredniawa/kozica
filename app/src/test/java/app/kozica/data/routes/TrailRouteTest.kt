@@ -128,6 +128,24 @@ class TrailRouteTest {
     }
 
     @Test
+    fun `along the back walk, held by the walk the other way, the points start where the back walk does`() {
+        val points =
+            network
+                .pointsAlong(
+                    back,
+                    router,
+                    Mode.CYCLING,
+                    BikeRouteFilter.TOURING,
+                    back = intArrayOf(step(17), step(18)),
+                ).map {
+                    Math.round(it.latitude * 1e4) / 1e4 to
+                        Math.round(it.longitude * 1e4) / 1e4
+                }
+        assertEquals(n, points.first())
+        assertEquals(listOf(20 to false, 19 to true, 17 to false), ridden(points))
+    }
+
+    @Test
     fun `a gap in the back walk alone gets a via point on each side`() {
         val gapped = intArrayOf(step(20, reversed = true), step(17, reversed = true, gapBefore = true))
         assertEquals(listOf(k, l, m, n), alongBoth(BikeRouteFilter.TOURING, gapped))

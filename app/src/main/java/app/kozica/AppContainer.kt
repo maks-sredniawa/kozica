@@ -262,24 +262,37 @@ class AppContainer(
         legPlanned: (Leg?) -> Unit = {},
     ): List<RoutePoint>? = pointsAlongWalk(bikeRoute.id, Mode.CYCLING, filter, legPlanned)
 
+    /**
+     * The same along the Bike route's back walk, held by its walk the other way, for Reverse (docs/phase-7b.md § 6);
+     * null where the back walk is the walk turned, and Reverse need only turn the points.
+     */
+    suspend fun routeBackAlongBikeRoute(
+        bikeRoute: BikeRouteDetail,
+        filter: BikeRouteFilter,
+        legPlanned: (Leg?) -> Unit = {},
+    ): List<RoutePoint>? = pointsAlongWalk(bikeRoute.id, Mode.CYCLING, filter, legPlanned, backward = true)
+
     private suspend fun pointsAlongWalk(
         id: Long,
         mode: Mode,
         filter: BikeRouteFilter = BikeRouteFilter.ALL,
         legPlanned: (Leg?) -> Unit = {},
+        backward: Boolean = false,
     ): List<RoutePoint>? =
         planning.withLock {
             val network = TrailNetworks.load(appContext) ?: return@withLock null
             val walks = TrailNetworks.walks(appContext) ?: return@withLock null
-            val steps = walks.steps(id) ?: return@withLock null
+            val there = walks.steps(id) ?: return@withLock null
+            val back = walks.back(id)
+            if (backward && back == null) return@withLock null
             val context = currentCoroutineContext()
             router?.let {
                 network.pointsAlong(
-                    steps,
+                    if (backward) back!! else there,
                     it,
                     mode,
                     filter,
-                    back = walks.back(id),
+                    back = if (backward) there else back,
                     checkCancelled = { context.ensureActive() },
                     legPlanned = legPlanned,
                 )

@@ -1221,6 +1221,60 @@ class MapViewModelTest {
 
     private val alongTwister = listOf(RoutePoint(49.0, 20.0), RoutePoint(49.0, 20.02))
 
+    private val backAlongTwister = listOf(RoutePoint(49.0, 20.03), RoutePoint(49.0, 20.01), RoutePoint(49.0, 20.0))
+
+    private fun alongWithBack(saveRoute: suspend (String?, String, List<RoutePoint>, Mode, BikeRouteFilter) -> String) =
+        routingViewModel(
+            loadBikeRoute = ::bikeRouteDetail,
+            routeAlongBikeRoute = { _, _ -> alongTwister },
+            routeBackAlongBikeRoute = { _, _ -> backAlongTwister },
+            saveRoute = saveRoute,
+        )
+
+    private suspend fun plannedAlong(viewModel: MapViewModel) {
+        viewModel.tapBikeRoutes(listOf(7))
+        settled(viewModel) { it.bikeRoute.shown != null }
+        viewModel.planAlongBikeRoute("Twister")
+        settled(viewModel) { it.route.planned != null && !it.route.planning && it.route.reverseAlong != null }
+    }
+
+    private fun MapUiState.longitudes() = route.points.map { it.longitude }
+
+    @Test
+    fun `Reverse on a Route along a Bike route plans its back walk's points, and again the walk's`() =
+        runTest {
+            val viewModel = alongWithBack { _, _, _, _, _ -> "r" }
+            plannedAlong(viewModel)
+
+            viewModel.reverse()
+            val reversed = settled(viewModel) { it.longitudes() == listOf(20.03, 20.01, 20.0) && !it.route.planning }
+            assertEquals(alongTwister, reversed.route.reverseAlong?.map { it.copy(label = null) })
+
+            viewModel.reverse()
+            assertEquals(
+                listOf(20.0, 20.02),
+                settled(viewModel) { it.longitudes() == listOf(20.0, 20.02) }.longitudes(),
+            )
+        }
+
+    @Test
+    fun `an edit or a save leaves Reverse turning the points`() =
+        runTest {
+            val edited = alongWithBack { _, _, _, _, _ -> "r" }
+            plannedAlong(edited)
+            edited.addPoint(49.0, 20.04)
+            settled(edited) { it.route.points.size == 3 }
+            edited.reverse()
+            assertEquals(listOf(20.04, 20.02, 20.0), settled(edited) { it.longitudes().first() == 20.04 }.longitudes())
+
+            val saved = alongWithBack { _, _, _, _, _ -> "r" }
+            plannedAlong(saved)
+            saved.save("Twister")
+            settled(saved) { it.route.savedId == "r" }
+            saved.reverse()
+            assertEquals(listOf(20.02, 20.0), settled(saved) { it.longitudes().first() == 20.02 }.longitudes())
+        }
+
     private suspend fun cycling(): AppPreferences =
         AppPreferences(MemoryPreferences()).also { it.setMapMode(Mode.CYCLING) }
 
@@ -1774,6 +1828,7 @@ private fun routingViewModel(
     sectionsOf: (Long) -> List<Long> = { emptyList() },
     routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
     routeAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
+    routeBackAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
     writeGpx: suspend (Gpx, LocalDate) -> File = { _, _ -> error("No GPX in this test") },
     loadBikeRoute: (Long) -> BikeRouteDetail? = { null },
     bikeRouteWhole: (Long) -> List<Long> = { emptyList() },
@@ -1804,6 +1859,7 @@ private fun routingViewModel(
     sectionsOf = sectionsOf,
     routeAlong = routeAlong,
     routeAlongBikeRoute = routeAlongBikeRoute,
+    routeBackAlongBikeRoute = routeBackAlongBikeRoute,
     writeGpx = writeGpx,
     loadBikeRoute = loadBikeRoute,
     bikeRouteWhole = bikeRouteWhole,
