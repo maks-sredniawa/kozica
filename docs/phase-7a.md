@@ -199,7 +199,9 @@ of the renders.
   walk, length, ascent each way and profile come from these edges; the router plans over them from
   7b. Phase 7b § 2 takes the format to version 3, splitting the Bike route bit into Touring and MTB.
 - **The name index**: a table of their own, `bike_routes`, beside `trails`, with `bike_route_names`
-  as its FTS4, folded by the one rule. Its columns are `trails`' less `symbol`, plus `kind`,
+  as its FTS4, folded by the one rule, holding the route's `name`, `name:pl` and, from 2026-11-13, its
+  `ref`: a Bike route is often signed by its number alone (24C), where a Trail is signed by its colour, so
+  `trail_names` keeps the names only. Its columns are `trails`' less `symbol`, plus `kind`,
   `network`, `one_way`, and the route's own `mtb_scale` and `mtb_scale_uphill`. Their walks go into
   `trails.edges` under their relation ids, which no Trail shares.
 
