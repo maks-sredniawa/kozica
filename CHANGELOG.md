@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0](https://github.com/maks-sredniawa/kozica/compare/v0.18.1...v0.19.0) (2026-11-13)
+
+
+### Features
+
+* let search find a Bike route by its number ([ee09057](https://github.com/maks-sredniawa/kozica/commit/ee09057a115bb03990cb111a3fd04ef393252355))
+* **support:** adopt the shared Help and feedback from android-starter ([c080814](https://github.com/maks-sredniawa/kozica/commit/c08081491a3eb642aea6480a5a4d547b97f28ba9))
+* **support:** link licence terms and show licence names on Credits ([a7ef332](https://github.com/maks-sredniawa/kozica/commit/a7ef332daba67cc734331285fa8544fddfa11e91))
+* **support:** open Credits with the people who made the app, from android-starter's latest shared module ([852749a](https://github.com/maks-sredniawa/kozica/commit/852749a7485f6662597ca45d2edaca0453a8bf4f))
+
+
+### Bug Fixes
+
+* count the climbs of part of an edge walked backward in the edge's own order, as the build does ([8d44ca8](https://github.com/maks-sredniawa/kozica/commit/8d44ca85404be429707b2269100dfc74e5fc2f96))
+* leave out a ref-only Bike route's number under its search title, which already shows it ([8d5f03f](https://github.com/maks-sredniawa/kozica/commit/8d5f03f6c29b48bb6da221075992466d0b9d1f38))
+* leave out a widened loop a rider may take neither way round, as before, rather than break the walk there ([b33eaf9](https://github.com/maks-sredniawa/kozica/commit/b33eaf98e15d5c88709cfc1207a68583c416b786))
+* let Reverse on a Route along a Bike route ride its back walk from where it starts ([d8c5e47](https://github.com/maks-sredniawa/kozica/commit/d8c5e4747a8fd0d5c2872bc433d8d1661075d241))
+* ride a loop a Bike route's walk takes against the rider round the other way, and widen a run up to 250 m ([7ec27fb](https://github.com/maks-sredniawa/kozica/commit/7ec27fb2574796533c73d00e0811522b74baf98b))
+* **support:** say when the language report finds no mail app, and keep the licence screen safe ([d9f350c](https://github.com/maks-sredniawa/kozica/commit/d9f350c17f821ec2a73cf9602c8f2ccfe922bf33))
+* **support:** say when the map-data offer row finds no browser ([324a5df](https://github.com/maks-sredniawa/kozica/commit/324a5df2b2d2a18b948619ea3abfd7cc8716822d))
+
 ## [0.18.1](https://github.com/maks-sredniawa/kozica/compare/v0.18.0...v0.18.1) (2026-11-13)
 
 
