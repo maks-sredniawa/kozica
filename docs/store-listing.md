@@ -466,14 +466,14 @@ Dane OpenStreetMap na mapie są odświeżone do 10 listopada 2026: szlaki, ście
 The Cycling fixes since 0.18.1 are Cycling's alone, which a release build does not offer yet, and 0.18.2 was never
 released, so this note covers the new Help and feedback only.
 
-**English** — 430/500:
+**English** — 458/500:
 
 ```
-Settings → Help and feedback is laid out anew. Tap Kozica's support address to copy it and write directly, and a problem report now fills in only the app version, Android version, phone model and language. A new About section holds the App web page, the Privacy policy, More MaksForge apps and Credits, which now open with who made the app and give each licence its full name, with a link to its terms. Tap the version to copy it.
+Settings → Help and feedback is laid out anew. Tap Kozica's support address to copy it and write directly. Report a problem now names what it fills in: the app version, Android version, phone model and language, nothing you recorded. A new About section holds the App web page, the Privacy policy, More MaksForge apps and Credits, which now open with who made the app and give each licence its full name, with a link to its terms. Tap the version to copy it.
 ```
 
-**Polish** — 485/500:
+**Polish** — 496/500:
 
 ```
-Ustawienia → Pomoc i opinie mają nowy układ. Dotknij adresu pomocy Kozicy, aby go skopiować i napisać bezpośrednio, a zgłoszenie problemu wpisuje teraz tylko wersję aplikacji, wersję Androida, model telefonu i język. Nowa sekcja O aplikacji zawiera Stronę aplikacji, Politykę prywatności, Więcej aplikacji MaksForge i Podziękowania, które zaczynają się od tego, kto zrobił aplikację, i podają pełną nazwę każdej licencji z odnośnikiem do jej warunków. Dotknij wersji, aby ją skopiować.
+Ustawienia → Pomoc i opinie mają nowy układ. Dotknij adresu pomocy Kozicy, aby go skopiować i napisać bezpośrednio. „Zgłoś problem” wymienia teraz, co wpisuje: wersję aplikacji i Androida, model telefonu i język, bez twoich zapisów. Nowa sekcja O aplikacji ma Stronę aplikacji, Politykę prywatności, Więcej aplikacji MaksForge i Podziękowania, które zaczynają się od tego, kto zrobił aplikację, i podają pełną nazwę każdej licencji z odnośnikiem do jej warunków. Dotknij wersji, aby ją skopiować.
 ```
