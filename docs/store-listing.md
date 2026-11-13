@@ -477,3 +477,17 @@ Settings → Help and feedback is laid out anew. Tap Kozica's support address to
 ```
 Ustawienia → Pomoc i opinie mają nowy układ. Dotknij adresu pomocy Kozicy, aby go skopiować i napisać bezpośrednio. „Zgłoś problem” wymienia teraz, co wpisuje: wersję aplikacji i Androida, model telefonu i język, bez twoich zapisów. Nowa sekcja O aplikacji ma Stronę aplikacji, Politykę prywatności, Więcej aplikacji MaksForge i Podziękowania, które zaczynają się od tego, kto zrobił aplikację, i podają pełną nazwę każdej licencji z odnośnikiem do jej warunków. Dotknij wersji, aby ją skopiować.
 ```
+
+### 0.20.0 — Save changes on a saved route
+
+**English** — 130/500:
+
+```
+A saved route you have changed now offers Save changes instead of Save route, so it is clear the save writes over that same route.
+```
+
+**Polish** — 131/500:
+
+```
+Zapisana trasa, którą zmieniono, ma teraz przycisk Zapisz zmiany zamiast Zapisz trasę, więc widać, że zapis nadpisze tę samą trasę.
+```
