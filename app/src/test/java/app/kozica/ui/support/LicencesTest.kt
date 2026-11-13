@@ -1,7 +1,6 @@
 package app.kozica.ui.support
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -80,11 +79,11 @@ class LicencesTest {
     }
 
     @Test
-    fun `malformed input throws, and licencesOrBundled is where that is caught`() {
+    fun `malformed input throws, and readCredits is where that is caught`() {
         // Deliberately *not* swallowed here. This function's job is to parse; a report it cannot
         // parse means the build's generator is broken, and returning an empty list would hide that
-        // behind an empty screen. `licencesOrBundled` catches it and falls back to the bundled
-        // credits, so a user never sees a crash — one caller, one policy.
+        // behind an empty screen. `readCredits` catches it and falls back to the bundled credits,
+        // flagging `reportUnreadable`, so a user never sees a crash — one caller, one policy.
         assertThrows(Exception::class.java) { groupLicences("not json") }
     }
 
@@ -127,10 +126,22 @@ class LicencesTest {
     }
 
     @Test
-    fun `the list is unavailable only once loading is done and nothing came back`() {
-        val group = LicenceGroup("MIT License", "MIT", null, emptyList())
-        assertFalse(LicencesUiState().unavailable)
-        assertTrue(LicencesUiState(loading = false).unavailable)
-        assertFalse(LicencesUiState(loading = false, groups = listOf(group)).unavailable)
+    fun `an unreadable report is flagged even when bundled credits fill the list`() {
+        val bundled =
+            listOf(
+                LicensedArtifact(
+                    groupId = "org.openstreetmap",
+                    artifactId = "data",
+                    version = "1",
+                    spdxLicenses = listOf(SpdxLicence("ODbL-1.0", "Open Database License")),
+                ),
+            )
+
+        val unreadable = readCredits(bundled) { error("asset missing") }
+        val readable = readCredits(bundled) { "[]" }
+
+        assertTrue(unreadable.reportUnreadable)
+        assertEquals(1, unreadable.groups.size)
+        assertEquals(false, readable.reportUnreadable)
     }
 }
