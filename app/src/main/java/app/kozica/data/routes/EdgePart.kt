@@ -150,12 +150,12 @@ internal data class Walked(
     val ascent: Double,
     val descent: Double,
     val steepDescent: Double,
-    val steepAscent: Double = 0.0,
+    val steepAscent: Double,
 ) {
     fun turned() = Walked(descent, ascent, steepAscent, steepDescent)
 }
 
-/** Climbs over [heights] at [metres] along a line, in walking order, by the dead band; a descent steeper than [STEEP_GRADE] counts apart. */
+/** Climbs over [heights] at [metres] along a line, in the order given, by the dead band; ascent and descent steeper than [STEEP_GRADE] count apart. */
 internal fun walk(
     metres: List<Double>,
     heights: List<Double>,
