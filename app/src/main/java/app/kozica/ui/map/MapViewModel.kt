@@ -508,7 +508,7 @@ class MapViewModel(
     /** Replans an open Route in [mode]; refused while Following, since changing the line under someone helps nobody. */
     fun setMode(mode: Mode) {
         if (route.value.following != null) return
-        switchMap(mode, bikeRouteFilter.value)
+        switchMode(mode)
         replan(mode, bikeRouteFilter.value)
     }
 
@@ -516,7 +516,7 @@ class MapViewModel(
     fun setBikeRouteFilter(filter: BikeRouteFilter) {
         if (route.value.following != null) return
         if (filter != bikeRouteFilter.value) planningAlong?.cancel()
-        choose(filter)
+        chooseChip(filter)
         replan(route.value.mode, filter)
     }
 
@@ -524,13 +524,16 @@ class MapViewModel(
         mode: Mode,
         filter: BikeRouteFilter,
     ) {
+        chooseChip(filter)
+        switchMode(mode)
+    }
+
+    private fun switchMode(mode: Mode) {
         if (mode != this.mode.value) closeSelection()
-        choose(filter)
         applicationScope.launch { preferences.setMapMode(mode) }
     }
 
-    /** The stored chip, read at start, never overrides one already chosen, by a tap or a resumed ride. */
-    private fun choose(filter: BikeRouteFilter) {
+    private fun chooseChip(filter: BikeRouteFilter) {
         chipChosen = true
         bikeRouteFilter.value = filter
         applicationScope.launch { preferences.setMapBikeRouteFilter(filter) }
@@ -974,7 +977,7 @@ class MapViewModel(
                     planning?.cancel()
                     routeGeneration++
                     route.value = RouteUiState(suggestedName = title)
-                    choose(chip)
+                    chooseChip(chip)
                     changePoints(mode.value to chip, edit = false) { points }
                     labelPoints(points)
                 } finally {

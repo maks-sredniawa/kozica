@@ -305,8 +305,8 @@ names no Trail, hike or signpost and is Hiking's as it is.
 - **Settled in E** (by the agent, 2026-11-12, kept by the owner the same day). A saved Route with an
   unsaved change says "Unsaved changes" under its name, in every build, after a point edit as after a
   switch; the mark clears on Save or delete and is not kept across a closed app. A walk ignores a chip
-  change but saves the map's chip. Opening a ride writes its Mode to the map's stored Mode, and opening
-  one in the other Mode closes the selection.
+  change but saves the map's chip. Opening a ride writes its Mode and chip to the map's stored ones, and
+  opening one in the other Mode closes the selection.
 
 ## 5. Following, and a Route along a Bike route
 
