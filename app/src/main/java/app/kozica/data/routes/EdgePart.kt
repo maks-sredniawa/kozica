@@ -29,7 +29,8 @@ data class EdgePart(
 
 /**
  * A whole edge gets exactly what the build stored; a part of one gets `climb()`'s rule run over the
- * heights it walks, in walking order, its cut ends interpolated, and in Cycling [ridingSeconds] over them.
+ * heights it walks, its cut ends interpolated, and in Cycling [ridingSeconds] over them. As the build does,
+ * the runs are always counted in the edge's own order, and a part walked backward takes them turned.
  */
 fun TrailNetwork.part(
     edge: Int,
@@ -58,11 +59,12 @@ fun TrailNetwork.part(
     val inside = along.indices.filter { along[it] > low && along[it] < high }
     val metres = listOf(from * total) + (if (forward) inside else inside.reversed()).map { along[it] } + (to * total)
     val heights = metres.map { heightAt(first, along, it) }
-    val walked = walk(metres, heights)
+    val (edgeMetres, edgeHeights) = if (forward) metres to heights else metres.reversed() to heights.reversed()
+    val counted = walk(edgeMetres, edgeHeights)
+    val walked = if (forward) counted else counted.turned()
     val seconds =
         if (cycling) {
-            val ridden = if (forward) metres to heights else metres.reversed() to heights.reversed()
-            ridingSeconds(edge, ridden.first, ridden.second, forward)
+            ridingSeconds(edge, edgeMetres, edgeHeights, forward)
         } else {
             ruleSeconds(abs(to - from) * edgeLength[edge], walked.ascent, walked.steepDescent)
         }
@@ -148,7 +150,10 @@ internal data class Walked(
     val ascent: Double,
     val descent: Double,
     val steepDescent: Double,
-)
+    val steepAscent: Double = 0.0,
+) {
+    fun turned() = Walked(descent, ascent, steepAscent, steepDescent)
+}
 
 /** Climbs over [heights] at [metres] along a line, in walking order, by the dead band; a descent steeper than [STEEP_GRADE] counts apart. */
 internal fun walk(
@@ -158,6 +163,7 @@ internal fun walk(
     var ascent = 0.0
     var descent = 0.0
     var steepDescent = 0.0
+    var steepAscent = 0.0
     var reference = heights.first()
     var run = 0.0
     for (i in 1 until heights.size) {
@@ -167,10 +173,11 @@ internal fun walk(
         val steep = run > 0 && abs(change) / run > STEEP_GRADE
         if (change > 0) ascent += change else descent -= change
         if (change < 0 && steep) steepDescent -= change
+        if (change > 0 && steep) steepAscent += change
         reference = heights[i]
         run = 0.0
     }
-    return Walked(ascent, descent, steepDescent)
+    return Walked(ascent, descent, steepDescent, steepAscent)
 }
 
 internal fun ruleSeconds(
