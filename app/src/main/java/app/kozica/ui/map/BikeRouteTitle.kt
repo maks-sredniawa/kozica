@@ -47,6 +47,16 @@ internal fun bikeRouteTitle(
     return if (ends == null) kind.colourOnly.format(colour) else kind.withEnds.format(colour, ends.first, ends.second)
 }
 
+/** The name a search matched, unless the title already shows it: itself, or the number an unnamed route's title is built from. */
+internal fun bikeRouteMatchedLine(
+    facts: BikeRouteFacts,
+    matched: String,
+    title: String,
+): String? {
+    val unnamed = facts.name == null && facts.namePl == null
+    return matched.takeUnless { it == title || (unnamed && it == facts.ref) }
+}
+
 /** A Section's parent above the title, as a Trail's Long-distance Trail is, and a named route's number under it. */
 internal fun bikeRouteHeading(
     route: BikeRouteDetail,
