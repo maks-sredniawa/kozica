@@ -292,8 +292,9 @@ names no Trail, hike or signpost and is Hiking's as it is.
   beside the points, so nothing can plan a ride as a walk by default. The followed Route kept for a
   closed app (`FollowedRoute`, 6b § 3) stores them beside its points, Hiking and All when absent so one
   stored before this phase decodes as a walk, and resuming sets the map's Mode and chip to them before
-  it plans, as opening a saved Route does: the map keeps its Mode across a closed app but not its chip,
-  which would come back All and replan an MTB ride over Touring lines. "Back to the Route" plans under
+  it plans, as opening a saved Route does, so an MTB ride never replans over Touring lines under the
+  map's own chip. The map stores its chip beside its Mode (2026-11-13, the owner's call), and a chip set
+  by a resumed or opened Route wins over the stored one read at start. "Back to the Route" plans under
   the followed Route's (§ 5). The debug seeder's Hike along a Route stays a walk, and `RouteReceiver`
   takes them from `--es mode` and `--es filter` (Readings).
 - **A change of Mode or chip with a Route open replans its points** in the new Mode, saved or not. A leg

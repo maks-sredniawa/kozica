@@ -237,7 +237,7 @@ of the renders.
   Trail can lie over a Bike route where they cross. 7c looks at it again when both Modes reach users.
 - **The switch**: a two-segment button, walker and bike, under the search row at the left; in
   Cycling the chips All · Touring · MTB beside it, or together under it where the width runs out,
-  filtering the map as the sub-filter will filter planning. The Mode is stored and the app opens in the last one, in Hiking on a first launch. In
+  filtering the map as the sub-filter will filter planning. The Mode is stored and the app opens in the last one, in Hiking on a first launch; from 7b the chip is stored beside it, All on a first launch. In
   `app/src/debug/`; `app/src/release/`'s half passes Hiking.
 
 Copy: "Hiking", "Cycling" (the switch's descriptions), "All", "Touring", "MTB".

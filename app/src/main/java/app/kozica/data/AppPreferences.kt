@@ -52,6 +52,7 @@ class AppPreferences(
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val MAP_MODE = stringPreferencesKey("map_mode")
+        val MAP_BIKE_ROUTE_FILTER = stringPreferencesKey("map_bike_route_filter")
         val MATERIAL_YOU = booleanPreferencesKey("material_you")
         val BACKUP_FOLDER_URI = stringPreferencesKey("backup_folder_uri")
         val MAP_LATITUDE = doublePreferencesKey("map_latitude")
@@ -131,6 +132,16 @@ class AppPreferences(
 
     suspend fun setMapMode(mode: Mode) {
         store.edit { it[Keys.MAP_MODE] = mode.name }
+    }
+
+    /** The map's chip, stored by name as [mapMode] is; All on a first launch or for a name this build does not know. */
+    val mapBikeRouteFilter: Flow<BikeRouteFilter> =
+        store.data.map { stored ->
+            BikeRouteFilter.entries.firstOrNull { it.name == stored[Keys.MAP_BIKE_ROUTE_FILTER] } ?: BikeRouteFilter.ALL
+        }
+
+    suspend fun setMapBikeRouteFilter(filter: BikeRouteFilter) {
+        store.edit { it[Keys.MAP_BIKE_ROUTE_FILTER] = filter.name }
     }
 
     /**

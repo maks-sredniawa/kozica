@@ -476,6 +476,7 @@ class MapViewModel(
 
     private var searchText = ""
     private val bikeRouteFilter = MutableStateFlow(BikeRouteFilter.ALL)
+    private var chipChosen = false
 
     val state: StateFlow<MapUiState> =
         combine(
@@ -515,7 +516,7 @@ class MapViewModel(
     fun setBikeRouteFilter(filter: BikeRouteFilter) {
         if (route.value.following != null) return
         if (filter != bikeRouteFilter.value) planningAlong?.cancel()
-        bikeRouteFilter.value = filter
+        choose(filter)
         replan(route.value.mode, filter)
     }
 
@@ -524,8 +525,15 @@ class MapViewModel(
         filter: BikeRouteFilter,
     ) {
         if (mode != this.mode.value) closeSelection()
-        bikeRouteFilter.value = filter
+        choose(filter)
         applicationScope.launch { preferences.setMapMode(mode) }
+    }
+
+    /** The stored chip, read at start, never overrides one already chosen, by a tap or a resumed ride. */
+    private fun choose(filter: BikeRouteFilter) {
+        chipChosen = true
+        bikeRouteFilter.value = filter
+        applicationScope.launch { preferences.setMapBikeRouteFilter(filter) }
     }
 
     /** A walk has no chip, so only its Mode replans it. */
@@ -546,6 +554,10 @@ class MapViewModel(
     init {
         viewModelScope.launch { mode.drop(1).collect { if (searchText.isNotBlank()) search(searchText) } }
         viewModelScope.launch { camera.compareAndSet(null, preferences.mapCamera.first() ?: TATRY) }
+        viewModelScope.launch {
+            val stored = preferences.mapBikeRouteFilter.first()
+            if (!chipChosen) bikeRouteFilter.value = stored
+        }
         viewModelScope.launch {
             val found = withContext(io) { places() } != null
             search.update { it.copy(available = found) }
@@ -962,7 +974,7 @@ class MapViewModel(
                     planning?.cancel()
                     routeGeneration++
                     route.value = RouteUiState(suggestedName = title)
-                    bikeRouteFilter.value = chip
+                    choose(chip)
                     changePoints(mode.value to chip, edit = false) { points }
                     labelPoints(points)
                 } finally {

@@ -1589,6 +1589,7 @@ class MapViewModelTest {
     fun `a followed ride is resumed in its own Mode and chip, set before it plans`() =
         runTest {
             val preferences = AppPreferences(MemoryPreferences())
+            preferences.setMapBikeRouteFilter(BikeRouteFilter.MTB)
             preferences.setFollowedRoute(
                 FollowedRoute(
                     ride,
@@ -1613,6 +1614,33 @@ class MapViewModelTest {
             assertEquals(BikeRouteFilter.TOURING, state.bikeRouteFilter)
             assertEquals(listOf(Mode.CYCLING to BikeRouteFilter.TOURING), plans)
             assertEquals(Mode.CYCLING, stored(preferences) { it?.mode == Mode.CYCLING }?.mode)
+            assertEquals(BikeRouteFilter.TOURING, settled(viewModel) { true }.bikeRouteFilter)
+            assertEquals(BikeRouteFilter.TOURING, storedChip(preferences, BikeRouteFilter.TOURING))
+        }
+
+    @Test
+    fun `the map's chip is stored, and a new map opens under it`() =
+        runTest {
+            val preferences = cycling()
+            val first = routingViewModel(preferences = preferences)
+            settled(first) { it.mode == Mode.CYCLING }
+
+            first.setBikeRouteFilter(BikeRouteFilter.TOURING)
+
+            assertEquals(BikeRouteFilter.TOURING, storedChip(preferences, BikeRouteFilter.TOURING))
+            val reopened = routingViewModel(preferences = preferences)
+            assertEquals(
+                BikeRouteFilter.TOURING,
+                settled(reopened) { it.bikeRouteFilter == BikeRouteFilter.TOURING }.bikeRouteFilter,
+            )
+        }
+
+    private suspend fun storedChip(
+        preferences: AppPreferences,
+        until: BikeRouteFilter,
+    ): BikeRouteFilter? =
+        withContext(Dispatchers.Default) {
+            withTimeoutOrNull(5.seconds) { preferences.mapBikeRouteFilter.first { it == until } }
         }
 
     private suspend fun settled(
