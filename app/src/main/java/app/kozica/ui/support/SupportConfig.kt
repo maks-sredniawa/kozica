@@ -3,9 +3,10 @@ package app.kozica.ui.support
 import app.kozica.BuildConfig
 
 /**
- * Everything about Help and feedback that differs from one app to the next — **the one file in
- * `ui/support/` that `scripts/sync-support.py` never overwrites.** Every other file in this package,
- * and the `shared:support` block of each `strings.xml`, comes from android-starter.
+ * Everything about Help and feedback that differs from one app to the next — **a file in
+ * `ui/support/` that android-starter's `scripts/sync-support.py` never overwrites**, like every file
+ * `scripts/support-sync.keep` lists (here `LicencesScreen.kt`). Every other file in this package, and
+ * the `shared:support` block of each `strings.xml`, comes from android-starter.
  *
  * Each constant is compiled into every build and frozen there for as long as a sideloaded copy
  * survives, so the address and the site sit on a domain we own, whose routing can move without a
@@ -36,10 +37,16 @@ object SupportConfig {
     /** The relief build every release packs: `scripts/relief.pin`'s tag, which a test holds this to. */
     const val RELIEF_TAG = "relief-2026-11-01"
 
+    /** The map data's licence, whose §4.6 offer the Credits screen hangs under it. */
+    const val ODBL = "ODbL-1.0"
+
+    /** The relief's licence, whose change notice the Credits screen hangs under it. */
+    const val CC_BY = "CC-BY-4.0"
+
     private val ccBy =
         listOf(
             SpdxLicence(
-                "CC-BY-4.0",
+                CC_BY,
                 "Creative Commons Attribution 4.0",
                 "https://creativecommons.org/licenses/by/4.0/",
             ),
@@ -62,7 +69,7 @@ object SupportConfig {
                 spdxLicenses =
                     listOf(
                         SpdxLicence(
-                            "ODbL-1.0",
+                            ODBL,
                             "Open Database License 1.0",
                             "https://opendatacommons.org/licenses/odbl/1-0/",
                         ),
@@ -110,4 +117,7 @@ object SupportConfig {
                     ),
             ),
         )
+
+    /** People who helped with this app, shown on Credits under the creator; none hides the section. */
+    val CONTRIBUTORS: List<Contributor> = emptyList()
 }

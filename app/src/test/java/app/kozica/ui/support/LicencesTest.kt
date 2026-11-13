@@ -78,11 +78,29 @@ class LicencesTest {
     }
 
     @Test
-    fun `malformed input throws, and the ViewModel is where that is caught`() {
+    fun `malformed input throws, and licencesOrBundled is where that is caught`() {
         // Deliberately *not* swallowed here. This function's job is to parse; a report it cannot
         // parse means the build's generator is broken, and returning an empty list would hide that
-        // behind an empty screen. `LicencesViewModel` wraps the call so a user never sees a crash,
-        // which is the right place for the decision — one caller, one policy.
+        // behind an empty screen. `licencesOrBundled` catches it and falls back to the bundled
+        // credits, so a user never sees a crash — one caller, one policy.
         assertThrows(Exception::class.java) { groupLicences("not json") }
+    }
+
+    @Test
+    fun `an unreadable report still shows the bundled credits`() {
+        val bundled =
+            listOf(
+                LicensedArtifact(
+                    groupId = "org.openstreetmap",
+                    artifactId = "data",
+                    version = "1",
+                    spdxLicenses = listOf(SpdxLicence("ODbL-1.0", "Open Database License")),
+                ),
+            )
+
+        val groups = licencesOrBundled(bundled) { error("asset missing") }
+
+        assertEquals(listOf("ODbL-1.0"), groups.map { it.spdxId })
+        assertEquals(bundled, groups.single().artifacts)
     }
 }
