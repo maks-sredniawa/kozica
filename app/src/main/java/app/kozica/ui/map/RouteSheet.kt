@@ -1,5 +1,9 @@
 package app.kozica.ui.map
 
+import android.os.Build
+import android.view.accessibility.AccessibilityManager
+import android.view.accessibility.AccessibilityManager.FLAG_CONTENT_CONTROLS
+import android.view.accessibility.AccessibilityManager.FLAG_CONTENT_TEXT
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,9 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.kozica.R
 import app.kozica.data.Mode
@@ -52,8 +59,9 @@ import app.kozica.data.routes.RideGrade
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.ridingMinutes
 import app.kozica.theme.Spacing
-import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /** docs/phase-5.md § 4: the totals and warnings always, the points, the profile and Reverse on a tap. */
 @Composable
@@ -568,17 +576,12 @@ private const val OFF_TRAIL_SHOWN_METRES = 50.0
 @Composable
 internal fun ClosedRouteBar(
     onUndo: () -> Unit,
-    onExpire: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(Unit) {
-        delay(UNDO_MILLIS)
-        onExpire()
-    }
     Surface(
         shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
         tonalElevation = 1.dp,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -594,4 +597,17 @@ internal fun ClosedRouteBar(
     }
 }
 
-private const val UNDO_MILLIS = 5_000L
+/** 5 seconds, or longer when the system's "Time to take action" setting asks for it. */
+@Composable
+internal fun undoTime(): Duration {
+    val accessibility = LocalContext.current.getSystemService(AccessibilityManager::class.java)
+    val millis =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            accessibility.getRecommendedTimeoutMillis(UNDO_MILLIS, FLAG_CONTENT_TEXT or FLAG_CONTENT_CONTROLS)
+        } else {
+            UNDO_MILLIS
+        }
+    return millis.milliseconds
+}
+
+private const val UNDO_MILLIS = 5_000
