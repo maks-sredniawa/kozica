@@ -309,6 +309,10 @@ names no Trail, hike or signpost and is Hiking's as it is.
   opening one in the other Mode closes the selection. **Its Save button then reads "Save changes"**, and the
   name dialog it opens is titled and confirmed the same, since Save writes over the same Route; with nothing
   changed, and on a Route never saved, it reads "Save route" (the owner, 2026-11-13).
+- **Back closes the Route** (the owner, 2026-11-13), in every Mode and build, once the sheet is collapsed:
+  an expanded sheet collapses first, a selection or a Hike over it closes before it, and while Following Back
+  leaves the Route alone. "Route closed" with Undo takes the sheet's place for 5 seconds, and Undo puts the
+  Route back as it was, saved or not; a point added meanwhile ends the offer. Before, Back left the app.
 
 ## 5. Following, and a Route along a Bike route
 

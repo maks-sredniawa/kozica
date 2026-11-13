@@ -627,6 +627,57 @@ class MapViewModelTest {
         }
 
     @Test
+    fun `Back closes the Route and Undo puts it back as it was`() =
+        runTest {
+            val viewModel = routingViewModel()
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            val planned = settled(viewModel) { it.route.planned != null && !it.route.planning }.route
+
+            viewModel.closeRoute()
+            val closed = settled(viewModel) { it.route.points.isEmpty() }.route
+            assertNotNull(closed.undoable)
+
+            viewModel.undoCloseRoute()
+            val back = settled(viewModel) { it.route.points.isNotEmpty() }.route
+            assertEquals(planned.points, back.points)
+            assertEquals(planned.planned, back.planned)
+            assertNull(back.undoable)
+        }
+
+    @Test
+    fun `a point added after Back leaves nothing to undo`() =
+        runTest {
+            val viewModel = routingViewModel()
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned != null }
+            viewModel.closeRoute()
+            settled(viewModel) { it.route.undoable != null }
+
+            viewModel.addPoint(49.0, 20.04)
+
+            assertNull(settled(viewModel) { it.route.points.size == 1 }.route.undoable)
+        }
+
+    @Test
+    fun `Back while Following leaves the Route`() =
+        runTest {
+            val viewModel = routingViewModel()
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned?.complete == true && !it.route.planning }
+            viewModel.follow()
+            settled(viewModel) { it.route.following != null }
+
+            viewModel.closeRoute()
+
+            val state = settled(viewModel) { true }
+            assertEquals(2, state.route.points.size)
+            assertNotNull(state.route.following)
+        }
+
+    @Test
     fun `reverse plans the same points the other way`() =
         runTest {
             val viewModel = routingViewModel()

@@ -24,6 +24,8 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="action_ok">OK</string>
+    <!-- Puts back what was just closed or removed. -->
+    <string name="action_undo">Undo</string>
 
     <!-- "Maps" are the Regions, which arrive from Play after the install. %1$d of %2$d have arrived. "Play" is the Google Play Store app. -->
     <string name="map_downloading">Downloading maps — %1$d of %2$d</string>
@@ -72,6 +74,8 @@
     <string name="route_save">Save route</string>
     <!-- The Save button and its dialog on a saved route whose points, Mode or chip differ from what was saved; saving writes over the same route. -->
     <string name="route_save_changes">Save changes</string>
+    <!-- Where the route's sheet was, for a few seconds after Back closed the route, beside "Undo". -->
+    <string name="route_closed">Route closed</string>
     <!-- Under a saved route's name on the map once its points, Mode or chip differ from what was saved, until "Save changes" stores them. -->
     <string name="route_unsaved">Unsaved changes</string>
     <!-- The label of the field holding a Route's name, such as "Kuźnice – Morskie Oko". -->
