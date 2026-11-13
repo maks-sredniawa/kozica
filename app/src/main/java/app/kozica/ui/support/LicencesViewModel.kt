@@ -9,30 +9,53 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+data class LicencesUiState(
+    val loading: Boolean = true,
+    val groups: List<LicenceGroup> = emptyList(),
+    val bundledTexts: Set<String> = emptySet(),
+) {
+    /** Only once loading is done: an empty list mid-read is not an unreadable report. */
+    val unavailable: Boolean get() = !loading && groups.isEmpty()
+}
 
 class LicencesViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val _groups = MutableStateFlow<List<LicenceGroup>>(emptyList())
-    val groups: StateFlow<List<LicenceGroup>> = _groups.asStateFlow()
+    private val state = MutableStateFlow(LicencesUiState())
+    val uiState: StateFlow<LicencesUiState> = state.asStateFlow()
+
+    // An app that keeps its own LicencesScreen.kt (support-sync.keep) still reads this.
+    val groups: StateFlow<List<LicenceGroup>> =
+        state.map { it.groups }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         viewModelScope.launch {
             // Off the main thread: reading an asset is a disk read, and this one is a few hundred
             // kilobytes of JSON.
-            _groups.value =
+            state.value =
                 withContext(Dispatchers.IO) {
-                    licencesOrBundled(SupportConfig.BUNDLED_CREDITS) {
-                        getApplication<Application>()
-                            .assets
-                            .open(LICENCES_ASSET)
-                            .bufferedReader()
-                            .use { it.readText() }
-                    }
+                    val assets = getApplication<Application>().assets
+                    LicencesUiState(
+                        loading = false,
+                        groups =
+                            licencesOrBundled(SupportConfig.BUNDLED_CREDITS) {
+                                assets.open(LICENCES_ASSET).bufferedReader().use { it.readText() }
+                            },
+                        bundledTexts =
+                            assets
+                                .list(LICENCE_TEXT_DIRECTORY)
+                                .orEmpty()
+                                .map { it.removeSuffix(".txt") }
+                                .toSet(),
+                    )
                 }
         }
     }

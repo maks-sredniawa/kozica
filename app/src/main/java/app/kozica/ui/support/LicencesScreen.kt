@@ -1,7 +1,6 @@
 package app.kozica.ui.support
 
 import android.content.Intent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -43,13 +45,16 @@ import app.kozica.ui.common.startActivitySafely
 @Composable
 fun LicencesScreen(
     onBack: () -> Unit,
-    onOpenLicence: (String) -> Unit,
+    onOpenLicenceText: (spdxId: String, title: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LicencesViewModel =
         viewModel(factory = LicencesViewModel.Factory, extras = appViewModelExtras()),
 ) {
-    val groups by viewModel.groups.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // Not saveable, and one slot for the screen: only the tap just made is worth reporting.
+    var noBrowserFor by remember { mutableStateOf<String?>(null) }
 
     DetailScaffold(
         title = stringResource(R.string.support_credits),
@@ -71,25 +76,52 @@ fun LicencesScreen(
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.section),
                     )
+                    Text(
+                        text = stringResource(R.string.licences_intro),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.snug),
+                    )
+                    if (state.unavailable) {
+                        Text(
+                            text = stringResource(R.string.licences_unavailable),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(start = Spacing.base, end = Spacing.base, top = Spacing.base),
+                        )
+                    }
                 }
             }
-            for (group in groups) {
+            for (group in state.groups) {
                 item(key = group.title) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                // Only an SPDX licence has text bundled with the binary; a vendor's
-                                // own terms can only be linked, so that row is not tappable here.
-                                .then(
-                                    if (group.spdxId != null) {
-                                        Modifier.clickable { onOpenLicence(group.spdxId!!) }
-                                    } else {
-                                        Modifier
-                                    },
-                                ),
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         SectionHeader(group.title)
+                        when (val link = group.link(state.bundledTexts)) {
+                            is LicenceLink.Text ->
+                                LinkRow(
+                                    title = stringResource(R.string.licences_read),
+                                    target = LinkTarget.Inside,
+                                    onClick = { onOpenLicenceText(link.spdxId, link.title) },
+                                )
+                            is LicenceLink.Terms ->
+                                LinkRow(
+                                    title = stringResource(R.string.licences_open_terms),
+                                    subtitle = link.url,
+                                    target = LinkTarget.Outside,
+                                    onClick = {
+                                        noBrowserFor = if (context.openInBrowser(link.url)) null else group.title
+                                    },
+                                )
+                            null -> Unit
+                        }
+                        if (noBrowserFor == group.title) {
+                            Text(
+                                text = stringResource(R.string.support_no_browser),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(horizontal = Spacing.base, vertical = Spacing.snug),
+                            )
+                        }
                         Text(
                             text = group.artifacts.joinToString("\n") { it.listing },
                             style = MaterialTheme.typography.bodySmall,
