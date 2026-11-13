@@ -299,7 +299,7 @@ private fun Totals(
         Total(stringResource(R.string.route_length), length(planned.metres, locale))
         Total(stringResource(R.string.route_ascent), wholeMetres(planned.ascent, locale))
         Total(stringResource(R.string.route_descent), wholeMetres(planned.descent, locale))
-        if (time.approximate) {
+        if (planned.mode == Mode.CYCLING) {
             Total(stringResource(R.string.route_riding_time), time.text(locale))
         } else {
             Total(

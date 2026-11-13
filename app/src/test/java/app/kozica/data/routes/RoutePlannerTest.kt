@@ -162,4 +162,6 @@ class RoutePlannerTest {
         assertEquals(before.metres, across.metres, 0.0)
         assertEquals(network.edgeLength[0] + network.edgeLength[4].toDouble(), route.metres, 5.0)
     }
+
+    private fun PlannedRoute.minutesTo(point: Int): Int? = secondsToPoint[point]?.let(::roundedUpToFiveMinutes)
 }

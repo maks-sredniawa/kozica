@@ -103,7 +103,7 @@
     <string name="following_find_me">Find me on the Route</string>
     <!-- What is left to the next point of the Route. %1$s is its name, such as "Hala Gąsienicowa"; %2$s a distance, such as "1.8 km"; %3$s the climb, such as "240 m"; %4$s a time, such as "1 h 05 min", or in Cycling an estimate, such as "≈ 1 h 05 min". -->
     <string name="following_next">Next: %1$s · %2$s · ↑ %3$s · %4$s</string>
-    <!-- What is left to the Route's end. %1$s is a distance, %2$s the climb, %3$s a time. -->
+    <!-- What is left to the Route's end. %1$s is a distance, %2$s the climb, %3$s a time, an estimate that in Cycling already carries its "≈". -->
     <string name="following_to_end">To the end: %1$s · ↑ %2$s · %3$s</string>
     <string name="following_ended">You\'ve reached the end of the Route</string>
     <!-- Following stops when the user adds, moves, removes or reverses a point. -->
