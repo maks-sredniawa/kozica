@@ -72,6 +72,16 @@ internal fun RouteSheet(
     var expanded by rememberSaveable { mutableStateOf(false) }
     // Set as the dialog opens, so a draft restored after the Route itself was lost is never shown.
     var draft by rememberSaveable { mutableStateOf("") }
+    val saveLabel =
+        stringResource(
+            if (route.savedId != null &&
+                route.changed
+            ) {
+                R.string.route_save_changes
+            } else {
+                R.string.route_save
+            },
+        )
     val planned = route.planned.takeUnless { route.planning }
     val figures = planned?.let { sheetFigures(it, route.stretches) }
     val open = expanded || route.points.size < 2
@@ -156,7 +166,7 @@ internal fun RouteSheet(
                         draft = route.name ?: route.suggestedName
                             ?: listOf(route.points.first(), route.points.last()).joinToString(" – ") { it.name() }
                         onShowSaveDialog(true)
-                    }) { Text(stringResource(R.string.route_save)) }
+                    }) { Text(saveLabel) }
                 }
             }
             if (figures != null) Warnings(figures.warnings, route, locale)
@@ -187,10 +197,10 @@ internal fun RouteSheet(
     }
     if (route.naming) {
         RouteNameDialog(
-            title = stringResource(R.string.route_save),
+            title = saveLabel,
             name = draft,
             onNameChange = { draft = it },
-            confirm = stringResource(R.string.route_save),
+            confirm = saveLabel,
             onConfirm = onSave,
             onDismiss = { onShowSaveDialog(false) },
         )
