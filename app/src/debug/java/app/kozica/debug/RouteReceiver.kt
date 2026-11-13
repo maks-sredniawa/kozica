@@ -9,6 +9,7 @@ import app.kozica.MainApplication
 import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import app.kozica.data.hikes.minutes
+import app.kozica.data.routes.Leg
 import app.kozica.data.routes.PlannedRoute
 import app.kozica.data.routes.RoutePlanner
 import app.kozica.data.routes.RoutePoint
@@ -429,13 +430,23 @@ class RouteReceiver : BroadcastReceiver() {
         var legs = 0
         var visited = 0
         val started = SystemClock.elapsedRealtime()
+        val counted = { leg: Leg? ->
+            legs++
+            visited += leg?.nodesVisited ?: 0
+        }
         val points =
             runBlocking {
-                app.container.routeAlongBikeRoute(bikeRoute, chip) { leg ->
-                    legs++
-                    visited += leg?.nodesVisited ?: 0
+                val there = app.container.routeAlongBikeRoute(bikeRoute, chip, counted).orEmpty()
+                if (reversed) {
+                    app.container.routeBackAlongBikeRoute(
+                        bikeRoute,
+                        chip,
+                        counted,
+                    ) ?: there.reversed()
+                } else {
+                    there
                 }
-            }.orEmpty().let { if (reversed) it.reversed() else it }
+            }
         Log.i(
             TAG,
             "along under $chip, the map's chip $current: ${points.size} points in " +

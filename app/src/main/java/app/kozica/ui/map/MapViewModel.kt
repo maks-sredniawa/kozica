@@ -246,6 +246,8 @@ data class SearchUiState(
  *   with the points rather than read back from the map, so a Route opened in its own changes the map's
  *   with it (docs/phase-7b.md § 4).
  * @param changed whether a saved Route's points, Mode or chip differ from what was saved.
+ * @param reverseAlong while a Route along a Bike route stands as planned and unsaved, the points along its back walk
+ *   that Reverse plans instead of turning these, so it starts where the back walk does (docs/phase-7b.md § 6).
  */
 data class RouteUiState(
     val points: List<RoutePoint> = emptyList(),
@@ -263,6 +265,7 @@ data class RouteUiState(
     val mode: Mode = Mode.HIKING,
     val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
     val changed: Boolean = false,
+    val reverseAlong: List<RoutePoint>? = null,
 )
 
 /**
@@ -369,6 +372,10 @@ class MapViewModel(
     private val sectionsOf: (longDistance: Long) -> List<Long> = { emptyList() },
     private val routeAlong: suspend (TrailDetail) -> List<RoutePoint>? = { null },
     private val routeAlongBikeRoute: suspend (BikeRouteDetail, BikeRouteFilter) -> List<RoutePoint>? = { _, _ -> null },
+    private val routeBackAlongBikeRoute: suspend (
+        BikeRouteDetail,
+        BikeRouteFilter,
+    ) -> List<RoutePoint>? = { _, _ -> null },
     private val loadBikeRoute: (id: Long) -> BikeRouteDetail? = { null },
     private val bikeRouteWhole: (parent: Long) -> List<Long> = { emptyList() },
     pace: Flow<Pace?> = flowOf(null),
@@ -767,7 +774,12 @@ class MapViewModel(
     }
 
     fun reverse() {
-        changePoints { it.reversed() }
+        val current = route.value
+        val along = current.reverseAlong
+        changePoints { along ?: it.reversed() }
+        if (along == null) return
+        route.update { it.copy(reverseAlong = current.points) }
+        labelPoints(along)
     }
 
     /**
@@ -971,6 +983,13 @@ class MapViewModel(
                 val self = coroutineContext[Job]
                 try {
                     val points = withContext(compute) { routeAlongBikeRoute(shown, chip) }?.takeIf { it.size >= 2 }
+                    val back =
+                        points?.let {
+                            withContext(compute) { routeBackAlongBikeRoute(shown, chip) }?.takeIf {
+                                it.size >=
+                                    2
+                            }
+                        }
                     if (points == null || bikeRoute.value.shown?.id != shown.id) return@launch
                     if (route.value.following != null) return@launch
                     clearSelection()
@@ -979,6 +998,7 @@ class MapViewModel(
                     route.value = RouteUiState(suggestedName = title)
                     chooseChip(chip)
                     changePoints(mode.value to chip, edit = false) { points }
+                    route.update { it.copy(reverseAlong = back) }
                     labelPoints(points)
                 } finally {
                     if (planningAlong === self) bikeRoute.update { it.copy(planningRoute = false) }
@@ -1165,6 +1185,7 @@ class MapViewModel(
                 it.copy(
                     savedId = id,
                     name = name,
+                    reverseAlong = null,
                     changed =
                         it.points != current.points ||
                             it.mode != current.mode ||
@@ -1370,6 +1391,7 @@ class MapViewModel(
                         points = points,
                         mode = planMode,
                         bikeRouteFilter = planFilter,
+                        reverseAlong = null,
                         changed = it.changed || edit && it.savedId != null,
                     )
                 if (points.isEmpty()) {
@@ -1470,6 +1492,7 @@ class MapViewModel(
                         sectionsOf = app.container::sections,
                         routeAlong = app.container::routeAlong,
                         routeAlongBikeRoute = app.container::routeAlongBikeRoute,
+                        routeBackAlongBikeRoute = app.container::routeBackAlongBikeRoute,
                         loadBikeRoute = app.container::bikeRoute,
                         bikeRouteWhole = app.container::bikeRouteWhole,
                         pace = app.container.pace,
