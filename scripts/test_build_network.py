@@ -742,7 +742,7 @@ class BikeRouteIndexTest(unittest.TestCase):
         self.assertEqual((row["mtb_scale"], row["mtb_scale_uphill"]), (2, None))
         self.assertEqual((row["from_place"], row["to_place"]), ("A", "B"))
         self.assertEqual((row["long_distance"], row["long_distance_name"]), (9, "Szlak"))
-        self.assertEqual(row["names"], ["skret", "twister"])
+        self.assertEqual(row["names"], ["skret", "t1", "twister"])
         self.assertNotIn("symbol", row)
 
     def test_a_parent_s_own_ways_are_a_row_beside_its_sections(self):

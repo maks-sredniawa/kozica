@@ -1605,7 +1605,8 @@ def write_places(places: dict, rows: list[TrailRow], bikes: list[TrailRow], name
         for row in bikes:
             values = bike_route_values(row, names_of, edges, by_trail)
             db.execute(f"INSERT INTO bike_routes VALUES ({', '.join('?' * len(values))})", values)
-            for name in dict.fromkeys(filter(None, (without_colour_code(row.tags.get(key)) for key in ("name", "name:pl")))):
+            keys = ("name", "name:pl", "ref")
+            for name in dict.fromkeys(filter(None, (without_colour_code(row.tags.get(key)) for key in keys))):
                 db.execute("INSERT INTO bike_route_names (bike_route, name, folded) VALUES (?, ?, ?)",
                            (row.number, name, fold(name)))
     db.execute("INSERT INTO place_names (place_names) VALUES ('optimize')")
