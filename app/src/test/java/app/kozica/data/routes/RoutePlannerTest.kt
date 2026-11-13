@@ -85,6 +85,17 @@ class RoutePlannerTest {
     }
 
     @Test
+    fun `part of an edge walked backward climbs as the build counted it, in the edge's own order`() {
+        val almost = 1 - 1e-9
+        for (edge in 0 until network.edgeCount) {
+            val part = network.part(edge, almost, 0.0)
+            assertEquals("edge $edge", network.edgeSecondsBackward[edge].toDouble(), part.seconds, 1.0)
+            assertEquals("edge $edge", network.edgeDescent[edge].toDouble(), part.ascent, 0.5)
+            assertEquals("edge $edge", network.edgeAscent[edge].toDouble(), part.descent, 0.5)
+        }
+    }
+
+    @Test
     fun `a leg to a summit midway along an edge climbs only its own side`() {
         val up = planner.plan(listOf(e, summit))
         assertEquals(100.0, up.ascent, 0.5)
