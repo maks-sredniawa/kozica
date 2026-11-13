@@ -380,7 +380,8 @@ way** (the same day).
   one-way slip roads, broke too: 88 runs on 43 routes at pin 4965. With both, those are repaired, and the
   rest of a loop, kilometres away, never is. **A run whose two ends, widened or not, are one junction is a
   loop**, and its repair is that loop ridden round the other way, where the rider may, never the shortest ride
-  from the junction back to itself, which is none and would leave the loop out (the owner, 2026-11-13).
+  from the junction back to itself, which is none and would leave the loop out (the owner, 2026-11-13). A loop
+  the rider may take neither way round is left out, as before.
   A one-way route has its there walk only, repaired the same way. A
   Trail's walk is as it was: a walker has no direction.
 - **A roundabout is one-way for a rider.** `ride()` reads `junction=roundabout` and `junction=circular`

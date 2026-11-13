@@ -1174,6 +1174,14 @@ class WalkEachWayTest(unittest.TestCase):
                          [(1, 2, False), (2, 11, False), (11, 12, False), (12, 2, False), (2, 3, False)])
         self.assert_ridden_once_with_the_ride(walked, edges)
 
+    def test_a_widened_loop_the_rider_may_take_neither_way_round_is_left_out(self):
+        a, b = (901, 49.0005, 20.0205), (902, 49.0005, 20.0195)
+        ways = {1: grid_way([1, 2]), 2: ([(2, *place(2)), a], {"oneway": "yes"}), 3: ([b, a], {"oneway": "yes"}),
+                4: ([b, (2, *place(2))], {}), 5: grid_way([2, 3])}
+        walked, edges = self.widened(ways, [(1, 2), (2, 901), (901, 902), (902, 2), (2, 3)])
+        self.assertEqual(legs_of(network["Walk"](walked, "line"), edges), [(1, 2, False), (2, 3, False)])
+        self.assert_ridden_once_with_the_ride(walked, edges)
+
     def test_a_trail_s_back_walk_is_its_walk_turned(self):
         rows = fixture_walks()
         with tempfile.TemporaryDirectory() as directory:

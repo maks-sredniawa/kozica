@@ -1410,7 +1410,7 @@ def repair(kind: str, behind: list[Step], run: list[Step], ahead: list[Step], ed
         replaced = [*behind[:taken][::-1], *run, *ahead[:onward]]
         source, target = first_of(replaced[0], edges), last_of(replaced[-1], edges)
         if source == target:
-            found = ridden_round(kind, replaced, edges)
+            found = ridden_round(kind, replaced, edges) or []
         else:
             found = shortest_ride(kind, source, target, edges, at, ridden, Counter(step.edge for step in replaced))
         if found is not None:
