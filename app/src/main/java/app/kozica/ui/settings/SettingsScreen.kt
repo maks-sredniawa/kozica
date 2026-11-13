@@ -1,14 +1,11 @@
 package app.kozica.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +21,8 @@ import app.kozica.record.hasMotionSensor
 import app.kozica.theme.Spacing
 import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.common.DetailScaffold
+import app.kozica.ui.common.LinkRow
+import app.kozica.ui.common.LinkTarget
 import app.kozica.ui.common.SectionHeader
 import app.kozica.ui.common.SwitchRow
 import app.kozica.ui.support.AboutSection
@@ -80,7 +79,7 @@ fun SettingsScreen(
             }
 
             SectionHeader(stringResource(R.string.settings_data))
-            SettingsRow(stringResource(R.string.settings_backup), onClick = onOpenBackup)
+            LinkRow(stringResource(R.string.settings_backup), LinkTarget.Inside, onClick = onOpenBackup)
 
             SectionHeader(stringResource(R.string.settings_language))
             LanguageRow()
@@ -116,38 +115,6 @@ private fun LanguageRow() {
                 onClick = { setAppLanguage(language) },
                 label = { Text(stringResource(language.labelRes)) },
                 modifier = Modifier.padding(end = Spacing.tight),
-            )
-        }
-    }
-}
-
-/**
- * A row that goes somewhere.
- *
- * The subtitle is optional because most rows here name a screen inside the app, where the title is
- * the whole promise. A row that **leaves** the app — opening a mail composer, a system settings
- * page — takes one, because a tap that hands the user to another app with no warning is the kind of
- * thing they back out of and never tap again.
- */
-@Composable
-private fun SettingsRow(
-    title: String,
-    onClick: () -> Unit,
-    subtitle: String? = null,
-) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = Spacing.base, vertical = Spacing.base),
-    ) {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge)
-        if (subtitle != null) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
