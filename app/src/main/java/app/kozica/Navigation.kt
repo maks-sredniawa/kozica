@@ -236,12 +236,13 @@ fun MainNavigation(
                     entry<Licences> {
                         LicencesScreen(
                             onBack = { backStack.removeLastOrNull() },
-                            onOpenLicence = { spdxId -> backStack.add(LicenceText(spdxId)) },
+                            onOpenLicenceText = { spdxId, title -> backStack.add(LicenceText(spdxId, title)) },
                         )
                     }
                     entry<LicenceText> { key ->
                         LicenceTextScreen(
                             spdxId = key.spdxId,
+                            title = key.title,
                             onBack = { backStack.removeLastOrNull() },
                         )
                     }

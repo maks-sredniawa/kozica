@@ -464,7 +464,7 @@
     <string name="settings_language_report_hint">Tell me if a word looks wrong in your language. Opens your email app, with the language you are reading already filled in.</string>
     <string name="support_title">Help and feedback</string>
     <string name="support_report">Report a problem</string>
-    <string name="support_report_hint">Opens your email app with the app version, Android version, phone model and language filled in. Nothing is sent until you tap send.</string>
+    <string name="support_report_hint">Opens your email app with the app version, Android version, phone model and language filled in, and nothing you have recorded in the app. Nothing is sent until you tap send.</string>
     <string name="support_feature">Suggest a feature</string>
     <string name="support_feature_hint">Say what you would like the app to do, and what you would use it for.</string>
     <string name="support_body_bug">What happened, and what you expected instead:</string>
@@ -476,6 +476,10 @@
     <string name="support_rate_hint">Opens this app on Google Play. Rating is optional and unlocks nothing.</string>
     <string name="support_no_play">No Google Play or web browser on this phone to open.</string>
     <string name="licence_text_missing">The text of this licence is not bundled with the app.</string>
+    <string name="licences_intro">This app is built on the libraries below. The list comes from the build itself, so it names everything this copy of the app really contains.</string>
+    <string name="licences_read">Read the licence</string>
+    <string name="licences_open_terms">Open the terms</string>
+    <string name="licences_unavailable">The licence list could not be read from this build.</string>
     <string name="support_no_browser">No web browser on this phone to open.</string>
     <string name="support_site">App web page</string>
     <string name="support_privacy">Privacy policy</string>
