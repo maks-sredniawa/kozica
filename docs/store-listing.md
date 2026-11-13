@@ -444,10 +444,10 @@ The map now also shows Bike routes and MTB routes, faded beneath the Trails so t
 Mapa pokazuje teraz także szlaki rowerowe i szlaki MTB, przygaszone pod szlakami pieszymi, żeby te pozostały czytelne. Na razie nie da się ich wybrać dotknięciem.
 ```
 
-### 0.18.1 — fresher map data
+### 0.18.2 — fresher map data
 
-0.18.1's change, the map's chip kept across a closed app, is Cycling's alone, which a release build does not offer
-yet, so 0.17.0's notes stand unchanged, as they did for 0.18.0.
+0.18.2's change, a Bike route's walk keeping its loops and repaired across wider forks, is Cycling's alone, which a
+release build does not offer yet, so 0.17.0's notes stand unchanged, as they did for 0.18.0 and 0.18.1.
 
 **English** — 139/500:
 
