@@ -20,6 +20,7 @@ import app.kozica.data.regions.GeoBounds
 import app.kozica.data.regions.Region
 import app.kozica.data.regions.RegionState
 import app.kozica.data.routes.BikeRouteDetail
+import app.kozica.data.routes.BikeRouteKind
 import app.kozica.data.routes.FOLLOWED_KEPT_MILLIS
 import app.kozica.data.routes.FollowFix
 import app.kozica.data.routes.FollowedRoute
@@ -1256,6 +1257,37 @@ class MapViewModelTest {
                 assertEquals(expected, state.bikeRouteFilter)
                 assertEquals("Twister", state.route.suggestedName)
                 assertNull(state.bikeRoute.shown)
+            }
+        }
+
+    @Test
+    fun `a Route along a Touring route under Touring stays under Touring, and under MTB is planned under Touring`() =
+        runTest {
+            for (current in listOf(BikeRouteFilter.TOURING, BikeRouteFilter.MTB)) {
+                val plans = mutableListOf<BikeRouteFilter>()
+                val viewModel =
+                    routingViewModel(
+                        preferences = cycling(),
+                        loadBikeRoute = { id ->
+                            bikeRouteDetail(id).let { it.copy(facts = it.facts.copy(kind = BikeRouteKind.TOURING)) }
+                        },
+                        routeAlongBikeRoute = { _, _ -> alongTwister },
+                        planUnder = { points, _, filter ->
+                            plans += filter
+                            RoutePlanner(fixture).plan(points)
+                        },
+                    )
+                settled(viewModel) { it.mode == Mode.CYCLING }
+                viewModel.setBikeRouteFilter(current)
+                viewModel.tapBikeRoutes(listOf(7))
+                settled(viewModel) { it.bikeRoute.shown != null }
+
+                viewModel.planAlongBikeRoute("24C")
+
+                val state = settled(viewModel) { it.route.planned != null && !it.route.planning }
+                assertEquals(listOf(BikeRouteFilter.TOURING), plans)
+                assertEquals(BikeRouteFilter.TOURING, state.bikeRouteFilter)
+                assertEquals(BikeRouteFilter.TOURING, state.route.bikeRouteFilter)
             }
         }
 
