@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1](https://github.com/maks-sredniawa/kozica/compare/v0.18.0...v0.18.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* let a Mode tap leave the stored chip to land, and test a chip read late ([154689e](https://github.com/maks-sredniawa/kozica/commit/154689ef06ff9e4bbbf50da0cc0ba9596f623e10))
+* store the map's chip beside its Mode, so a closed app opens under it ([037f06c](https://github.com/maks-sredniawa/kozica/commit/037f06c607e4ca22be6d7c1db8519793e8c420cf))
+
 ## [0.18.0](https://github.com/maks-sredniawa/kozica/compare/v0.17.0...v0.18.0) (2026-11-12)
 
 
