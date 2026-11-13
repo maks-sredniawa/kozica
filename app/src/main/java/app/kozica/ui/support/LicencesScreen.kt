@@ -1,6 +1,5 @@
 package app.kozica.ui.support
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.kozica.BuildConfig
@@ -29,7 +27,6 @@ import app.kozica.ui.common.DetailScaffold
 import app.kozica.ui.common.LinkRow
 import app.kozica.ui.common.LinkTarget
 import app.kozica.ui.common.SectionHeader
-import app.kozica.ui.common.startActivitySafely
 
 /**
  * Credits: who made the app, who helped, then attribution for every dependency in *this* binary.
@@ -115,12 +112,7 @@ fun LicencesScreen(
                             null -> Unit
                         }
                         if (noBrowserFor == group.title) {
-                            Text(
-                                text = stringResource(R.string.support_no_browser),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(horizontal = Spacing.base, vertical = Spacing.snug),
-                            )
+                            NoBrowserMessage()
                         }
                         Text(
                             text = group.artifacts.joinToString("\n") { it.listing },
@@ -133,19 +125,21 @@ fun LicencesScreen(
                 when (group.spdxId) {
                     SupportConfig.ODBL ->
                         item(key = SupportConfig.MAP_DATA_RELEASE) {
-                            LinkRow(
-                                title = stringResource(R.string.licences_map_data),
-                                subtitle = stringResource(R.string.licences_map_data_hint),
-                                target = LinkTarget.Outside,
-                                onClick = {
-                                    context.startActivitySafely(
-                                        Intent(
-                                            Intent.ACTION_VIEW,
-                                            "${SupportConfig.MAP_DATA_RELEASE}${BuildConfig.VERSION_NAME}".toUri(),
-                                        ),
-                                    )
-                                },
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                LinkRow(
+                                    title = stringResource(R.string.licences_map_data),
+                                    subtitle = stringResource(R.string.licences_map_data_hint),
+                                    target = LinkTarget.Outside,
+                                    onClick = {
+                                        val url = "${SupportConfig.MAP_DATA_RELEASE}${BuildConfig.VERSION_NAME}"
+                                        noBrowserFor =
+                                            if (context.openInBrowser(url)) null else SupportConfig.MAP_DATA_RELEASE
+                                    },
+                                )
+                                if (noBrowserFor == SupportConfig.MAP_DATA_RELEASE) {
+                                    NoBrowserMessage()
+                                }
+                            }
                         }
                     SupportConfig.CC_BY ->
                         item(key = "relief-modified") {
@@ -160,6 +154,16 @@ fun LicencesScreen(
             }
         }
     }
+}
+
+@Composable
+private fun NoBrowserMessage() {
+    Text(
+        text = stringResource(R.string.support_no_browser),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(horizontal = Spacing.base, vertical = Spacing.snug),
+    )
 }
 
 @Composable
