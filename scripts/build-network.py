@@ -85,7 +85,7 @@ SEARCHED_RUNS = 60
 SEARCH_STEPS = 200_000
 ENDLESS_LONGER = 2
 BESIDE_METRES = 150.0
-WIDEN_METRES = 150.0
+WIDEN_METRES = 250.0
 OFF_WALK = {"alternative", "excursion", "approach", "branch"}
 UNDECOMPOSED = str.maketrans({"ł": "l", "đ": "d", "ð": "d", "ø": "o", "ß": "ss", "æ": "ae", "œ": "oe", "ı": "i"})
 
@@ -1408,11 +1408,21 @@ def repair(kind: str, behind: list[Step], run: list[Step], ahead: list[Step], ed
     widened = [(b + a, j, m) for j, b in enumerate(reach(behind, edges)) for m, a in enumerate(reach(ahead, edges))]
     for _, taken, onward in sorted(widened):
         replaced = [*behind[:taken][::-1], *run, *ahead[:onward]]
-        found = shortest_ride(kind, first_of(replaced[0], edges), last_of(replaced[-1], edges), edges, at, ridden,
-                              Counter(step.edge for step in replaced))
+        source, target = first_of(replaced[0], edges), last_of(replaced[-1], edges)
+        if source == target:
+            found = ridden_round(kind, replaced, edges)
+        else:
+            found = shortest_ride(kind, source, target, edges, at, ridden, Counter(step.edge for step in replaced))
         if found is not None:
             return taken, onward, found
     return None
+
+
+def ridden_round(kind: str, loop: list[Step], edges: list[Edge]) -> list[Step] | None:
+    """docs/phase-7b.md § 6: a loop the walk rides against the rider, ridden round the other way, rather than the
+    shortest ride from its junction back to itself, which is none."""
+    turned = [replace(step, breaks=False) for step in turned_steps(loop)]
+    return turned if all(rider_may(kind, edges[step.edge], step) for step in turned) else None
 
 
 def with_the_ride(kind: str, steps: list[Step], edges: list[Edge], route_edges: list[int]) -> list[Step]:
