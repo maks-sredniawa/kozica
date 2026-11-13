@@ -59,6 +59,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -78,6 +79,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -634,7 +636,7 @@ class MapViewModelTest {
             viewModel.addPoint(49.0, 20.02)
             val planned = settled(viewModel) { it.route.planned != null && !it.route.planning }.route
 
-            viewModel.closeRoute()
+            viewModel.closeRoute(Duration.INFINITE)
             val closed = settled(viewModel) { it.route.points.isEmpty() }.route
             assertNotNull(closed.undoable)
 
@@ -652,12 +654,58 @@ class MapViewModelTest {
             viewModel.addPoint(49.0, 20.0)
             viewModel.addPoint(49.0, 20.02)
             settled(viewModel) { it.route.planned != null }
-            viewModel.closeRoute()
+            viewModel.closeRoute(Duration.INFINITE)
             settled(viewModel) { it.route.undoable != null }
 
             viewModel.addPoint(49.0, 20.04)
 
             assertNull(settled(viewModel) { it.route.points.size == 1 }.route.undoable)
+        }
+
+    @Test
+    fun `the Undo offer lasts its time and no longer`() =
+        runTest {
+            val viewModel = routingViewModel()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect {} }
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned != null && !it.route.planning }
+
+            viewModel.closeRoute(5.seconds)
+            advanceTimeBy(4.9.seconds)
+            assertNotNull(viewModel.state.value.route.undoable)
+            advanceTimeBy(0.2.seconds)
+            assertNull(viewModel.state.value.route.undoable)
+
+            viewModel.undoCloseRoute()
+            assertTrue(
+                viewModel.state.value.route.points
+                    .isEmpty(),
+            )
+        }
+
+    @Test
+    fun `Undo of a Route closed mid-plan plans it again`() =
+        runTest {
+            val held = CompletableDeferred<Unit>()
+            var plans = 0
+            val viewModel =
+                routingViewModel(planRoute = {
+                    if (plans++ == 1) held.await()
+                    RoutePlanner(fixture).plan(it)
+                })
+            viewModel.addPoint(49.0, 20.0)
+            viewModel.addPoint(49.0, 20.02)
+            settled(viewModel) { it.route.planned != null && !it.route.planning }
+            viewModel.addPoint(49.0, 20.04)
+            settled(viewModel) { it.route.planning }
+
+            viewModel.closeRoute(Duration.INFINITE)
+            viewModel.undoCloseRoute()
+
+            val back = settled(viewModel) { it.route.points.size == 3 && !it.route.planning }.route
+            assertEquals(2, back.planned?.legs?.size)
+            held.complete(Unit)
         }
 
     @Test
@@ -670,7 +718,7 @@ class MapViewModelTest {
             viewModel.follow()
             settled(viewModel) { it.route.following != null }
 
-            viewModel.closeRoute()
+            viewModel.closeRoute(Duration.INFINITE)
 
             val state = settled(viewModel) { true }
             assertEquals(2, state.route.points.size)

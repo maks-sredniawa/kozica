@@ -540,11 +540,11 @@ fun MapScreen(
             CameraUpdateFactory.newLatLngBounds(bounds, sidePadding, topPadding, sidePadding, bottomPadding),
         )
     }
+    val undoTime = undoTime()
     // First, so every selection and the Hike, composed after it, take Back before the Route does.
-    BackHandler(
-        enabled = state.route.points.isNotEmpty() && state.route.following == null,
-        onBack = viewModel::closeRoute,
-    )
+    BackHandler(enabled = state.route.points.isNotEmpty() && state.route.following == null) {
+        viewModel.closeRoute(undoTime)
+    }
     BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeHike() }
     // After the Hike's, which a chooser opens over: the handler composed last wins.
     BackHandler(enabled = state.bikeRoute.shown != null || state.bikeRoute.choices.isNotEmpty()) {
@@ -861,7 +861,7 @@ fun MapScreen(
                     modifier = Modifier.heightIn(max = sheetHeight),
                 )
             } else if (state.route.undoable != null) {
-                ClosedRouteBar(onUndo = viewModel::undoCloseRoute, onExpire = viewModel::forgetClosedRoute)
+                ClosedRouteBar(onUndo = viewModel::undoCloseRoute)
             }
         }
     }

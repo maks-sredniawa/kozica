@@ -64,6 +64,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -89,6 +90,7 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.time.Duration
 
 /**
  * @param regions null until the first read of the phone's Regions.
@@ -423,6 +425,8 @@ class MapViewModel(
     private var searching: Job? = null
 
     private var planning: Job? = null
+
+    private var undoExpiry: Job? = null
 
     private var followed: FollowedLine? = null
 
@@ -761,23 +765,27 @@ class MapViewModel(
         }
     }
 
-    /** Back on a Route not being followed: it goes, and Undo brings it back until the bar offering it expires (docs/phase-7b.md § 4). */
-    fun closeRoute() {
+    /** Back on a Route not being followed: it goes, and Undo brings it back for [undoFor] (docs/phase-7b.md § 4). */
+    fun closeRoute(undoFor: Duration) {
         val closed = route.value
         if (closed.points.isEmpty() || closed.following != null) return
         planning?.cancel()
         routeGeneration++
-        route.value = RouteUiState(undoable = closed.copy(planning = false, undoable = null))
-    }
-
-    fun forgetClosedRoute() {
-        route.update { it.copy(undoable = null) }
+        route.value = RouteUiState(undoable = closed.copy(undoable = null))
+        undoExpiry?.cancel()
+        undoExpiry =
+            viewModelScope.launch {
+                delay(undoFor)
+                route.update { it.copy(undoable = null) }
+            }
     }
 
     fun undoCloseRoute() {
         val closed = route.value.undoable ?: return
         if (route.value.points.isNotEmpty()) return
+        undoExpiry?.cancel()
         route.value = closed
+        if (closed.planning) changePoints(closed.mode to closed.bikeRouteFilter, edit = false) { it }
     }
 
     fun removePoint(index: Int) {
@@ -1426,6 +1434,7 @@ class MapViewModel(
             }
         val points = next.points
         if (points.isEmpty()) routeGeneration++
+        undoExpiry?.cancel()
         planning?.cancel()
         if (points.size < 2) return
         val (planMode, planFilter) = next.mode to next.bikeRouteFilter
