@@ -11,6 +11,7 @@
     <string name="action_back">Wstecz</string>
     <string name="action_cancel">Anuluj</string>
     <string name="action_save">Zapisz</string>
+    <string name="action_undo">Cofnij</string>
     <string name="action_ok">OK</string>
 
     <string name="map_downloading">Pobieranie map — %1$d z %2$d</string>
@@ -46,6 +47,7 @@
     <string name="route_reverse">Odwróć</string>
     <string name="route_save">Zapisz trasę</string>
     <string name="route_save_changes">Zapisz zmiany</string>
+    <string name="route_closed">Trasa zamknięta</string>
     <string name="route_unsaved">Niezapisane zmiany</string>
     <string name="route_name">Nazwa</string>
     <string name="route_move_up">Przesuń wyżej</string>

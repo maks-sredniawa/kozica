@@ -246,6 +246,7 @@ data class SearchUiState(
  *   with the points rather than read back from the map, so a Route opened in its own changes the map's
  *   with it (docs/phase-7b.md § 4).
  * @param changed whether a saved Route's points, Mode or chip differ from what was saved.
+ * @param undoable the Route Back just closed, for a few seconds, which Undo puts back as it was.
  * @param reverseAlong while a Route along a Bike route stands as planned and unsaved, the points along its back walk
  *   that Reverse plans instead of turning these, so it starts where the back walk does (docs/phase-7b.md § 6).
  */
@@ -266,6 +267,7 @@ data class RouteUiState(
     val bikeRouteFilter: BikeRouteFilter = BikeRouteFilter.ALL,
     val changed: Boolean = false,
     val reverseAlong: List<RoutePoint>? = null,
+    val undoable: RouteUiState? = null,
 )
 
 /**
@@ -757,6 +759,25 @@ class MapViewModel(
                 state.copy(points = state.points.map { if (it === point) it.copy(label = label) else it })
             }
         }
+    }
+
+    /** Back on a Route not being followed: it goes, and Undo brings it back until the bar offering it expires (docs/phase-7b.md § 4). */
+    fun closeRoute() {
+        val closed = route.value
+        if (closed.points.isEmpty() || closed.following != null) return
+        planning?.cancel()
+        routeGeneration++
+        route.value = RouteUiState(undoable = closed.copy(planning = false, undoable = null))
+    }
+
+    fun forgetClosedRoute() {
+        route.update { it.copy(undoable = null) }
+    }
+
+    fun undoCloseRoute() {
+        val closed = route.value.undoable ?: return
+        if (route.value.points.isNotEmpty()) return
+        route.value = closed
     }
 
     fun removePoint(index: Int) {
@@ -1392,6 +1413,7 @@ class MapViewModel(
                         mode = planMode,
                         bikeRouteFilter = planFilter,
                         reverseAlong = null,
+                        undoable = null,
                         changed = it.changed || edit && it.savedId != null,
                     )
                 if (points.isEmpty()) {

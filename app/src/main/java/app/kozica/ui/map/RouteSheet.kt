@@ -1,5 +1,6 @@
 package app.kozica.ui.map
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -50,6 +52,7 @@ import app.kozica.data.routes.RideGrade
 import app.kozica.data.routes.RoutePoint
 import app.kozica.data.routes.ridingMinutes
 import app.kozica.theme.Spacing
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 /** docs/phase-5.md § 4: the totals and warnings always, the points, the profile and Reverse on a tap. */
@@ -70,6 +73,7 @@ internal fun RouteSheet(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var expanded by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = expanded && route.points.size >= 2) { expanded = false }
     // Set as the dialog opens, so a draft restored after the Route itself was lost is never shown.
     var draft by rememberSaveable { mutableStateOf("") }
     val saveLabel = stringResource(if (route.changed) R.string.route_save_changes else R.string.route_save)
@@ -559,3 +563,35 @@ private fun PlannedRoute.offTrailMetres(i: Int): Double? =
     legs.getOrNull(i)?.start?.metresAway ?: legs.getOrNull(i - 1)?.end?.metresAway
 
 private const val OFF_TRAIL_SHOWN_METRES = 50.0
+
+/** Where the sheet was, while a Route Back closed can still be put back. */
+@Composable
+internal fun ClosedRouteBar(
+    onUndo: () -> Unit,
+    onExpire: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LaunchedEffect(Unit) {
+        delay(UNDO_MILLIS)
+        onExpire()
+    }
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
+        tonalElevation = 1.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = Spacing.base, end = Spacing.tight),
+        ) {
+            Text(
+                stringResource(R.string.route_closed),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onUndo) { Text(stringResource(R.string.action_undo)) }
+        }
+    }
+}
+
+private const val UNDO_MILLIS = 5_000L
