@@ -93,7 +93,7 @@ class RoutesViewModel(
                                     totals?.metres,
                                     time?.minutes,
                                     totals?.seconds?.takeIf { key.mode == Mode.HIKING }?.let(::roundedUpToFiveMinutes),
-                                    key.mode == Mode.CYCLING,
+                                    time?.approximate == true,
                                 )
                             }
                         send(RoutesUiState(rows))

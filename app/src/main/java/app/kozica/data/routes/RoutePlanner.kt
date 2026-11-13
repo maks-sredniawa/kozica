@@ -86,8 +86,6 @@ data class PlannedRoute(
     val metres: Double get() = line.lastOrNull()?.metres ?: 0.0
     val complete: Boolean get() = legs.all { it != null }
     val minutes: Int get() = roundedUpToFiveMinutes(seconds)
-
-    fun minutesTo(point: Int): Int? = secondsToPoint[point]?.let(::roundedUpToFiveMinutes)
 }
 
 /** As a signpost gives it: the unrounded sum, rounded up to the next 5 minutes. */
