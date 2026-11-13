@@ -68,6 +68,16 @@ class BikeRouteTitleTest {
     }
 
     @Test
+    fun `a search hit shows the name it matched only where the title does not already`() {
+        val numbered = touring.copy(ref = "24C")
+        assertEquals(null, bikeRouteMatchedLine(numbered, "24C", bikeRouteTitle(numbered, null, null, english)))
+        val named = touring.copy(name = "Twister", namePl = "Skręt", ref = "24C")
+        assertEquals("24C", bikeRouteMatchedLine(named, "24C", "Twister"))
+        assertEquals("Skręt", bikeRouteMatchedLine(named, "Skręt", "Twister"))
+        assertEquals(null, bikeRouteMatchedLine(named, "Twister", "Twister"))
+    }
+
+    @Test
     fun `the Sections button names the parent, a parent's own row its title, and an unnamed parent has none`() {
         val named = mtb.copy(longDistanceId = 9, longDistanceName = "Enduro Trails")
         assertEquals("Enduro Trails", bikeRouteSectionsSubject(BikeRouteDetail(named, line = emptyList()), "Twister"))

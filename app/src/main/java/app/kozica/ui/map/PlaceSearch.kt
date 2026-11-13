@@ -173,8 +173,8 @@ private fun BikeRouteLines(
 ) {
     val title = bikeRouteTitle(result.facts, null, null, words)
     Text(title, style = MaterialTheme.typography.bodyLarge)
-    if (result.matched != title) {
-        Text(result.matched, style = MaterialTheme.typography.bodyMedium)
+    bikeRouteMatchedLine(result.facts, result.matched, title)?.let {
+        Text(it, style = MaterialTheme.typography.bodyMedium)
     }
     val kind =
         result.facts.longDistanceName?.let { stringResource(R.string.search_section_of, it) }
