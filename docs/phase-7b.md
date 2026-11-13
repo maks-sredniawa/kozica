@@ -255,7 +255,7 @@ and from then on D, E and F plan on them, still shown nowhere until G. The reser
   way), counted ten times while the join is chosen and once in the leg's time, so a farther Bike route
   wins only for a much shorter Route. It is drawn dashed, and the sheet shows its length over 50 m.
 - **The Route sheet in Cycling** shows distance, ascent and descent, the profile, and the warning; from G
-  the riding time under them, "≈" and rounded to 5 minutes, never under 5, and each point's time,
+  the riding time under them, "≈" and rounded to 5 minutes, "< 5 min" under 5, and each point's time,
   summed in riding seconds unrounded and rounded as the total. Without G no point shows a time. None of
   the Pace lines shows in Cycling (`route_time_signposts`, `pace_yours`, `pace_floored`, `pace_none`):
   they speak of signposts and hikes, and the walking Pace never touches a ride (*Not in*). Hiking's
@@ -330,8 +330,9 @@ names no Trail, hike or signpost and is Hiking's as it is.
   the window moves Progress, and a ride at 20 km/h outruns the window by more than 40 m only after a gap of about
   200 s. A faster descent outruns it sooner: at 30 km/h, after a gap of about 29 s.
 - **Settled in G** (by the agent, 2026-11-12, kept by the owner the same day). "Rounded to 5 minutes" is to the
-  nearest 5, a half up, then never under 5, where a walk's time rounds up as a signpost's does. Every riding
-  time shown carries "≈": the sheet's total under "Riding time", each point's, Following's next point, end
+  nearest 5, a half up, where a walk's time rounds up as a signpost's does. Every riding
+  time shown carries "≈", and one under 5 minutes reads "< 5 min" instead (the owner, 2026-11-13, for a
+  short leg back that read "≈ 5 min"): the sheet's total under "Riding time", each point's, Following's next point, end
   and leg back, and the Routes tab's row. The leg back in Cycling is timed by its own riding seconds, as a
   walk's is by its walking ones. The riding rule spreads a leg's time over the line by `climb()`'s runs,
   each vertex carrying the surface class and `mtb:scale` of the edge it is reached along, a run also ending
@@ -435,7 +436,7 @@ way** (the same day).
 - **`EdgePart`'s riding half**: run over a whole edge's points, it gives the riding seconds the build
   stored for that edge, so the app's mirror cannot drift from `build-network.py`'s constants; the
   fixture holds a ride each constant moves, and `test_build_network.py` fails when one stops moving.
-- **The sheet's figures**: the time rounded to 5 minutes and never under 5, and each point's time
+- **The sheet's figures**: the time rounded to 5 minutes, "< 5 min" under 5, and each point's time
   rounded as it is, none without G; no Pace line in Cycling; the warning from S2 only, uphill read from
   `mtb:scale:uphill` where it is tagged, in its own string.
 - **Following in Cycling**: after 60 s with no fix, a fix 340 m on along the line, a ride at 20 km/h,

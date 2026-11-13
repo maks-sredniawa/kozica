@@ -92,7 +92,7 @@ data class PlannedRoute(
 fun roundedUpToFiveMinutes(seconds: Double): Int = ceil(seconds / 300 - 1e-9).toInt() * 5
 
 /** docs/phase-7b.md § 3: a riding time, rounded to the nearest 5 minutes and never under 5. */
-fun ridingMinutes(seconds: Double): Int = maxOf(5, (seconds / 300).roundToInt() * 5)
+fun ridingMinutes(seconds: Double): Int = if (seconds < 300) 0 else (seconds / 300).roundToInt() * 5
 
 class RoutePlanner(
     private val network: TrailNetwork,

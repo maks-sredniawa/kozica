@@ -99,6 +99,8 @@
     <string name="route_riding_time">Riding time</string>
     <!-- A riding time, which is an estimate: %1$s is a time, such as "1 h 40 min". -->
     <string name="route_time_approximate">≈ %1$s</string>
+    <!-- A riding time under five minutes, in place of a rounded estimate: %1$s is "5 min" as times are written. -->
+    <string name="route_time_under">&lt; %1$s</string>
     <!-- Following a Route on the map (docs/phase-6b.md § 3): the user walks it with the map keeping them in view. -->
     <string name="following_follow">Follow</string>
     <string name="following_stop">Stop</string>

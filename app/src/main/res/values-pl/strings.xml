@@ -63,6 +63,7 @@
     <string name="route_walking_time">Czas przejścia</string>
     <string name="route_riding_time">Czas przejazdu</string>
     <string name="route_time_approximate">≈ %1$s</string>
+    <string name="route_time_under">&lt; %1$s</string>
     <string name="following_follow">Prowadź</string>
     <string name="following_stop">Zakończ</string>
     <string name="following_find_me">Znajdź mnie na trasie</string>
