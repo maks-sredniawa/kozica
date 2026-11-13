@@ -50,8 +50,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -1635,6 +1637,46 @@ class MapViewModelTest {
             )
         }
 
+    @Test
+    fun `a chip tapped before the stored one is read stays chosen`() =
+        runTest {
+            val (held, preferences) = heldUnder(BikeRouteFilter.MTB)
+            val viewModel = routingViewModel(preferences = preferences)
+
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect {} }
+
+            viewModel.setBikeRouteFilter(BikeRouteFilter.TOURING)
+            held.read.complete(Unit)
+
+            assertEquals(
+                BikeRouteFilter.TOURING,
+                settled(viewModel) { it.bikeRouteFilter != BikeRouteFilter.ALL }.bikeRouteFilter,
+            )
+            assertEquals(BikeRouteFilter.TOURING, storedChip(preferences, BikeRouteFilter.TOURING))
+        }
+
+    @Test
+    fun `a Mode tapped before the stored chip is read leaves the stored chip to land`() =
+        runTest {
+            val (held, preferences) = heldUnder(BikeRouteFilter.MTB)
+            val viewModel = routingViewModel(preferences = preferences)
+
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect {} }
+
+            viewModel.setMode(Mode.CYCLING)
+            held.read.complete(Unit)
+
+            assertEquals(BikeRouteFilter.MTB, settled(viewModel) { it.mode == Mode.CYCLING }.bikeRouteFilter)
+            assertEquals(BikeRouteFilter.MTB, storedChip(preferences, BikeRouteFilter.MTB))
+        }
+
+    private suspend fun heldUnder(chip: BikeRouteFilter): Pair<HeldPreferences, AppPreferences> {
+        val memory = MemoryPreferences()
+        AppPreferences(memory).setMapBikeRouteFilter(chip)
+        val held = HeldPreferences(memory)
+        return held to AppPreferences(held)
+    }
+
     private suspend fun storedChip(
         preferences: AppPreferences,
         until: BikeRouteFilter,
@@ -1839,6 +1881,24 @@ private class MemoryPreferences : DataStore<Preferences> {
 
     override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
         transform(data.value).also { data.value = it }
+}
+
+private class HeldPreferences(
+    private val backing: MemoryPreferences,
+) : DataStore<Preferences> {
+    val read = CompletableDeferred<Unit>()
+
+    // A read held back returns what was stored when it began, as a slow first read from disk does.
+    override val data: Flow<Preferences> =
+        flow {
+            val begun = backing.data.value
+            read.await()
+            emit(begun)
+            emitAll(backing.data)
+        }
+
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        backing.updateData(transform)
 }
 
 private object NoPreferences : DataStore<Preferences> {
