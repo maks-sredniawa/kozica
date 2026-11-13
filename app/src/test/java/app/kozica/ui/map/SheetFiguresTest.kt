@@ -27,8 +27,10 @@ class SheetFiguresTest {
     private val pace = Pace(1.3, hikes = 4, floored = false)
 
     @Test
-    fun `a riding time is rounded to the nearest 5 minutes and never under 5`() {
-        assertEquals(5, ridingMinutes(0.0))
+    fun `a riding time is rounded to the nearest 5 minutes, and under 5 is none`() {
+        assertEquals(0, ridingMinutes(0.0))
+        assertEquals(0, ridingMinutes(299.0))
+        assertEquals(5, ridingMinutes(300.0))
         assertEquals(5, ridingMinutes(449.0))
         assertEquals(10, ridingMinutes(451.0))
         assertEquals(10, ridingMinutes(600.0))

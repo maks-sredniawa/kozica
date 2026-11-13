@@ -284,6 +284,7 @@ internal fun shownTime(
 
 @Composable
 internal fun ShownTime.text(locale: Locale): String {
+    if (approximate && minutes == 0) return stringResource(R.string.route_time_under, walkingTime(5, locale))
     val time = walkingTime(minutes, locale)
     return if (approximate) stringResource(R.string.route_time_approximate, time) else time
 }
