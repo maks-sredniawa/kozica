@@ -125,7 +125,7 @@ internal fun trackGeoJson(track: Track): String =
     }.toString()
 
 /** The style's `hike-photos` source: a point per pinned photo, its `id` what a tap opens. */
-internal fun photoPinsGeoJson(photos: List<HikePhoto>): String =
+internal fun photoPinsGeoJson(photos: List<OutingPhoto>): String =
     buildJsonObject {
         put("type", "FeatureCollection")
         put(

@@ -8,21 +8,21 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 @Dao
-interface HikeDao {
+interface OutingDao {
     @Insert
-    suspend fun insert(hike: HikeEntity)
+    suspend fun insert(hike: OutingEntity)
 
     @Query("SELECT * FROM hikes WHERE id = :id")
-    suspend fun get(id: String): HikeEntity?
+    suspend fun get(id: String): OutingEntity?
 
     @Query("SELECT * FROM hikes WHERE id = :id")
-    fun observe(id: String): Flow<HikeEntity?>
+    fun observe(id: String): Flow<OutingEntity?>
 
     @Query(
         "SELECT id, name, startedAt, endedAt, metres, movingSeconds, ascentMetres, ascentFromGps FROM hikes " +
             "WHERE endedAt IS NOT NULL ORDER BY startedAt DESC",
     )
-    fun observeEnded(): Flow<List<HikeSummary>>
+    fun observeEnded(): Flow<List<OutingSummary>>
 
     /** Ended Hikes whose height grid has not been read, at Stop or by a build before it was. */
     @Query("SELECT id FROM hikes WHERE endedAt IS NOT NULL AND ascentMetres IS NULL")
@@ -76,7 +76,7 @@ interface HikeDao {
     @Transaction
     suspend fun trim(
         id: String,
-        trim: HikeTrim,
+        trim: OutingTrim,
     ) {
         trimmed(
             id,
@@ -100,19 +100,19 @@ interface HikeDao {
 
     /** In the order they were taken, the undated after them in the order they were added. */
     @Query("SELECT * FROM hike_photos WHERE hikeId = :hikeId ORDER BY takenAt IS NULL, takenAt, addedAt")
-    fun observePhotos(hikeId: String): Flow<List<HikePhotoEntity>>
+    fun observePhotos(hikeId: String): Flow<List<OutingPhotoEntity>>
 
     @Insert
-    suspend fun insertPhoto(photo: HikePhotoEntity)
+    suspend fun insertPhoto(photo: OutingPhotoEntity)
 
     @Query("SELECT COUNT(*) FROM hike_photos WHERE addedAt > :since")
     fun observePhotosAddedAfter(since: Instant): Flow<Int>
 
     @Query("SELECT * FROM hike_photos WHERE hikeId = :hikeId")
-    suspend fun photos(hikeId: String): List<HikePhotoEntity>
+    suspend fun photos(hikeId: String): List<OutingPhotoEntity>
 
     @Query("SELECT * FROM hike_photos WHERE id = :id")
-    suspend fun photo(id: String): HikePhotoEntity?
+    suspend fun photo(id: String): OutingPhotoEntity?
 
     @Query("UPDATE hike_photos SET caption = :caption WHERE id = :id")
     suspend fun setCaption(
@@ -128,7 +128,7 @@ interface HikeDao {
 
     /** The Hike with no end, if a recording was lost with its process (docs/phase-6.md § 2). */
     @Query("SELECT * FROM hikes WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
-    fun observeUnfinished(): Flow<HikeEntity?>
+    fun observeUnfinished(): Flow<OutingEntity?>
 
     @Insert
     suspend fun insertPoint(point: TrackPointEntity)
@@ -167,7 +167,7 @@ interface HikeDao {
      * to the cascade with its files left behind.
      */
     @Transaction
-    suspend fun deleteWithPhotos(id: String): List<HikePhotoEntity> = photos(id).also { delete(id) }
+    suspend fun deleteWithPhotos(id: String): List<OutingPhotoEntity> = photos(id).also { delete(id) }
 
     /**
      * Reads, encodes and deletes the rows of a Hike still open in one transaction, so no point is
@@ -177,7 +177,7 @@ interface HikeDao {
     @Transaction
     suspend fun finish(
         id: String,
-        ending: suspend (hike: HikeEntity, points: List<TrackPointEntity>) -> HikeEnding,
+        ending: suspend (hike: OutingEntity, points: List<TrackPointEntity>) -> OutingEnding,
     ) {
         val hike = get(id)?.takeIf { it.endedAt == null } ?: return
         val points = points(id)
@@ -189,7 +189,7 @@ interface HikeDao {
 }
 
 /** A Hike as the Hikes tab lists it, without its Track. */
-data class HikeSummary(
+data class OutingSummary(
     val id: String,
     val name: String,
     val startedAt: Instant,
@@ -200,7 +200,7 @@ data class HikeSummary(
     val ascentFromGps: Boolean,
 )
 
-class HikeTrim(
+class OutingTrim(
     val startedAt: Instant,
     val endedAt: Instant,
     val track: ByteArray,
@@ -211,7 +211,7 @@ class HikeTrim(
     val fromGps: Boolean,
 )
 
-class HikeEnding(
+class OutingEnding(
     val name: String,
     val endedAt: Instant,
     val track: ByteArray,

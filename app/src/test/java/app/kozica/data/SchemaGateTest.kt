@@ -34,18 +34,19 @@ class SchemaGateTest {
      * ever tests that path by hand.
      *
      * Released builds have written schema 1 (0.2.0 to 0.8.0), 2 with saved Routes (0.8.1), 3 with
-     * recorded Hikes, and now 4, with a saved Route's Mode and chip (docs/phase-7b.md § 4).
+     * recorded Hikes, 4 with a saved Route's Mode and chip (docs/phase-7b.md § 4), and now 5, with the
+     * Bikes and an Outing's Mode and Bike (docs/phase-7c.md § 2).
      */
     @Test
     fun `the shipped migrations reach this build's version`() {
-        assertEquals(4, APP_SCHEMA_VERSION)
-        for (from in 1..3) {
+        assertEquals(5, APP_SCHEMA_VERSION)
+        for (from in 1..4) {
             assertEquals(
                 "a release-shaped launch over a schema-$from install opens, and Room migrates",
                 SchemaGate.Open,
                 schemaGateDecision(
                     onDiskVersion = from,
-                    appSchemaVersion = 4,
+                    appSchemaVersion = 5,
                     steps = shipped,
                     destructiveAllowed = false,
                 ),

@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import app.kozica.ui.map.wholeMetres
 import java.time.Instant

@@ -34,9 +34,10 @@ import androidx.navigation3.ui.NavDisplay
 import app.kozica.theme.Spacing
 import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.backup.BackupScreen
+import app.kozica.ui.bikes.MyBikesScreen
 import app.kozica.ui.common.WarningBanner
-import app.kozica.ui.hikes.HikesScreen
 import app.kozica.ui.map.MapScreen
+import app.kozica.ui.outings.OutingsScreen
 import app.kozica.ui.record.RecordingBar
 import app.kozica.ui.record.RecordingViewModel
 import app.kozica.ui.record.StopDialog
@@ -74,7 +75,7 @@ internal fun appEntryDecorators(): List<NavEntryDecorator<NavKey>> =
 
 /**
  * The app shell: a [NavDisplay] rooted at [Home], so Back from anywhere walks back there and Back
- * from there exits, and the tab bar under the three tabs, Map, [Routes] and [Hikes]
+ * from there exits, and the tab bar under the three tabs, Map, [Routes] and [Outings]
  * (docs/phase-5.md § 5, docs/phase-6.md § 4). A tab replaces the one above Home rather than
  * stacking on it, so Back from either returns to the map.
  */
@@ -151,7 +152,7 @@ fun MainNavigation(
                         onStop = { stopping = true },
                     )
                 }
-                if (top == Home || top == Routes || top == Hikes) {
+                if (top == Home || top == Routes || top == Outings) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = top == Home,
@@ -166,8 +167,8 @@ fun MainNavigation(
                             label = { Text(stringResource(R.string.routes_title)) },
                         )
                         NavigationBarItem(
-                            selected = top == Hikes,
-                            onClick = { showTab(Hikes) },
+                            selected = top == Outings,
+                            onClick = { showTab(Outings) },
                             icon = { Icon(painterResource(R.drawable.ic_hike), contentDescription = null) },
                             label = { Text(stringResource(R.string.hikes_title)) },
                         )
@@ -210,8 +211,8 @@ fun MainNavigation(
                     entry<Routes> {
                         RoutesScreen(onShow = showMap)
                     }
-                    entry<Hikes> {
-                        HikesScreen(onShow = showMap)
+                    entry<Outings> {
+                        OutingsScreen(onShow = showMap)
                     }
                     entry<Safety> {
                         SafetyScreen(onBack = { backStack.removeLastOrNull() })
@@ -222,7 +223,11 @@ fun MainNavigation(
                             onOpenLicences = { backStack.add(Licences) },
                             onOpenSupport = { backStack.add(Support) },
                             onOpenBackup = { backStack.add(Backup) },
+                            onOpenBikes = { backStack.add(Bikes) },
                         )
+                    }
+                    entry<Bikes> {
+                        MyBikesScreen(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<Backup> {
                         BackupScreen(onBack = { backStack.removeLastOrNull() })

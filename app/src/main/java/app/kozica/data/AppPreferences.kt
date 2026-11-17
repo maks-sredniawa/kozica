@@ -62,6 +62,7 @@ class AppPreferences(
         val NOTIFICATIONS_ASKED = booleanPreferencesKey("notifications_asked")
         val LAST_EVERYTHING_EXPORT = longPreferencesKey("last_everything_export")
         val FOLLOWED_ROUTE = stringPreferencesKey("followed_route")
+        val CURRENT_BIKE = stringPreferencesKey("current_bike")
     }
 
     /**
@@ -142,6 +143,29 @@ class AppPreferences(
 
     suspend fun setMapBikeRouteFilter(filter: BikeRouteFilter) {
         store.edit { it[Keys.MAP_BIKE_ROUTE_FILTER] = filter.name }
+    }
+
+    /** The Bike Record starts on and the Route sheet times by (docs/phase-7c.md § 2); null for none. */
+    val currentBikeId: Flow<String?> = store.data.map { it[Keys.CURRENT_BIKE] }
+
+    suspend fun setCurrentBike(id: String?) {
+        store.edit { prefs ->
+            if (id == null) prefs.remove(Keys.CURRENT_BIKE) else prefs[Keys.CURRENT_BIKE] = id
+        }
+    }
+
+    /** A first Bike, or one added while none is current, becomes the current one. */
+    suspend fun setCurrentBikeIfUnset(id: String) {
+        store.edit { prefs ->
+            if (prefs[Keys.CURRENT_BIKE] == null) prefs[Keys.CURRENT_BIKE] = id
+        }
+    }
+
+    /** Unsets the current Bike only while it is [id], so a deleted Bike never leaves it dangling. */
+    suspend fun clearCurrentBike(id: String) {
+        store.edit { prefs ->
+            if (prefs[Keys.CURRENT_BIKE] == id) prefs.remove(Keys.CURRENT_BIKE)
+        }
     }
 
     /**

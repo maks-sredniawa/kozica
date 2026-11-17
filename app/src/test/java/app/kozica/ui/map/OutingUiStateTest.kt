@@ -9,11 +9,11 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 
-class HikeUiStateTest {
+class OutingUiStateTest {
     private val along = listOf(0.0, 1_500.0, 3_000.0, 4_500.0, 6_000.0001)
 
     private fun keeping(keep: ClosedFloatingPointRange<Double>) =
-        HikeUiState(
+        OutingUiState(
             id = "hike",
             name = "",
             startedAt = Instant.EPOCH,

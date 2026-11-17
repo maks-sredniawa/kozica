@@ -23,9 +23,9 @@ import java.time.Instant
 
 /** Instrumented, because Room generates real SQLite code and a JVM test has no SQLite. */
 @RunWith(AndroidJUnit4::class)
-class HikeRepositoryTest {
+class OutingRepositoryTest {
     private lateinit var database: AppDatabase
-    private lateinit var hikes: HikeRepository
+    private lateinit var hikes: OutingRepository
     private val deleted = mutableListOf<String>()
     private var capturedAt: Instant? = null
     private var whilePersisting: suspend () -> Unit = {}
@@ -42,8 +42,8 @@ class HikeRepositoryTest {
                 .build()
         // A metre of climb for every point, from the grid, so every total is easy to predict.
         hikes =
-            HikeRepository(
-                database.hikeDao(),
+            OutingRepository(
+                database.outingDao(),
                 heights = { track ->
                     track.flatten().mapIndexed { i, _ -> Height(1_000.0 + i * 10, HeightSource.GRID) }
                 },
@@ -105,7 +105,7 @@ class HikeRepositoryTest {
     fun aHeightReadThatFailsLeavesTheAscentUnreadForTheNextFill() =
         runTest {
             val id = recorded()
-            val failing = HikeRepository(database.hikeDao(), heights = { error("not a 512 px tile") })
+            val failing = OutingRepository(database.outingDao(), heights = { error("not a 512 px tile") })
 
             failing.fillClimb(id)
             failing.trim(id, first = 3, last = 19)
@@ -121,7 +121,7 @@ class HikeRepositoryTest {
             val id = recorded()
 
             hikes.trim(id, first = 3, last = 19)
-            database.hikeDao().setClimb(id, ascent = 190.0, descent = 0.0, fromGps = false)
+            database.outingDao().setClimb(id, ascent = 190.0, descent = 0.0, fromGps = false)
 
             assertEquals(160.0, hikes.get(id)!!.ascentMetres!!, 1e-9)
         }
@@ -130,12 +130,12 @@ class HikeRepositoryTest {
     fun aTrimKeepsItsSpanRecomputesTheTotalsAndUnpinsThePhotosOutsideIt() =
         runTest {
             val id = recorded()
-            val dao = database.hikeDao()
+            val dao = database.outingDao()
             val before = hikes.get(id)!!
             val inside = photo(id, "in", minute(5))
             val outside = photo(id, "out", minute(2))
-            database.hikeDao().insertPhoto(inside)
-            database.hikeDao().insertPhoto(outside)
+            database.outingDao().insertPhoto(inside)
+            database.outingDao().insertPhoto(outside)
 
             hikes.trim(id, first = 3, last = 19)
 
@@ -156,12 +156,12 @@ class HikeRepositoryTest {
     fun deletingAHikeDeletesItsPhotosRowsAndFiles() =
         runTest {
             val id = recorded()
-            database.hikeDao().insertPhoto(photo(id, "p", minute(5)))
+            database.outingDao().insertPhoto(photo(id, "p", minute(5)))
 
             hikes.delete(id)
 
             assertNull(hikes.get(id))
-            assertEquals(emptyList<HikePhotoEntity>(), database.hikeDao().photos(id))
+            assertEquals(emptyList<OutingPhotoEntity>(), database.outingDao().photos(id))
             assertEquals(listOf("photos/p.jpg", "thumbnails/p.jpg"), deleted)
         }
 
@@ -233,7 +233,7 @@ class HikeRepositoryTest {
 
             hikes.deletePhoto(added.id)
 
-            assertEquals(emptyList<HikePhotoEntity>(), hikes.observePhotos(id).first())
+            assertEquals(emptyList<OutingPhotoEntity>(), hikes.observePhotos(id).first())
             assertEquals(listOf("photos/1.jpg", "thumbnails/1.jpg"), deleted)
         }
 
@@ -241,7 +241,7 @@ class HikeRepositoryTest {
         hikeId: String,
         id: String,
         takenAt: Instant,
-    ) = HikePhotoEntity(
+    ) = OutingPhotoEntity(
         id = id,
         hikeId = hikeId,
         photoPath = "photos/$id.jpg",

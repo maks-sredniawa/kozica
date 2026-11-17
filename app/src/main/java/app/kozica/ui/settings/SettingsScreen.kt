@@ -25,6 +25,7 @@ import app.kozica.ui.common.LinkRow
 import app.kozica.ui.common.LinkTarget
 import app.kozica.ui.common.SectionHeader
 import app.kozica.ui.common.SwitchRow
+import app.kozica.ui.map.CYCLING_OPEN
 import app.kozica.ui.support.AboutSection
 import app.kozica.ui.support.LanguageReportRow
 
@@ -34,6 +35,7 @@ fun SettingsScreen(
     onOpenLicences: () -> Unit,
     onOpenSupport: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenBikes: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel =
         viewModel(factory = SettingsViewModel.Factory, extras = appViewModelExtras()),
@@ -79,6 +81,7 @@ fun SettingsScreen(
             }
 
             SectionHeader(stringResource(R.string.settings_data))
+            if (CYCLING_OPEN) LinkRow(stringResource(R.string.bikes_title), LinkTarget.Inside, onClick = onOpenBikes)
             LinkRow(stringResource(R.string.settings_backup), LinkTarget.Inside, onClick = onOpenBackup)
 
             SectionHeader(stringResource(R.string.settings_language))

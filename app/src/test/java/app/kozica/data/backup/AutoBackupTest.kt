@@ -20,6 +20,7 @@ class AutoBackupTest {
     private val photo = "3f2504e0-4f89-41d3-9a0c-0305e82c3301.jpg"
     private val thumbnail = "3f2504e0-4f89-41d3-9a0c-0305e82c3302.jpg"
     private val olderThumbnail = "3f2504e0-4f89-41d3-9a0c-0305e82c3303.jpg"
+    private val bike = "3f2504e0-4f89-41d3-9a0c-0305e82c3304.jpg"
 
     private lateinit var filesDir: File
     private lateinit var staged: File
@@ -48,6 +49,36 @@ class AutoBackupTest {
             set.files.map { it.name }.toSet(),
         )
         assertEquals(0, set.excludedThumbnails)
+    }
+
+    @Test
+    fun `a cloud backup carries the Bikes' photos with the thumbnails`() {
+        write(File(filesDir, "${MediaKind.Bike.directory}/$bike"), "bike").setLastModified(1_500)
+
+        val set = autoBackupFileSet(filesDir, staged, deviceToDeviceTransfer = false)
+
+        assertTrue(set.files.any { it.path.endsWith("/${MediaKind.Bike.directory}/$bike") })
+        assertEquals(0, set.excludedThumbnails)
+    }
+
+    @Test
+    fun `a Bike's photo goes ahead of newer thumbnails, which fill what the budget leaves`() {
+        write(File(filesDir, "${MediaKind.Bike.directory}/$bike"), "bike").setLastModified(500)
+        val coreBytes = staged.length() + File(filesDir, PREFERENCES_FILE_PATH).length()
+
+        val set =
+            autoBackupFileSet(
+                filesDir,
+                staged,
+                deviceToDeviceTransfer = false,
+                budget = coreBytes + "bike".length + "thumbnail".length,
+            )
+
+        assertEquals(
+            setOf("kozica.db", "app_preferences.preferences_pb", bike, thumbnail),
+            set.files.map { it.name }.toSet(),
+        )
+        assertEquals(1, set.excludedThumbnails)
     }
 
     @Test

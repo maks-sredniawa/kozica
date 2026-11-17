@@ -9,9 +9,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import app.kozica.data.APP_DATABASE_FILE
 import app.kozica.data.AppPreferences
+import app.kozica.data.BikeRepository
 import app.kozica.data.BikeRouteFilter
-import app.kozica.data.HikeRepository
 import app.kozica.data.Mode
+import app.kozica.data.OutingRepository
 import app.kozica.data.PRESERVED_DIRECTORY
 import app.kozica.data.RouteRepository
 import app.kozica.data.backup.BackupExporter
@@ -48,6 +49,7 @@ import app.kozica.data.routes.placesFile
 import app.kozica.data.routes.pointsAlong
 import app.kozica.data.routes.walkLine
 import app.kozica.media.MediaFiles
+import app.kozica.media.MediaKind
 import app.kozica.record.Recorder
 import app.kozica.ui.common.revokeShares
 import kotlinx.coroutines.CoroutineScope
@@ -153,17 +155,28 @@ class AppContainer(
         ) { (relief.first().state as? RegionState.Ready)?.archive }
     }
 
-    val hikes by lazy { HikeRepository(database.hikeDao(), hikeHeights::of, { media.delete(it) }, media::persistPhoto) }
+    val outings by lazy {
+        OutingRepository(database.outingDao(), hikeHeights::of, { media.delete(it) }, media::persistPhoto)
+    }
 
-    val recorder by lazy { Recorder(appContext, hikes, ::places, applicationScope) }
+    val bikes by lazy {
+        BikeRepository(
+            database.bikeDao(),
+            preferences,
+            { media.persist(it, MediaKind.Bike).path },
+            { media.delete(it) },
+        )
+    }
+
+    val recorder by lazy { Recorder(appContext, outings, ::places, applicationScope) }
 
     val pace: StateFlow<Pace?> by lazy {
         Paces(
-            hikes.observeEnded(),
+            outings.observeEnded(),
             relief.map {
                 it.state is RegionState.Ready
             },
-            hikes::ruleSeconds,
+            outings::ruleSeconds,
         ).pace.stateIn(applicationScope, SharingStarted.WhileSubscribed(5_000), null)
     }
 

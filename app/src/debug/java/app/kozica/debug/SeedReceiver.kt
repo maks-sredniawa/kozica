@@ -51,12 +51,12 @@ class SeedReceiver : BroadcastReceiver() {
                     // before/after comparison and every listing screenshot depends on this fixture
                     // being the same fixture it was last week.
                     "" -> SampleData.seed(app.container.routes)
-                    "hikes" -> SampleData.seedHikes(app.container.hikes)
+                    "hikes" -> SampleData.seedHikes(app.container.outings)
                     "route-hike" ->
-                        SampleData.seedRouteHike(app.container.hikes) {
+                        SampleData.seedRouteHike(app.container.outings) {
                             app.container.planRoute(it, Mode.HIKING, BikeRouteFilter.ALL)
                         }
-                    "pace" -> SampleData.seedPace(app.container.hikes)
+                    "pace" -> SampleData.seedPace(app.container.outings)
                     else -> {
                         pending.setResult(1, "unknown variant: $variant", null)
                         return@launch

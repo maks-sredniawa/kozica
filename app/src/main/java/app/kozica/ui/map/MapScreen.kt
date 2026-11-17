@@ -96,8 +96,8 @@ import app.kozica.ui.common.WarningBanner
 import app.kozica.ui.common.osmDateLine
 import app.kozica.ui.common.shareGpx
 import app.kozica.ui.common.startActivitySafely
-import app.kozica.ui.hikes.HikeSheet
-import app.kozica.ui.hikes.PhotoViewer
+import app.kozica.ui.outings.OutingSheet
+import app.kozica.ui.outings.PhotoViewer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
@@ -521,15 +521,15 @@ fun MapScreen(
     }
 
     val hike = state.hike
-    var fittedHike by rememberSaveable { mutableStateOf<String?>(null) }
+    var fittedOuting by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(map, hike?.id, hike?.opening, hike?.track, regions, placed) {
-        if (hike == null) fittedHike = null
+        if (hike == null) fittedOuting = null
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed) return@LaunchedEffect
         val points = hike?.track?.flatten()?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
         val opened = "${hike.id}#${hike.opening}"
-        if (opened == fittedHike) return@LaunchedEffect
-        fittedHike = opened
+        if (opened == fittedOuting) return@LaunchedEffect
+        fittedOuting = opened
         val bounds =
             LatLngBounds
                 .Builder()
@@ -545,7 +545,7 @@ fun MapScreen(
     BackHandler(enabled = state.route.points.isNotEmpty() && state.route.following == null) {
         viewModel.closeRoute(undoTime)
     }
-    BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeHike() }
+    BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeOuting() }
     // After the Hike's, which a chooser opens over: the handler composed last wins.
     BackHandler(enabled = state.bikeRoute.shown != null || state.bikeRoute.choices.isNotEmpty()) {
         if (state.bikeRoute.choices.isNotEmpty()) viewModel.dismissBikeRouteChoices() else viewModel.closeSelection()
@@ -825,15 +825,15 @@ fun MapScreen(
                     modifier = Modifier.heightIn(max = sheetHeight),
                 )
             } else if (hike != null) {
-                HikeSheet(
+                OutingSheet(
                     hike = hike,
-                    onClose = viewModel::closeHike,
-                    onRename = viewModel::renameHike,
+                    onClose = viewModel::closeOuting,
+                    onRename = viewModel::renameOuting,
                     onStartTrim = viewModel::startTrim,
                     onTrimChange = viewModel::trimTo,
                     onCancelTrim = viewModel::cancelTrim,
                     onTrim = viewModel::trim,
-                    onDelete = viewModel::deleteHike,
+                    onDelete = viewModel::deleteOuting,
                     onSetNote = viewModel::setNote,
                     onAddPhotos = {
                         pickingFor = hike.id
@@ -841,7 +841,7 @@ fun MapScreen(
                     },
                     onOpenPhoto = { viewingPhoto = it },
                     gpx = gpx,
-                    onExportGpx = viewModel::exportHikeGpx,
+                    onExportGpx = viewModel::exportOutingGpx,
                     onDismissGpxFailure = viewModel::dismissGpxFailure,
                     modifier = Modifier.heightIn(max = sheetHeight),
                 )

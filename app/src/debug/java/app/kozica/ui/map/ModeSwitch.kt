@@ -28,6 +28,9 @@ import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import app.kozica.theme.Spacing
 
+/** Whether a Bike, a Ride or anything else of Cycling's beyond the Mode reaches this build (docs/phase-7c.md § Checkpoints). */
+const val CYCLING_OPEN = true
+
 /** The Mode this build opens in: the stored one, while the switch is developer-only (docs/phase-7a.md § 3). */
 fun modeOf(stored: Mode): Mode = stored
 
