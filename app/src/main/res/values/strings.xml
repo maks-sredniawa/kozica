@@ -206,6 +206,10 @@
     <string name="bikes_add_photo">Add photo</string>
     <string name="bikes_change_photo">Change photo</string>
     <string name="bikes_remove_photo">Remove photo</string>
+    <!-- Asked before a bike's photo is removed: %1$s is the bike's name, as the user typed it, such as "Gravel". -->
+    <string name="bikes_remove_photo_confirm">Remove the photo of %1$s? This can\'t be undone.</string>
+    <!-- The button that confirms removing a bike's photo. -->
+    <string name="bikes_remove">Remove</string>
     <!-- In a bike's menu, and on the button that confirms it. -->
     <string name="bikes_delete">Delete</string>
     <!-- Asked before a bike with rides is deleted: %1$s is its name, as the user typed it, such as "Gravel"; %2$d how many rides were recorded on it. The rides are kept, with no bike. -->

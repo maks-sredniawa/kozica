@@ -139,6 +139,8 @@
     <string name="bikes_add_photo">Dodaj zdjęcie</string>
     <string name="bikes_change_photo">Zmień zdjęcie</string>
     <string name="bikes_remove_photo">Usuń zdjęcie</string>
+    <string name="bikes_remove_photo_confirm">Usunąć zdjęcie roweru %1$s? Tego nie można cofnąć.</string>
+    <string name="bikes_remove">Usuń</string>
     <string name="bikes_delete">Usuń</string>
     <plurals name="bikes_delete_confirm_rides">
         <item quantity="one">Usunąć %1$s? %2$d wycieczka rowerowa na nim zostanie, bez roweru.</item>

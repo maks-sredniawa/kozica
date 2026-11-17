@@ -186,13 +186,16 @@ field carries `Modifier.semantics { error(reason) }`, so TalkBack reads the reas
 press seeming to do nothing. A photo comes from the Photo Picker, as a Hike's does, through
 `MediaFiles`.
 
+**Remove photo** asks first, as a Hike's "Delete photo" does, since the file goes for good.
+
 **Delete** asks first and says what happens to the Rides: they stay, with no Bike, and teach the no-Bike
 Pace; the Bike's own Pace goes with it.
 
 Copy: "My bikes", "Add bike", "Bike name", "That name is taken.", "Rename", "Add photo", "Change photo",
-"Remove photo", "Delete", "Delete %1$s? Its %2$d rides stay, with no bike." (plural), "Delete %1$s?",
-"%d rides" (plural), "No bikes yet. Add one to keep a pace per bike.", "Options for %1$s" (the ⋮
-button's name, per Bike, as `routes_more` is for a saved Route's).
+"Remove photo", "Remove the photo of %1$s? This can't be undone.", "Remove", "Delete", "Delete %1$s?
+Its %2$d rides stay, with no bike." (plural), "Delete %1$s?", "%d rides" (plural), "No bikes yet. Add
+one to keep a pace per bike.", "Options for %1$s" (the ⋮ button's name, per Bike, as `routes_more` is
+for a saved Route's).
 
 ## 4. Recording a Ride
 
