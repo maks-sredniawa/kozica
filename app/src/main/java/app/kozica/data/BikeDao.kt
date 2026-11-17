@@ -9,11 +9,16 @@ import java.util.Locale
 
 @Dao
 interface BikeDao {
+    fun observeAll(): Flow<List<BikeWithRides>> = observeAllCounting(Mode.CYCLING)
+
     @Query(
-        "SELECT bikes.*, (SELECT COUNT(*) FROM hikes WHERE hikes.bikeId = bikes.id AND hikes.mode = 'CYCLING' " +
+        "SELECT bikes.*, (SELECT COUNT(*) FROM hikes WHERE hikes.bikeId = bikes.id AND hikes.mode = :rides " +
             "AND hikes.endedAt IS NOT NULL) AS rides FROM bikes ORDER BY addedAt, id",
     )
-    fun observeAll(): Flow<List<BikeWithRides>>
+    fun observeAllCounting(rides: Mode): Flow<List<BikeWithRides>>
+
+    @Query("SELECT id FROM bikes")
+    fun observeIds(): Flow<List<String>>
 
     @Query("SELECT * FROM bikes WHERE id = :id")
     suspend fun get(id: String): BikeEntity?
