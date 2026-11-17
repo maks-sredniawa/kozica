@@ -8,6 +8,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from pathlib import Path
 
 
@@ -17,8 +18,8 @@ def main() -> None:
     assets = Path(sys.argv[1]).resolve()
     out = assets.parent / "ride-gate"
     out.mkdir(exist_ok=True)
-    db = sqlite3.connect(f"file:{assets / 'places.sqlite'}?mode=ro", uri=True)
-    rows = db.execute("SELECT id, kind, one_way FROM bike_routes ORDER BY id").fetchall()
+    with closing(sqlite3.connect(f"file:{assets / 'places.sqlite'}?mode=ro", uri=True)) as db:
+        rows = db.execute("SELECT id, kind, one_way FROM bike_routes ORDER BY id").fetchall()
     with open(out / "bike-routes.tsv", "w") as f:
         f.write("id\tkind\tone_way\n")
         for id_, kind, one_way in rows:
