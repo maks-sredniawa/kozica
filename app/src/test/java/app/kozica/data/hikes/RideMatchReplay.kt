@@ -51,9 +51,14 @@ class RideMatchReplay {
         val totals = samplings.associateWith { Totals() }
         val rows = StringBuilder("id\tkind\tdirection\tkmh\tinterval_s\tline_m\ttrack_m\tmatched_m\n")
         val random = Random(20261117)
+        var walkless = 0
         for ((n, route) in routes.withIndex()) {
             val (id, kind, oneWay) = route
-            val there = walks.steps(id) ?: continue
+            val there = walks.steps(id)
+            if (there == null) {
+                walkless++
+                continue
+            }
             val directions =
                 listOf("there" to there) +
                     if (oneWay) emptyList() else listOf("back" to (walks.back(id) ?: TrailWalks.turned(there)))
@@ -79,6 +84,7 @@ class RideMatchReplay {
             if (n % 100 == 0) System.err.println("[${n + 1}/${routes.size}] $id")
         }
         File(assets.parentFile, "ride-gate/ride-gate.tsv").writeText(rows.toString())
+        System.err.println("$walkless of ${routes.size} Bike routes skipped: no walk in trails.edges")
         for ((sampling, t) in totals) {
             System.err.println(
                 "every %d s, %.0f km/h: %d rides, matched %.2f %%, length %+.2f %%".format(

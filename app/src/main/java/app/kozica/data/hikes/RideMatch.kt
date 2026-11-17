@@ -6,7 +6,7 @@ import app.kozica.data.routes.Router
 /** docs/phase-7c.md § 5. */
 const val RIDE_MATCH_METRES = 30.0
 
-/** The stretch of a Ride's Track between two neighbouring fixes, on the Bike route [edge] or, null, off them. */
+/** One piece of a Ride's Track, between two neighbouring fixes: on Bike route edge [edge], or off the Bike routes when null. */
 data class RidePiece(
     val metres: Double,
     val edge: Int?,

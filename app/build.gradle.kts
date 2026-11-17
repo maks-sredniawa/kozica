@@ -194,12 +194,6 @@ kotlin {
 //
 // Declaring the directory as an input is the whole fix.
 tasks.withType<Test>().configureEach {
-    // docs/phase-7c.md § 1: scripts/ride-gate.py names the base assets; the replay reads files Gradle cannot see.
-    providers.gradleProperty("rideGate").orNull?.let {
-        systemProperty("rideGate", it)
-        outputs.upToDateWhen { false }
-        testLogging.showStandardStreams = true
-    }
     inputs
         .dir(layout.projectDirectory.dir("src/main/res"))
         .withPropertyName("resourcesReadByUnitTests")
@@ -222,6 +216,12 @@ tasks.withType<Test>().configureEach {
         .dir(rootProject.layout.projectDirectory.dir("scripts/regions"))
         .withPropertyName("regionPolygonsReadByUnitTests")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // docs/phase-7c.md § 1
+    providers.gradleProperty("rideGate").orNull?.let {
+        systemProperty("rideGate", it)
+        outputs.upToDateWhen { false }
+        testLogging.showStandardStreams = true
+    }
 }
 
 // Room exports the compiled schema as JSON, and those files are what make a migration reviewable
