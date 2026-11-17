@@ -29,7 +29,7 @@ was extracted from and the first app built from it settled on exactly this split
 - [ ] **Phase 6b** — Walking a Route: following it on the way, and times from the user's own pace
 - [x] **Phase 6c** — Named Trails: a whole Trail highlighted, the rest of the map fainter
 - [x] **Phase 7a** — Cycling on the map: Bike routes, the Hiking/Cycling switch, search, the mark
-- [ ] **Phase 7b** — Planning a ride: along Bike routes, one-way lines, riding times
+- [x] **Phase 7b** — Planning a ride: along Bike routes, one-way lines, riding times
 - [ ] **Phase 7c** — Recording Rides: Rides in the log, My bikes, a Pace per Bike
 - [ ] **Phase 7d** — Following a ride: the screen kept on, voice directions
 - [ ] **Phase N** — Ship shape: screenshots, production access, **1.0**
@@ -265,7 +265,11 @@ followed on screen, ahead of 7d.
 
 A Ride recorded as a Hike is and kept in the same log, shown as a Ride and changeable afterwards;
 "My bikes", a name and an optional photo each; a Pace per Bike for Touring and MTB, learned from its
-Rides. The log's tab name once it holds Rides is open, decided when this phase opens.
+Rides. Planned with the owner on 2026-11-17 in [`phase-7c.md`](phase-7c.md): the tab becomes Outings
+(*Wycieczki* in Polish, as it was); a Ride teaches the kind most of its length rides on the Bike routes,
+from 5 km and 20 minutes, never under 0.5× the rule; the current Bike is the last one used, on the recording
+bar and the Route sheet alike; and the switch, the filter as one menu chip and the mark with wheels reach
+every build in its last checkpoint, as 7a promised.
 
 ## Phase 7d — Following a ride
 
