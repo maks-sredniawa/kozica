@@ -6,8 +6,9 @@ relies on [ADR-0011](adr/0011-cycling-follows-marked-bike-routes-and-its-times-a
 kind of its own) and amends it once: how a Ride teaches a Pace, below. It relies on ADR-0001 (schema 5,
 the first migration since 7b's), ADR-0002 (a Bike's photo goes through `MediaFiles`), ADR-0005 (Backup
 carries the Bikes and their photos) and ADR-0008 (nothing leaves the phone). [`CONTEXT.md`](../CONTEXT.md)
-is owed one term, **Outing**, a Hike or a Ride and the tab that holds them, and the Ride row loses "the
-tab's name is open". Planned with the owner on 2026-11-17.
+is owed one term, **Outing**, a Hike or a Ride and the tab that holds them; the Hike row takes its own
+Polish word, *wycieczka piesza*, and the Ride row loses "the tab's name is open". Planned with the owner
+on 2026-11-17.
 
 **What closing this phase means.** Today a release build is Hiking alone: the switch, the chips and the
 mark with wheels are developer-only, and a developer build in Cycling records a Hike. After this phase
@@ -82,10 +83,16 @@ costs battery on every Ride for a precision nobody has shown is needed, and it s
 
 **A comes first** because its verdict sets the Ride's fix interval, which C's recorder uses and D's
 matching depends on. **B does not wait for A**: the schema and My bikes do not care how often a fix is
-taken. **Everything from B to D sits behind the seam** the switch already has, so a release user meets
-no Bike, no Ride and no "Make it a Ride" until E opens Cycling in one release; a ride a release user
-could record but not plan, or a Bike they could add but never ride, is the half-open state 7a refused.
-E deletes the seam's release halves.
+taken. **Everything from B to D sits behind the seam**, so a release user meets no Bike, no Ride and no
+"Make it a Ride" until E opens Cycling in one release; a ride a release user could record but not plan,
+or a Bike they could add but never ride, is the half-open state 7a refused. `modeOf()` and
+`otherModeMatches()` pin only the Mode, and most of B–D's surfaces do not depend on it, so B adds
+**`CYCLING_OPEN`** to `ui/map/ModeSwitch.kt`, `true` in the debug half and `false` in the release one,
+and every B–D surface outside the Mode reads it: the "My bikes" Settings row, the tab's "Outings" label
+(a release build keeps "Hikes" until E), a row's walker or bike icon and its Bike, the sheet's
+"Ride"/"Hike" line, "Make it a Ride", the Bike chip on the recording bar and the Route sheet, and the
+Ride Pace line. B's first `feat:` lands with it, so no surface reaches a release build early. E deletes
+the seam's release halves, `CYCLING_OPEN` with them.
 
 ---
 
@@ -103,7 +110,9 @@ and **the Track's length against the line's**.
 
 The matcher is a pure function in `data/hikes/` (§ 5), so the replay runs it on the JVM:
 `RideMatchReplay`, a test in `app/src/test/` skipped unless `-PrideGate=<trails.network>` names a
-network, writing one row per route and speed to `build/ride-gate.tsv` and the totals to its log. The
+network, writing one row per route and speed to `build/ride-gate.tsv` and the totals to its log.
+`app/build.gradle.kts` passes `-PrideGate` to the test JVM as the `rideGate` system property, and with
+it set marks the test task never up to date, since the replay reads a file Gradle cannot see. The
 noise is seeded. The same run at 1 s is the comparison verdict 2 needs.
 
 ### The verdicts, decided now rather than argued about later
@@ -135,7 +144,10 @@ noise is seeded. The same run at 1 s is the comparison verdict 2 needs.
 - **`MediaKind.Bike`**: directory `bikes/`, a 512² centre crop at q85 as a thumbnail is; the photo is
   shown no larger than a sheet. One file, so `photoPath` and `thumbnailPath` name the same one, and both
   columns stay so a later larger view needs no migration. Backup's Records scope carries it (it is as
-  small as a thumbnail); Everything carries it by being every kind.
+  small as a thumbnail); Everything carries it by being every kind. Android Auto Backup builds its own
+  file set from an explicit list of kinds (`autoBackupFileSet()`, `data/backup/AutoBackup.kt`), so
+  `bikes/` joins `MediaKind.Thumbnail` there and is admitted under the same budget, or a new phone's
+  restore shows every Bike as the placeholder.
 
 `MIGRATION_4_5` adds the table and the two columns. The house rule's four: registered in
 `APP_MIGRATIONS`, `5.json` committed, `SchemaGateTest`'s assertion, and a migration test reading back a
@@ -154,15 +166,19 @@ ends with a row to it too. With no Bike the Settings row is the only trace of Bi
 The screen: a list, each row a 56 dp rounded thumbnail (the bike icon on `surfaceVariant` without a
 photo, which is also the missing-file placeholder), the name, and "12 rides" beneath it; a ⋮ menu with
 Rename, Add photo or Change photo, Remove photo, and Delete. "Add bike" at the bottom opens the name
-dialog, which refuses an empty or taken name with the reason under the field. A photo comes from the
-Photo Picker, as a Hike's does, through `MediaFiles`.
+dialog. Its "Add" (and Rename's confirm) stays disabled for an empty name, as the Route name dialog's
+does; a taken name shows "That name is taken." as the field's `supportingText` with `isError`, and the
+field carries `Modifier.semantics { error(reason) }`, so TalkBack reads the reason rather than the
+press seeming to do nothing. A photo comes from the Photo Picker, as a Hike's does, through
+`MediaFiles`.
 
 **Delete** asks first and says what happens to the Rides: they stay, with no Bike, and teach the no-Bike
 Pace; the Bike's own Pace goes with it.
 
 Copy: "My bikes", "Add bike", "Bike name", "That name is taken.", "Rename", "Add photo", "Change photo",
 "Remove photo", "Delete", "Delete %1$s? Its %2$d rides stay, with no bike." (plural), "Delete %1$s?",
-"%d rides" (plural), "No bikes yet. Add one to keep a pace per bike."
+"%d rides" (plural), "No bikes yet. Add one to keep a pace per bike.", "Options for %1$s" (the ⋮
+button's name, per Bike, as `routes_more` is for a saved Route's).
 
 ## 4. Recording a Ride
 
@@ -185,12 +201,14 @@ Copy: "Record", "Recording a ride", "No bike", "Bike".
 **Matching.** Each pair of neighbouring fixes in a stretch is one piece. Its midpoint goes to
 `Router.nearest()` in Cycling under All; within `RIDE_MATCH_METRES` (30 m) the piece takes that edge's
 surface class, `mtb` and `mtb_up` bytes and its kinds, `SET_TOURING`, `SET_MTB` or both. Beyond it, or
-with no network, the piece is **off the Bike routes** and is timed as paved, the road to the start being
-the common case.
+with no network, the piece is **off the Bike routes** and is timed as the planner times the road to the
+start (7b § 3): its length at the rough class's flat speed, `Travel.offNetworkMetresPerSecond`. The
+Pace is a ratio against the rule it multiplies on the Route sheet, so both sides time that stretch
+alike.
 
-**The rule's time for a Ride** is `ridingStretch()` over its pieces, each with its height change from the
-grid as a Hike's is (`HikeHeights`, the 5 m dead band), each stretch of the Track timed alone so pauses
-are not. The ratio is the moving seconds over it.
+**The rule's time for a Ride** is `ridingStretch()` over its matched pieces, each with its height change
+from the grid as a Hike's is (`HikeHeights`, the 5 m dead band), and the off-route speed over the rest,
+each stretch of the Track timed alone so pauses are not. The ratio is the moving seconds over it.
 
 **The kind a Ride teaches** is MTB when more than half of its matched length lies on edges in an MTB
 route, else Touring. A piece on both kinds counts for neither side of that comparison, so a Touring line
@@ -229,34 +247,46 @@ The walking Pace never touches a ride and the Ride Pace never touches a walk.
 **The tab** is "Outings" / "Wycieczki"; `CONTEXT.md`'s Outing.
 
 **A row**, once the log holds at least one Ride, starts with a 24 dp walker or bike icon in
-`onSurfaceVariant`, and a Ride's Bike is the last item on its facts line ("12 Oct · 34 km · 2 h 10 · ↑ 620
-m · Gravel"). A log with no Ride looks as it does today.
+`onSurfaceVariant`, its content description this section's "Hike" or "Ride", read with the row's merged
+text, so a screen reader tells the two apart; a Ride's Bike is the last item on its facts line ("12 Oct
+· 34 km · 2 h 10 · ↑ 620 m · Gravel"). A log with no Ride looks as it does today.
 
 **A Ride's sheet** has a "Ride" line under its title with the Bike chip, which changes that Ride's Bike
 alone, not the current one. A Hike shows no such line unless the log holds Rides, and then "Hike".
 
 **"Make it a Ride" / "Make it a Hike"** is a button in the sheet's action row after Rename, no confirm, as
 it is undone by the same button. A Hike made a Ride gets the current Bike; a Ride made a Hike keeps its
-`bikeId`, so making it a Ride again restores it. The action row wraps (`FlowRow`): five buttons do not fit
-one line in Polish.
+`bikeId`, so making it a Ride again restores it. That kept `bikeId` is the Bike's only on a Ride: a
+Hike holding one never counts among the Bike's rides on My bikes and never teaches its Pace, as both
+read Rides alone. The action row wraps (`FlowRow`): five buttons do not fit one line in Polish.
 
 GPX export carries `<type>` `hiking` or `cycling`, as Strava and Komoot read it.
 
 Copy: "Outings", "Ride", "Hike", "Make it a Ride", "Make it a Hike", "No outings yet. Record one from the
-map." (replacing the empty Hikes line in the same key's place).
+map." (replacing the empty Hikes line in the same key's place). In Polish a Hike beside a Ride is
+*wycieczka piesza* (`CONTEXT.md`), so the sheet's "Hike" line and the walking Pace line's count (`pace_*`,
+`pace_none`, today "z %d wycieczki") are translated again to name Hikes on foot, and do not read as
+counting every Outing.
 
 ## 8. Cycling for everyone
 
 **The seam's release halves go.** `ModeSwitch.kt`, `ic_bike` and the switch's strings move to `main/`;
-`modeOf()`, `otherModeMatches()` and the B–D seam pass through in every build, and their release twins
-are deleted. A release build opens in the stored Mode, Hiking on a first launch (ADR-0011).
+`modeOf()` and `otherModeMatches()` pass through in every build, `CYCLING_OPEN` (§ Checkpoints) goes
+with every read of it, and their release twins are deleted. The switch's strings are
+`translatable="false"` in `app/src/debug/`, which the translation gate skips, so they lose it on the move
+and get Polish (*pieszo* / *rowerem* per `CONTEXT.md`); the copy below lists them. A release build
+opens in the stored Mode, Hiking on a first launch (ADR-0011).
 
 **The Mode row** (7a's known gap, decided with the owner):
 
 - The search placeholder becomes "Search" / "Szukaj", one line, ellipsised. "Search places and Trails"
   was wrong in Cycling anyway.
-- The three chips become one `FilterChip` showing the current filter, "All ▾", opening a menu of All,
-  Touring and MTB. The row then never wraps in either language, and `MODE_ROW_HEIGHT` stays true.
+- The three chips become one chip showing the current filter, "All ▾", opening a menu of All,
+  Touring and MTB. It is a menu's trigger, not a toggle, so it is an `AssistChip` with
+  `Modifier.semantics { role = Role.DropdownList }` and its expanded or collapsed state, the `▾` a
+  decorative trailing icon rather than a character in the label, and its accessible name "Bike routes:
+  All" (or Touring, MTB), keeping the visible label. The row then never wraps in either language, and
+  `MODE_ROW_HEIGHT` stays true.
 - The row is hidden while Following, where it was only disabled.
 
 **The draw order follows the Mode.** In Cycling the Bike routes' lines, chevrons and plates lie above the
@@ -268,6 +298,10 @@ debug launcher copies in `app/src/debug/res/` go, and `make-launcher-icon.py` wr
 do `ic_notification`, `play-icon-512.png` and the feature graphic. Rendered at 44 dp, 24 dp and 512 px
 for the owner before it merges.
 
+Copy, moved from `app/src/debug/` and now translated: `mode_hiking`, `mode_cycling`, `filter_all`,
+`filter_touring`, `filter_mtb`, `search_hint_trails`, `search_hint_bike_routes`. New: "Search", "Bike
+routes: %1$s" (the menu chip's name).
+
 **The listing.** `docs/store-listing.md`'s descriptions gain Cycling, the Bike routes and the Rides; the
 Play icon and feature graphic change with the mark. The Console upload of the listing and graphics is
 asked first (`DOD.md`'s Play rules).
@@ -277,24 +311,29 @@ asked first (`DOD.md`'s Play rules).
 ## Tests
 
 - **`RideMatchTest`**: a piece 20 m from an MTB-only edge takes its bytes; one 40 m from every edge is
-  off the routes and paved; a piece on a both-kinds edge counts for neither side of the majority. Fails
-  toward a Ride teaching the wrong kind.
+  off the routes and timed at `Travel.offNetworkMetresPerSecond`, as the planner's join is; a piece on a
+  both-kinds edge counts for neither side of the majority. Fails toward a Ride teaching the wrong kind.
 - **`RidePaceTest`**: the counting rule at each boundary (4.99 km, 19 min 59 s, ratio 0.39 and 2.51), 3
-  Rides needed, the 10 newest, the floor at 0.5 with `floored`, and a Bike's two kinds kept apart. Fails
-  toward a time promised faster than any Ride showed.
+  Rides needed, the 10 newest, the floor at 0.5 with `floored`, a Bike's two kinds kept apart, and a
+  Hike keeping a `bikeId` teaching that Bike nothing. Fails toward a time promised faster than any Ride
+  showed.
 - **`MIGRATION_4_5`'s test** and **`SchemaGateTest`** per the house rule.
 - **`BikeRepositoryTest`**: a name taken ignoring case and spaces, "Łukasz" against "łukasz"; delete
-  leaves its Rides with a null Bike and clears the current Bike.
-- **`BackupScope`**: Records carries `bikes/`.
+  leaves its Rides with a null Bike and clears the current Bike; a Hike keeping a `bikeId` is not in
+  that Bike's ride count.
+- **`BackupScopeTest`**: Records carries `bikes/`.
+- **`AutoBackupTest`**: `autoBackupFileSet()` carries `bikes/` with the thumbnails, under the same
+  budget.
 
 ## Documents this phase amends
 
 - **ADR-0011**: a Ride teaches the kind most of its matched length rides, timed by § 5's matching; the
   counting rule and the 0.5 floor.
-- **`CONTEXT.md`**: **Outing**; **Ride** loses "the tab's name is open"; **Pace** names the 0.5 floor.
+- **`CONTEXT.md`**: **Outing**; **Hike** takes *wycieczka piesza* and the Outings tab; **Ride** loses
+  "the tab's name is open"; **Pace** names the 0.5 floor.
 - **`PLAN.md`**: 7c's paragraph names this file and the tab's name.
-- **`CLAUDE.md`**: the layout's `app/src/debug/` and `app/src/release/` lines lose the Mode switch, the
-  bike icon and the launcher copies.
+- **`CLAUDE.md`**: the media house rule's directories gain `bikes/`, at B; the layout's `app/src/debug/`
+  and `app/src/release/` lines lose the Mode switch, the bike icon and the launcher copies, at E.
 - **`art/README.md`**: one mark again.
 - **The privacy policy**: a Bike's name and photo are kept on the phone with the Outings and go into a
   backup, nowhere else. Data safety's answers do not change: nothing is collected.
@@ -302,8 +341,9 @@ asked first (`DOD.md`'s Play rules).
 
 ## Known gaps, deliberately
 
-- **A road between Bike routes is timed as paved.** A gravel road off the network rides slower than its
-  rule time, so its Ride reads slow; across many Rides the median absorbs it.
+- **A road between Bike routes is timed at the rough flat speed**, as the planner's join is. A paved
+  road off the network rides faster than that, so its Ride reads fast; it is the same bias the Route
+  sheet's join carries, and across many Rides the median absorbs it.
 - **A Ride's kind is its majority.** A Ride half on each teaches one of them; the median of 10 keeps one
   such Ride from moving the Pace.
 - **The no-Bike Pace and a Bike's are not merged.** Adding a first Bike after 20 Rides starts it at the
