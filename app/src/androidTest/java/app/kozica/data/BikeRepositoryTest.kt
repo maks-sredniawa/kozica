@@ -116,6 +116,22 @@ class BikeRepositoryTest {
         }
 
     @Test
+    fun aBikeAddedWhileNoneIsCurrentBecomesTheCurrentOne() =
+        runTest {
+            bikes.add("Gravel", start)
+            val gravel = bikeNamed("Gravel").id
+            assertEquals(gravel, preferences.currentBikeId.first())
+
+            bikes.add("Szosa", start.plusSeconds(1))
+            assertEquals(gravel, preferences.currentBikeId.first())
+
+            bikes.delete(gravel)
+            assertNull(preferences.currentBikeId.first())
+            bikes.add("MTB", start.plusSeconds(2))
+            assertEquals(bikeNamed("MTB").id, preferences.currentBikeId.first())
+        }
+
+    @Test
     fun deletingAnotherBikeLeavesTheCurrentOne() =
         runTest {
             bikes.add("Gravel")

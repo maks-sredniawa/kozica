@@ -152,14 +152,16 @@ better. The interval that keeps corners at speed costs more at the speeds most R
 - **`hikes.bikeId`**, nullable, a foreign key to `bikes` with `ON DELETE SET NULL` and an index. Null on a
   Ride means "no Bike", which is every Ride while no Bike exists and every Ride of a deleted Bike.
 - **The current Bike** is an `AppPreferences` key, not a column: the Bike Record starts on and the Route
-  sheet times by. A deleted current Bike leaves it unset.
+  sheet times by. A deleted current Bike leaves it unset, and a Bike added while none is current
+  becomes it, as the last Bike used would be when none has been.
 - **`MediaKind.Bike`**: directory `bikes/`, a 512² centre crop at q85 as a thumbnail is; the photo is
   shown no larger than a sheet. One file, so `photoPath` and `thumbnailPath` name the same one, and both
   columns stay so a later larger view needs no migration. Backup's Records scope carries it (it is as
   small as a thumbnail); Everything carries it by being every kind. Android Auto Backup builds its own
   file set from an explicit list of kinds (`autoBackupFileSet()`, `data/backup/AutoBackup.kt`), so
-  `bikes/` joins `MediaKind.Thumbnail` there and is admitted under the same budget, or a new phone's
-  restore shows every Bike as the placeholder.
+  `bikes/` joins `MediaKind.Thumbnail` there under the same budget, or a new phone's restore shows every
+  Bike as the placeholder. The Bikes' photos are admitted first, since they are few and each is a Bike's
+  only picture; the thumbnails, newest first, fill what is left.
 
 `MIGRATION_4_5` adds the table and the two columns. The house rule's four: registered in
 `APP_MIGRATIONS`, `5.json` committed, `SchemaGateTest`'s assertion, and a migration test reading back a
