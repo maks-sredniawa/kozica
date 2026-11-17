@@ -118,7 +118,9 @@ Decided with the owner while planning phase 7b ([`phase-7b.md`](../phase-7b.md))
 Decided with the owner while planning phase 7c ([`phase-7c.md`](../phase-7c.md) § 5).
 
 - **A Ride is timed by the Bike routes it rode.** Each piece of its Track takes the surface class and
-  `mtb:scale` of the Bike route edge within 30 m, and a piece off them is timed as paved.
+  `mtb:scale` of the Bike route edge within 30 m, and a piece off them is timed as the planner times the
+  road to the start, at the rough class's flat speed, so the Pace is a ratio against the same rule it
+  multiplies.
 - **It teaches MTB when more than half of its matched length is on MTB routes, else Touring**, with
   nothing for the user to set. A chip-at-Record rule would teach the wrong Pace whenever the chip was left
   on the other kind.
