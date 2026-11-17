@@ -154,6 +154,13 @@ class AppPreferences(
         }
     }
 
+    /** A first Bike, or one added while none is current, becomes the current one. */
+    suspend fun setCurrentBikeIfUnset(id: String) {
+        store.edit { prefs ->
+            if (prefs[Keys.CURRENT_BIKE] == null) prefs[Keys.CURRENT_BIKE] = id
+        }
+    }
+
     /** Unsets the current Bike only while it is [id], so a deleted Bike never leaves it dangling. */
     suspend fun clearCurrentBike(id: String) {
         store.edit { prefs ->

@@ -25,14 +25,17 @@ class BikeRepository(
     /** In the order they were added. */
     fun observeAll(): Flow<List<BikeWithRides>> = dao.observeAll()
 
+    /** Becomes the current Bike while none is. */
     suspend fun add(
         name: String,
         now: Instant = Instant.now(),
     ): BikeNaming {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return BikeNaming.Blank
-        val added = dao.insertUnlessTaken(BikeEntity(name = trimmed, addedAt = now))
-        return if (added) BikeNaming.Saved else BikeNaming.Taken
+        val bike = BikeEntity(name = trimmed, addedAt = now)
+        if (!dao.insertUnlessTaken(bike)) return BikeNaming.Taken
+        preferences.setCurrentBikeIfUnset(bike.id)
+        return BikeNaming.Saved
     }
 
     suspend fun rename(

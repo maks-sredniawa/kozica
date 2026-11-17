@@ -62,15 +62,23 @@ class AutoBackupTest {
     }
 
     @Test
-    fun `a Bike's photo takes its turn under the thumbnails' budget, newest first`() {
-        write(File(filesDir, "${MediaKind.Bike.directory}/$bike"), "bike").setLastModified(3_000)
+    fun `a Bike's photo goes ahead of newer thumbnails, which fill what the budget leaves`() {
+        write(File(filesDir, "${MediaKind.Bike.directory}/$bike"), "bike").setLastModified(500)
         val coreBytes = staged.length() + File(filesDir, PREFERENCES_FILE_PATH).length()
 
         val set =
-            autoBackupFileSet(filesDir, staged, deviceToDeviceTransfer = false, budget = coreBytes + "bike".length)
+            autoBackupFileSet(
+                filesDir,
+                staged,
+                deviceToDeviceTransfer = false,
+                budget = coreBytes + "bike".length + "thumbnail".length,
+            )
 
-        assertEquals(setOf("kozica.db", "app_preferences.preferences_pb", bike), set.files.map { it.name }.toSet())
-        assertEquals(2, set.excludedThumbnails)
+        assertEquals(
+            setOf("kozica.db", "app_preferences.preferences_pb", bike, thumbnail),
+            set.files.map { it.name }.toSet(),
+        )
+        assertEquals(1, set.excludedThumbnails)
     }
 
     @Test
