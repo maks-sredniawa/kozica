@@ -14,10 +14,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
 import app.kozica.data.AppPreferences
 import app.kozica.data.BikeRouteFilter
-import app.kozica.data.HikeEntity
-import app.kozica.data.HikePhotoEntity
 import app.kozica.data.MapCamera
 import app.kozica.data.Mode
+import app.kozica.data.OutingEntity
+import app.kozica.data.OutingPhotoEntity
 import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
 import app.kozica.data.gpx.hikeGpx
@@ -118,7 +118,7 @@ data class MapUiState(
     val route: RouteUiState = RouteUiState(),
     val recording: Recording? = null,
     val track: Track = emptyList(),
-    val hike: HikeUiState? = null,
+    val hike: OutingUiState? = null,
     val trail: TrailUiState = TrailUiState(),
     val bikeRoute: BikeRouteUiState = BikeRouteUiState(),
     val pace: Pace? = null,
@@ -154,7 +154,7 @@ data class MapUiState(
  * @param photos in the order they were taken (docs/phase-6.md § 6).
  * @param opening counts the times a Hike was opened, so re-opening the same one is still fitted to.
  */
-data class HikeUiState(
+data class OutingUiState(
     val id: String,
     val name: String,
     val startedAt: Instant,
@@ -167,7 +167,7 @@ data class HikeUiState(
     val heights: List<Height?> = emptyList(),
     val profile: List<ProfilePoint> = emptyList(),
     val note: String? = null,
-    val photos: List<HikePhoto> = emptyList(),
+    val photos: List<OutingPhoto> = emptyList(),
     val keep: ClosedFloatingPointRange<Double>? = null,
     val opening: Int = 0,
 ) {
@@ -194,7 +194,7 @@ data class HikeUiState(
 }
 
 /** A photo of a Hike, its paths resolved; [pin] is null for one with no place on the Track. */
-data class HikePhoto(
+data class OutingPhoto(
     val id: String,
     val photo: File,
     val thumbnail: File,
@@ -358,13 +358,13 @@ class MapViewModel(
     private val recording: Flow<Recording?> = flowOf(null),
     private val observeTrack: (hikeId: String) -> Flow<Track> = { flowOf(emptyList()) },
     private val hikeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
-    private val observeHike: (id: String) -> Flow<HikeEntity?> = { flowOf(null) },
-    private val observePhotos: (id: String) -> Flow<List<HikePhotoEntity>> = { flowOf(emptyList()) },
+    private val observeOuting: (id: String) -> Flow<OutingEntity?> = { flowOf(null) },
+    private val observePhotos: (id: String) -> Flow<List<OutingPhotoEntity>> = { flowOf(emptyList()) },
     private val resolveMedia: (relativePath: String) -> File = ::File,
     private val heights: suspend (Track) -> List<Height?> = { track -> track.flatten().map { null } },
-    private val renameHike: suspend (id: String, name: String) -> Unit = { _, _ -> },
-    private val trimHike: suspend (id: String, first: Int, last: Int) -> Unit = { _, _, _ -> },
-    private val deleteHike: suspend (id: String) -> Unit = {},
+    private val renameOuting: suspend (id: String, name: String) -> Unit = { _, _ -> },
+    private val trimOuting: suspend (id: String, first: Int, last: Int) -> Unit = { _, _, _ -> },
+    private val deleteOuting: suspend (id: String) -> Unit = {},
     private val saveNote: suspend (id: String, note: String) -> Unit = { _, _ -> },
     private val savePhoto: suspend (hikeId: String, source: Uri) -> Unit = { _, _ -> },
     private val saveCaption: suspend (photoId: String, caption: String) -> Unit = { _, _ -> },
@@ -450,7 +450,7 @@ class MapViewModel(
             .distinctUntilChanged()
             .flatMapLatest { id -> id?.let(observeTrack) ?: flowOf(emptyList()) }
 
-    private val shownHike = MutableStateFlow<String?>(null)
+    private val shownOuting = MutableStateFlow<String?>(null)
 
     private val trail = MutableStateFlow(TrailUiState())
 
@@ -467,13 +467,13 @@ class MapViewModel(
     private val hikeOpenings = MutableStateFlow(0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val hike: Flow<HikeUiState?> =
+    private val hike: Flow<OutingUiState?> =
         combine(
-            shownHike.flatMapLatest { id ->
+            shownOuting.flatMapLatest { id ->
                 if (id == null) {
                     flowOf(null)
                 } else {
-                    combine(observeHike(id), observePhotos(id), ::Pair).mapLatest { (hike, photos) ->
+                    combine(observeOuting(id), observePhotos(id), ::Pair).mapLatest { (hike, photos) ->
                         hike?.let { hikeState(it, photos) }
                     }
                 }
@@ -586,7 +586,7 @@ class MapViewModel(
         }
         viewModelScope.launch {
             hikeToShow.filterNotNull().collect { id ->
-                showHike(id)
+                showOuting(id)
                 hikeToShow.compareAndSet(id, null)
             }
         }
@@ -744,7 +744,7 @@ class MapViewModel(
     fun addOffered() {
         val place = search.value.offered ?: return
         dismissOffer()
-        closeHike()
+        closeOuting()
         changePoints { it + RoutePoint(place.latitude, place.longitude, place.name) }
     }
 
@@ -754,7 +754,7 @@ class MapViewModel(
         longitude: Double,
     ) {
         val point = RoutePoint(latitude, longitude)
-        closeHike()
+        closeOuting()
         closeSelection()
         changePoints { it + point }
         viewModelScope.launch {
@@ -817,7 +817,7 @@ class MapViewModel(
      */
     private fun show(saved: SavedRoute) {
         dismissOffer()
-        closeHike()
+        closeOuting()
         routeGeneration++
         unfollow()
         val under = modeOf(saved.mode) to saved.bikeRouteFilter
@@ -845,7 +845,7 @@ class MapViewModel(
     }
 
     /** Replaces whatever is on the map with a Hike from the Hikes tab. */
-    private fun showHike(id: String) {
+    private fun showOuting(id: String) {
         dismissOffer()
         planning?.cancel()
         routeGeneration++
@@ -855,7 +855,7 @@ class MapViewModel(
         readHeights = null
         closeSelection()
         hikeOpenings.update { it + 1 }
-        shownHike.value = id
+        shownOuting.value = id
     }
 
     /**
@@ -906,7 +906,7 @@ class MapViewModel(
     fun dismissBikeRouteChoices() = bikeRoute.update { it.copy(choices = emptyList()) }
 
     private fun showBikeRoute(picked: BikeRouteDetail) {
-        if (shownHike.value != null) closeHike()
+        if (shownOuting.value != null) closeOuting()
         dismissOffer()
         loadingLongDistance?.cancel()
         planningAlong?.cancel()
@@ -934,7 +934,7 @@ class MapViewModel(
 
     /** A shown Hike gives way, a planned Route is set aside, and a recording goes on (docs/phase-6c.md § 3). */
     private fun showTrail(picked: TrailDetail) {
-        if (shownHike.value != null) closeHike()
+        if (shownOuting.value != null) closeOuting()
         dismissOffer()
         loadingLongDistance?.cancel()
         planningAlong?.cancel()
@@ -1062,8 +1062,8 @@ class MapViewModel(
             }
     }
 
-    fun closeHike() {
-        shownHike.value = null
+    fun closeOuting() {
+        shownOuting.value = null
         hikeKeep.value = null
     }
 
@@ -1071,9 +1071,9 @@ class MapViewModel(
     private var readHeights: Pair<ByteArray, List<Height?>>? = null
 
     private suspend fun hikeState(
-        hike: HikeEntity,
-        photos: List<HikePhotoEntity>,
-    ): HikeUiState? {
+        hike: OutingEntity,
+        photos: List<OutingPhotoEntity>,
+    ): OutingUiState? {
         val endedAt = hike.endedAt ?: return null
         val bytes = hike.track ?: return null
         val track = decodeTrack(bytes)
@@ -1082,7 +1082,7 @@ class MapViewModel(
                 ?: heightsOf(track).also { readHeights = bytes to it }
         val stored =
             hike.ascentMetres?.let { ascent -> Climb(ascent, hike.descentMetres ?: 0.0, hike.ascentFromGps) }
-        return HikeUiState(
+        return OutingUiState(
             id = hike.id,
             name = hike.name,
             startedAt = hike.startedAt,
@@ -1097,7 +1097,7 @@ class MapViewModel(
             note = hike.note,
             photos =
                 photos.map {
-                    HikePhoto(
+                    OutingPhoto(
                         id = it.id,
                         photo = resolveMedia(it.photoPath),
                         thumbnail = resolveMedia(it.thumbnailPath),
@@ -1136,16 +1136,16 @@ class MapViewModel(
         val hike = state.value.hike ?: return
         val kept = hike.kept ?: return
         hikeKeep.value = null
-        applicationScope.launch { trimHike(hike.id, kept.first, kept.last) }
+        applicationScope.launch { trimOuting(hike.id, kept.first, kept.last) }
     }
 
-    fun renameHike(name: String) {
-        val id = shownHike.value ?: return
-        viewModelScope.launch { renameHike(id, name) }
+    fun renameOuting(name: String) {
+        val id = shownOuting.value ?: return
+        viewModelScope.launch { renameOuting(id, name) }
     }
 
     fun setNote(note: String) {
-        val id = shownHike.value ?: return
+        val id = shownOuting.value ?: return
         applicationScope.launch { saveNote(id, note) }
     }
 
@@ -1180,7 +1180,7 @@ class MapViewModel(
     val gpx: StateFlow<GpxExport> = gpxExports.state
 
     /** The shown Hike as a GPX file for the share sheet (docs/phase-6.md § 8). */
-    fun exportHikeGpx() {
+    fun exportOutingGpx() {
         val hike = state.value.hike ?: return
         val pinned = hike.photos.mapNotNull { photo -> photo.pin?.let { it to photo.caption } }
         gpxExports.start(hike.startedAt.atZone(ZoneId.systemDefault()).toLocalDate()) {
@@ -1192,11 +1192,11 @@ class MapViewModel(
 
     fun dismissGpxFailure() = gpxExports.dismiss()
 
-    fun deleteHike() {
-        val id = shownHike.value ?: return
-        closeHike()
+    fun deleteOuting() {
+        val id = shownOuting.value ?: return
+        closeOuting()
         // Past the screen's life: Back right after Delete must not leave the Hike behind.
-        applicationScope.launch { deleteHike(id) }
+        applicationScope.launch { deleteOuting(id) }
     }
 
     fun showSaveDialog(shown: Boolean) {
@@ -1246,7 +1246,7 @@ class MapViewModel(
      */
     private suspend fun resume(stored: FollowedRoute) {
         if (now() - stored.touchedAtMillis > FOLLOWED_KEPT_MILLIS) return
-        if (route.value.points.isNotEmpty() || shownHike.value != null) return
+        if (route.value.points.isNotEmpty() || shownOuting.value != null) return
         routeGeneration++
         val under = modeOf(stored.mode) to stored.bikeRouteFilter
         switchMap(under.first, under.second)
@@ -1503,20 +1503,20 @@ class MapViewModel(
                         saveRoute = app.container.routes::save,
                         observeName = app.container.routes::observeName,
                         recording = app.container.recorder.recording,
-                        observeTrack = app.container.hikes::observeTrack,
+                        observeTrack = app.container.outings::observeTrack,
                         hikeToShow = app.container.hikeToShow,
-                        observeHike = app.container.hikes::observe,
-                        observePhotos = app.container.hikes::observePhotos,
+                        observeOuting = app.container.outings::observe,
+                        observePhotos = app.container.outings::observePhotos,
                         resolveMedia = app.container.media::resolve,
                         heights = app.container.hikeHeights::of,
-                        renameHike = app.container.hikes::rename,
-                        trimHike = app.container.hikes::trim,
-                        deleteHike = app.container.hikes::delete,
-                        saveNote = app.container.hikes::setNote,
-                        savePhoto = { id, source -> app.container.hikes.addPhoto(id, source) },
-                        saveCaption = app.container.hikes::setCaption,
-                        savePinRemoved = app.container.hikes::unpin,
-                        deleteStoredPhoto = app.container.hikes::deletePhoto,
+                        renameOuting = app.container.outings::rename,
+                        trimOuting = app.container.outings::trim,
+                        deleteOuting = app.container.outings::delete,
+                        saveNote = app.container.outings::setNote,
+                        savePhoto = { id, source -> app.container.outings.addPhoto(id, source) },
+                        saveCaption = app.container.outings::setCaption,
+                        savePinRemoved = app.container.outings::unpin,
+                        deleteStoredPhoto = app.container.outings::deletePhoto,
                         photosLeftOut = app.container.photosLeftOut,
                         writeGpx = app.container.gpxFiles::write,
                         loadTrail = app.container::trail,

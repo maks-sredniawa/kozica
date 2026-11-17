@@ -1,6 +1,6 @@
 package app.kozica.data.hikes
 
-import app.kozica.data.HikeSummary
+import app.kozica.data.OutingSummary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * @param ruleSecondsOf the rule's time for a Hike's Track, which reads its heights; null where it cannot be timed, and throws where the read failed.
  */
 class Paces(
-    hikes: Flow<List<HikeSummary>>,
+    hikes: Flow<List<OutingSummary>>,
     relief: Flow<Boolean>,
     private val ruleSecondsOf: suspend (id: String) -> Double?,
 ) {
@@ -36,7 +36,7 @@ class Paces(
             }
         }.distinctUntilChanged()
 
-    private suspend fun samples(hikes: List<HikeSummary>): List<PaceSample> {
+    private suspend fun samples(hikes: List<OutingSummary>): List<PaceSample> {
         val samples = mutableListOf<PaceSample>()
         for (hike in hikes) {
             if (samples.count { it.counts } == PACE_HIKES_READ) break
@@ -46,7 +46,7 @@ class Paces(
         return samples
     }
 
-    private suspend fun ruleSeconds(hike: HikeSummary): Double? {
+    private suspend fun ruleSeconds(hike: OutingSummary): Double? {
         val key = hike.id to hike.metres
         if (key in timed) return timed[key]
         return try {

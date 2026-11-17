@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
-import app.kozica.data.HikeSummary
+import app.kozica.data.OutingSummary
 import app.kozica.data.backup.BackupScope
 import app.kozica.data.backup.ExportResult
 import app.kozica.ui.backup.BackupNotice
@@ -30,8 +30,8 @@ import java.io.File
  * @param hikes null until the first read, then newest first.
  * @param photosNotBackedUp photos added since the last Everything export (docs/phase-6.md § 7).
  */
-data class HikesUiState(
-    val hikes: List<HikeSummary>? = null,
+data class OutingsUiState(
+    val hikes: List<OutingSummary>? = null,
     val photosNotBackedUp: Int = 0,
     val exporting: Boolean = false,
     val exported: File? = null,
@@ -42,20 +42,20 @@ data class HikesUiState(
  * docs/phase-6.md § 4: ended Hikes newest first. Opening the tab reads the height grid for any
  * Hike still without its ascent, which a Stop the process did not outlive leaves behind.
  */
-class HikesViewModel(
-    ended: Flow<List<HikeSummary>>,
+class OutingsViewModel(
+    ended: Flow<List<OutingSummary>>,
     photosNotBackedUp: Flow<Int>,
     private val fillClimbs: suspend () -> Unit,
     private val hikeToShow: MutableStateFlow<String?>,
     private val exportEverything: suspend () -> ExportResult,
     io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
-    private val export = MutableStateFlow(HikesUiState())
+    private val export = MutableStateFlow(OutingsUiState())
 
-    val state: StateFlow<HikesUiState> =
+    val state: StateFlow<OutingsUiState> =
         combine(ended, photosNotBackedUp, export) { hikes, photos, export ->
             export.copy(hikes = hikes, photosNotBackedUp = photos)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HikesUiState())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutingsUiState())
 
     init {
         viewModelScope.launch(io) { fillClimbs() }
@@ -93,12 +93,12 @@ class HikesViewModel(
                 initializer {
                     val app = this[APPLICATION_KEY] as MainApplication
                     val container = app.container
-                    HikesViewModel(
-                        container.hikes.observeEnded(),
+                    OutingsViewModel(
+                        container.outings.observeEnded(),
                         container.preferences.lastEverythingExport.flatMapLatest(
-                            container.hikes::observePhotosAddedAfter,
+                            container.outings::observePhotosAddedAfter,
                         ),
-                        container.hikes::fillClimbs,
+                        container.outings::fillClimbs,
                         container.hikeToShow,
                         { container.backupExports.export(BackupScope.Everything, toFolder = true) },
                     )

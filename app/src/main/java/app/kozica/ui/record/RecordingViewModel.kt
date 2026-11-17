@@ -9,7 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
 import app.kozica.data.AppPreferences
-import app.kozica.data.HikeEntity
+import app.kozica.data.OutingEntity
 import app.kozica.record.Recorder
 import app.kozica.record.Recording
 import kotlinx.coroutines.CancellationException
@@ -35,7 +35,7 @@ import java.time.Instant
 data class RecordingUiState(
     val loaded: Boolean = false,
     val recording: Recording? = null,
-    val unfinished: HikeEntity? = null,
+    val unfinished: OutingEntity? = null,
     val autoResume: Boolean = true,
     val notificationsAsked: Boolean = false,
     val photosLeftOut: Int = 0,
@@ -44,7 +44,7 @@ data class RecordingUiState(
 /** The recording bar's and its dialogs', which every tab shares (docs/phase-6.md § 2). */
 class RecordingViewModel(
     private val recorder: Recorder,
-    unfinished: Flow<HikeEntity?>,
+    unfinished: Flow<OutingEntity?>,
     private val preferences: AppPreferences,
     private val finish: suspend (hikeId: String, now: Instant) -> Unit,
     private val applicationScope: CoroutineScope,
@@ -129,11 +129,11 @@ class RecordingViewModel(
                     val container = app.container
                     RecordingViewModel(
                         container.recorder,
-                        container.hikes.observeUnfinished(),
+                        container.outings.observeUnfinished(),
                         app.preferences,
                         container.recorder::finish,
                         container.applicationScope,
-                        { hikeId, shot, pressedAt -> container.hikes.addPhoto(hikeId, shot, pressedAt) },
+                        { hikeId, shot, pressedAt -> container.outings.addPhoto(hikeId, shot, pressedAt) },
                         { shot -> app.contentResolver.delete(shot, null, null) },
                         container.photosLeftOut,
                     )

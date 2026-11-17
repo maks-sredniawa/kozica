@@ -1,6 +1,6 @@
 package app.kozica.data.hikes
 
-import app.kozica.data.HikeSummary
+import app.kozica.data.OutingSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -11,7 +11,7 @@ import java.io.IOException
 import java.time.Instant
 
 class PacesTest {
-    private val hikes = MutableStateFlow<List<HikeSummary>>(emptyList())
+    private val hikes = MutableStateFlow<List<OutingSummary>>(emptyList())
     private val relief = MutableStateFlow(true)
     private val ruleSeconds = mutableMapOf<String, Double?>()
     private val failing = mutableSetOf<String>()
@@ -29,7 +29,7 @@ class PacesTest {
         metres: Double = 10_000.0,
         movingSeconds: Long = 4 * 3600,
         name: String = id,
-    ) = HikeSummary(
+    ) = OutingSummary(
         id,
         name,
         Instant.EPOCH,
@@ -43,7 +43,7 @@ class PacesTest {
     private fun walked(
         id: String,
         ratio: Double,
-    ): HikeSummary = hike(id).also { ruleSeconds[id] = it.movingSeconds / ratio }
+    ): OutingSummary = hike(id).also { ruleSeconds[id] = it.movingSeconds / ratio }
 
     @Test
     fun `stops reading once ten Hikes count`() =

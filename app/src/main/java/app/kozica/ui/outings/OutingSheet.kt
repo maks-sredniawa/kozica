@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,7 +45,7 @@ import app.kozica.R
 import app.kozica.theme.Spacing
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxFailureNotice
-import app.kozica.ui.map.HikeUiState
+import app.kozica.ui.map.OutingUiState
 import app.kozica.ui.map.Profile
 import app.kozica.ui.map.RouteNameDialog
 import app.kozica.ui.map.length
@@ -58,8 +58,8 @@ import kotlin.time.toKotlinDuration
 
 /** docs/phase-6.md § 4 and § 6: a Hike's totals, profile, note and photos under its Track on the map, and what can be done to it. */
 @Composable
-internal fun HikeSheet(
-    hike: HikeUiState,
+internal fun OutingSheet(
+    hike: OutingUiState,
     onClose: () -> Unit,
     onRename: (String) -> Unit,
     onStartTrim: () -> Unit,
@@ -221,7 +221,7 @@ internal fun HikeSheet(
 
 @Composable
 private fun Totals(
-    hike: HikeUiState,
+    hike: OutingUiState,
     locale: Locale,
 ) {
     val climb = hike.climb
@@ -288,7 +288,7 @@ private fun Note(
 
 @Composable
 private fun PhotoStrip(
-    hike: HikeUiState,
+    hike: OutingUiState,
     onAdd: () -> Unit,
     onOpen: (id: String) -> Unit,
     modifier: Modifier = Modifier,

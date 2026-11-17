@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.kozica.R
-import app.kozica.data.HikeSummary
+import app.kozica.data.OutingSummary
 import app.kozica.theme.Spacing
 import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.backup.text
@@ -38,10 +38,10 @@ import kotlin.time.toKotlinDuration
 
 /** The Hikes tab (docs/phase-6.md § 4): newest first; one opens on the map. */
 @Composable
-fun HikesScreen(
+fun OutingsScreen(
     onShow: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HikesViewModel = viewModel(factory = HikesViewModel.Factory, extras = appViewModelExtras()),
+    viewModel: OutingsViewModel = viewModel(factory = OutingsViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val rows = state.hikes
@@ -91,7 +91,7 @@ fun HikesScreen(
                 else ->
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.id }) { hike ->
-                            HikeRow(
+                            OutingRow(
                                 hike = hike,
                                 onShow = {
                                     viewModel.show(hike.id)
@@ -106,8 +106,8 @@ fun HikesScreen(
 }
 
 @Composable
-private fun HikeRow(
-    hike: HikeSummary,
+private fun OutingRow(
+    hike: OutingSummary,
     onShow: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]

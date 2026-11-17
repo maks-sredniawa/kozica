@@ -30,7 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import app.kozica.R
-import app.kozica.data.HikeEntity
+import app.kozica.data.OutingEntity
 import app.kozica.record.Recording
 import app.kozica.record.hasMotionSensor
 import app.kozica.theme.Spacing
@@ -138,7 +138,7 @@ fun StopDialog(
 /** A recording lost with its process: resumed in a new stretch, or finished at its last point, or discarded if it kept none. */
 @Composable
 fun UnfinishedDialog(
-    hike: HikeEntity,
+    hike: OutingEntity,
     onResume: (hikeId: String) -> Unit,
     onFinish: (hikeId: String) -> Unit,
 ) {

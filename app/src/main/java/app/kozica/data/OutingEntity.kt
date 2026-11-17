@@ -15,7 +15,7 @@ import java.util.UUID
  * @param ascentFromGps whether any part of the ascent came from GPS height rather than the grid.
  */
 @Entity(tableName = "hikes")
-data class HikeEntity(
+data class OutingEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val name: String,
@@ -31,7 +31,7 @@ data class HikeEntity(
 ) {
     // A data class compares a ByteArray by reference, which no caller wants.
     override fun equals(other: Any?): Boolean =
-        other is HikeEntity &&
+        other is OutingEntity &&
             id == other.id &&
             name == other.name &&
             startedAt == other.startedAt &&
@@ -56,7 +56,7 @@ data class HikeEntity(
     tableName = "track_points",
     foreignKeys = [
         ForeignKey(
-            entity = HikeEntity::class,
+            entity = OutingEntity::class,
             parentColumns = ["id"],
             childColumns = ["hikeId"],
             onDelete = ForeignKey.CASCADE,
@@ -86,7 +86,7 @@ data class TrackPointEntity(
     tableName = "hike_photos",
     foreignKeys = [
         ForeignKey(
-            entity = HikeEntity::class,
+            entity = OutingEntity::class,
             parentColumns = ["id"],
             childColumns = ["hikeId"],
             onDelete = ForeignKey.CASCADE,
@@ -94,7 +94,7 @@ data class TrackPointEntity(
     ],
     indices = [Index("hikeId")],
 )
-data class HikePhotoEntity(
+data class OutingPhotoEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val hikeId: String,
