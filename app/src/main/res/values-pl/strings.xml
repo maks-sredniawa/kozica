@@ -130,6 +130,32 @@
     <string name="settings_data">Twoje dane</string>
     <string name="settings_backup">Kopia zapasowa i przywracanie</string>
 
+    <string name="bikes_title">Moje rowery</string>
+    <string name="bikes_add">Dodaj rower</string>
+    <string name="bikes_add_confirm">Dodaj</string>
+    <string name="bikes_name">Nazwa roweru</string>
+    <string name="bikes_name_taken">Ta nazwa jest już zajęta.</string>
+    <string name="bikes_rename">Zmień nazwę</string>
+    <string name="bikes_add_photo">Dodaj zdjęcie</string>
+    <string name="bikes_change_photo">Zmień zdjęcie</string>
+    <string name="bikes_remove_photo">Usuń zdjęcie</string>
+    <string name="bikes_delete">Usuń</string>
+    <plurals name="bikes_delete_confirm_rides">
+        <item quantity="one">Usunąć %1$s? %2$d wycieczka rowerowa na nim zostanie, bez roweru.</item>
+        <item quantity="few">Usunąć %1$s? %2$d wycieczki rowerowe na nim zostaną, bez roweru.</item>
+        <item quantity="many">Usunąć %1$s? %2$d wycieczek rowerowych na nim zostanie, bez roweru.</item>
+        <item quantity="other">Usunąć %1$s? %2$d wycieczki rowerowej na nim zostanie, bez roweru.</item>
+    </plurals>
+    <string name="bikes_delete_confirm">Usunąć %1$s?</string>
+    <plurals name="bikes_rides">
+        <item quantity="one">%d wycieczka rowerowa</item>
+        <item quantity="few">%d wycieczki rowerowe</item>
+        <item quantity="many">%d wycieczek rowerowych</item>
+        <item quantity="other">%d wycieczki rowerowej</item>
+    </plurals>
+    <string name="bikes_empty">Nie masz jeszcze rowerów. Dodaj rower, aby mieć tempo dla każdego z nich.</string>
+    <string name="bikes_more">Opcje: %1$s</string>
+
     <string name="backup_auto_title">Automatyczna kopia zapasowa</string>
     <string name="backup_auto_never">Na tym telefonie nie odnotowano automatycznej kopii zapasowej</string>
     <string name="backup_auto_recorded">Ostatnia automatyczna kopia: %1$s</string>

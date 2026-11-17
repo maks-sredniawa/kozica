@@ -58,8 +58,8 @@ fun admitThumbnails(
 }
 
 /**
- * What the agent carries: the staged database and the preferences always, then thumbnails newest
- * first under the budget. Photos only on a [deviceToDeviceTransfer], which has no quota, so there
+ * What the agent carries: the staged database and the preferences always, then thumbnails and Bikes'
+ * photos newest first under the budget. Photos only on a [deviceToDeviceTransfer], which has no quota, so there
  * every thumbnail goes too. `preserved/` and the marker are never in it.
  */
 fun autoBackupFileSet(
@@ -75,7 +75,7 @@ fun autoBackupFileSet(
             if (deviceToDeviceTransfer) addAll(mediaFilesFor(listOf(MediaKind.Photo), filesDir).map { it.file })
         }
     val thumbnails =
-        mediaFilesFor(listOf(MediaKind.Thumbnail), filesDir)
+        mediaFilesFor(listOf(MediaKind.Thumbnail, MediaKind.Bike), filesDir)
             .map { it.file }
             .sortedWith(compareByDescending<File> { it.lastModified() }.thenBy { it.name })
     val admission =

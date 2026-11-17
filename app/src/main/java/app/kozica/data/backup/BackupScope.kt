@@ -9,7 +9,7 @@ import app.kozica.media.MediaKind
 enum class BackupScope(
     val mediaKinds: List<MediaKind>,
 ) {
-    Records(listOf(MediaKind.Thumbnail)),
+    Records(listOf(MediaKind.Thumbnail, MediaKind.Bike)),
 
     Everything(MediaKind.entries.toList()),
     ;

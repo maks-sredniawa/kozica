@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import app.kozica.data.APP_DATABASE_FILE
 import app.kozica.data.AppPreferences
+import app.kozica.data.BikeRepository
 import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 import app.kozica.data.OutingRepository
@@ -48,6 +49,7 @@ import app.kozica.data.routes.placesFile
 import app.kozica.data.routes.pointsAlong
 import app.kozica.data.routes.walkLine
 import app.kozica.media.MediaFiles
+import app.kozica.media.MediaKind
 import app.kozica.record.Recorder
 import app.kozica.ui.common.revokeShares
 import kotlinx.coroutines.CoroutineScope
@@ -155,6 +157,15 @@ class AppContainer(
 
     val outings by lazy {
         OutingRepository(database.outingDao(), hikeHeights::of, { media.delete(it) }, media::persistPhoto)
+    }
+
+    val bikes by lazy {
+        BikeRepository(
+            database.bikeDao(),
+            preferences,
+            { media.persist(it, MediaKind.Bike).path },
+            { media.delete(it) },
+        )
     }
 
     val recorder by lazy { Recorder(appContext, outings, ::places, applicationScope) }

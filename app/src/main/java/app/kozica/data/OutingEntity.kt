@@ -1,5 +1,6 @@
 package app.kozica.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -8,13 +9,26 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * A recorded Hike (docs/phase-6.md § 2). While it records, its Track is rows in `track_points` and
+ * A recorded Outing, a Hike or a Ride (docs/phase-6.md § 2). While it records, its Track is rows in `track_points` and
  * [endedAt] is null; at Stop the rows are encoded into [track] and deleted.
  *
  * @param ascentMetres null until the height grid has been read for it (§ 5).
  * @param ascentFromGps whether any part of the ascent came from GPS height rather than the grid.
+ * @param mode Cycling for a Ride (docs/phase-7c.md § 2).
+ * @param bikeId the Ride's Bike, null for none; a Hike may keep one, which counts for nothing until it is a Ride again.
  */
-@Entity(tableName = "hikes")
+@Entity(
+    tableName = "hikes",
+    foreignKeys = [
+        ForeignKey(
+            entity = BikeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["bikeId"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
+    ],
+    indices = [Index("bikeId")],
+)
 data class OutingEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
@@ -28,6 +42,9 @@ data class OutingEntity(
     val ascentMetres: Double? = null,
     val descentMetres: Double? = null,
     val ascentFromGps: Boolean = false,
+    @ColumnInfo(defaultValue = "HIKING")
+    val mode: Mode = Mode.HIKING,
+    val bikeId: String? = null,
 ) {
     // A data class compares a ByteArray by reference, which no caller wants.
     override fun equals(other: Any?): Boolean =
@@ -42,7 +59,9 @@ data class OutingEntity(
             movingSeconds == other.movingSeconds &&
             ascentMetres == other.ascentMetres &&
             descentMetres == other.descentMetres &&
-            ascentFromGps == other.ascentFromGps
+            ascentFromGps == other.ascentFromGps &&
+            mode == other.mode &&
+            bikeId == other.bikeId
 
     override fun hashCode(): Int = id.hashCode()
 }

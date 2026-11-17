@@ -13,8 +13,9 @@ class BackupScopeTest {
     }
 
     @Test
-    fun `Records carries the thumbnails and not the photos`() {
-        assertEquals(listOf(MediaKind.Thumbnail), BackupScope.Records.mediaKinds)
+    fun `Records carries the thumbnails and the Bikes' photos, and not the photos`() {
+        assertEquals(listOf(MediaKind.Thumbnail, MediaKind.Bike), BackupScope.Records.mediaKinds)
+        assertEquals("bikes", MediaKind.Bike.directory)
     }
 
     @Test

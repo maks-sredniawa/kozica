@@ -26,6 +26,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object Backup : NavKey
 
+/** My bikes, from Settings' *Your data* (docs/phase-7c.md § 3). */
+@Serializable data object Bikes : NavKey
+
 @Serializable data object Safety : NavKey
 
 /**
