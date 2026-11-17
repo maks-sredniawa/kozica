@@ -103,7 +103,7 @@ the seam's release halves, `CYCLING_OPEN` with them.
 Every Bike route at the current pin, ridden each way it may be ridden, sampled as the recorder would
 sample it: a fix every 5 s at 15, 25 and 35 km/h along its line, dropped where it moved under 5 m, each
 fix moved by GPS noise (a 2-D normal with σ 5 m, correlated over 30 s). Two numbers per speed, over all
-routes: **the share of the line's length the matcher (§ 5) puts on an edge of the right Bike route**,
+routes: **the share of the Track's length the matcher (§ 5) puts on an edge of the right Bike route**,
 and **the Track's length against the line's**.
 
 ### The apparatus
@@ -131,10 +131,11 @@ noise is seeded. The same run at 1 s is the comparison verdict 2 needs.
 ### The verdict, taken 2026-11-17
 
 **Verdict 1: Rides keep the walker's 5 s and 5 m.** Over all 1,443 Bike routes, 2,646 rides counting each
-way, at 5 s: 99.73 %, 99.76 % and 99.75 % of the length matched to the right route at 15, 25 and 35 km/h,
+way, at 5 s: 99.73 %, 99.76 % and 99.75 % of the Track's length matched to the right route at 15, 25 and 35 km/h,
 and the length off by +0.37 %, −0.58 % and −1.14 %. Among the 1,683 rides of 5 km or more the worst
 twentieth is still 99.0 % matched, and the 95th percentile of the length error is 1.0 %, 1.8 % and 2.9 %.
-No route matched under 89 %. R1 has the run.
+No ride of 5 km or more matched under 89 %; the misses below it are lines under 2.6 km, which a Ride never
+counts on alone (§ 5's 5 km floor). R1 has the run.
 
 One thing neither verdict anticipated: **1 s reads a Ride longer, not truer.** At 15 km/h a fix every
 second measures the GPS noise as distance, +4.6 % against 5 s's +0.4 %; only at 35 km/h does 1 s do
