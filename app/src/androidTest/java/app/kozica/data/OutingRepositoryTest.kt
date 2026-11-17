@@ -25,7 +25,7 @@ import java.time.Instant
 @RunWith(AndroidJUnit4::class)
 class OutingRepositoryTest {
     private lateinit var database: AppDatabase
-    private lateinit var hikes: OutingRepository
+    private lateinit var outings: OutingRepository
     private val deleted = mutableListOf<String>()
     private var capturedAt: Instant? = null
     private var whilePersisting: suspend () -> Unit = {}
@@ -41,7 +41,7 @@ class OutingRepositoryTest {
                 .allowMainThreadQueries()
                 .build()
         // A metre of climb for every point, from the grid, so every total is easy to predict.
-        hikes =
+        outings =
             OutingRepository(
                 database.outingDao(),
                 heights = { track ->
@@ -62,16 +62,16 @@ class OutingRepositoryTest {
     /** Ten fixes a minute apart, a pause, ten more; Record a minute before the first fix. */
     private suspend fun recorded(): String =
         recording().also {
-            hikes.finish(it, start.plusSeconds(3_600)) { _, _ -> "Kasprowy" }
+            outings.finish(it, start.plusSeconds(3_600)) { _, _ -> "Kasprowy" }
         }
 
     private suspend fun recording(): String {
         val id = "hike"
-        hikes.start(id, start)
+        outings.start(id, start)
         for (stretch in 0..1) {
             for (i in 0 until 10) {
                 val minute = 1L + stretch * 30 + i
-                hikes.addPoint(
+                outings.addPoint(
                     id,
                     stretch,
                     TrackPoint(
@@ -93,12 +93,12 @@ class OutingRepositoryTest {
         runTest {
             val id = recorded()
 
-            hikes.fillClimbs()
+            outings.fillClimbs()
 
-            val hike = hikes.get(id)!!
-            assertEquals(190.0, hike.ascentMetres!!, 1e-9)
-            assertFalse(hike.ascentFromGps)
-            assertEquals(listOf(id), hikes.observeEnded().first().map { it.id })
+            val outing = outings.get(id)!!
+            assertEquals(190.0, outing.ascentMetres!!, 1e-9)
+            assertFalse(outing.ascentFromGps)
+            assertEquals(listOf(id), outings.observeEnded().first().map { it.id })
         }
 
     @Test
@@ -110,9 +110,9 @@ class OutingRepositoryTest {
             failing.fillClimb(id)
             failing.trim(id, first = 3, last = 19)
 
-            assertNull(hikes.get(id)!!.ascentMetres)
-            hikes.fillClimbs()
-            assertEquals(160.0, hikes.get(id)!!.ascentMetres!!, 1e-9)
+            assertNull(outings.get(id)!!.ascentMetres)
+            outings.fillClimbs()
+            assertEquals(160.0, outings.get(id)!!.ascentMetres!!, 1e-9)
         }
 
     @Test
@@ -120,10 +120,10 @@ class OutingRepositoryTest {
         runTest {
             val id = recorded()
 
-            hikes.trim(id, first = 3, last = 19)
+            outings.trim(id, first = 3, last = 19)
             database.outingDao().setClimb(id, ascent = 190.0, descent = 0.0, fromGps = false)
 
-            assertEquals(160.0, hikes.get(id)!!.ascentMetres!!, 1e-9)
+            assertEquals(160.0, outings.get(id)!!.ascentMetres!!, 1e-9)
         }
 
     @Test
@@ -131,15 +131,15 @@ class OutingRepositoryTest {
         runTest {
             val id = recorded()
             val dao = database.outingDao()
-            val before = hikes.get(id)!!
+            val before = outings.get(id)!!
             val inside = photo(id, "in", minute(5))
             val outside = photo(id, "out", minute(2))
             database.outingDao().insertPhoto(inside)
             database.outingDao().insertPhoto(outside)
 
-            hikes.trim(id, first = 3, last = 19)
+            outings.trim(id, first = 3, last = 19)
 
-            val after = hikes.get(id)!!
+            val after = outings.get(id)!!
             val track = decodeTrack(after.track!!)
             assertEquals(listOf(7, 10), track.map { it.size })
             assertEquals(minute(4), after.startedAt)
@@ -158,9 +158,9 @@ class OutingRepositoryTest {
             val id = recorded()
             database.outingDao().insertPhoto(photo(id, "p", minute(5)))
 
-            hikes.delete(id)
+            outings.delete(id)
 
-            assertNull(hikes.get(id))
+            assertNull(outings.get(id))
             assertEquals(emptyList<OutingPhotoEntity>(), database.outingDao().photos(id))
             assertEquals(listOf("photos/p.jpg", "thumbnails/p.jpg"), deleted)
         }
@@ -172,13 +172,13 @@ class OutingRepositoryTest {
             val shot = Uri.parse("content://picker/1")
 
             capturedAt = minute(5)
-            hikes.addPhoto(id, shot)
+            outings.addPhoto(id, shot)
             capturedAt = minute(20)
-            hikes.addPhoto(id, shot)
+            outings.addPhoto(id, shot)
             capturedAt = null
-            hikes.addPhoto(id, shot)
+            outings.addPhoto(id, shot)
 
-            val photos = hikes.observePhotos(id).first()
+            val photos = outings.observePhotos(id).first()
             assertEquals(listOf(minute(5), minute(20), null), photos.map { it.takenAt })
             assertEquals(49.204, photos[0].latitude!!, 1e-9)
             assertEquals(49.209, photos[1].latitude!!, 1e-9)
@@ -191,9 +191,9 @@ class OutingRepositoryTest {
         runTest {
             val id = recording()
 
-            hikes.addPhoto(id, Uri.parse("content://camera/1"), pressedAt = minute(5).plusSeconds(50))
+            outings.addPhoto(id, Uri.parse("content://camera/1"), pressedAt = minute(5).plusSeconds(50))
 
-            val photo = hikes.observePhotos(id).first().single()
+            val photo = outings.observePhotos(id).first().single()
             assertEquals(49.204, photo.latitude!!, 1e-9)
             assertEquals(minute(5).plusSeconds(50), photo.takenAt)
         }
@@ -202,9 +202,9 @@ class OutingRepositoryTest {
     fun aHikeDeletedWhileItsPhotoIsWrittenTakesTheFilesWithIt() =
         runTest {
             val id = recorded()
-            whilePersisting = { hikes.delete(id) }
+            whilePersisting = { outings.delete(id) }
 
-            hikes.addPhoto(id, Uri.parse("content://picker/1"))
+            outings.addPhoto(id, Uri.parse("content://picker/1"))
 
             assertEquals(listOf("photos/1.jpg", "thumbnails/1.jpg"), deleted)
         }
@@ -214,26 +214,26 @@ class OutingRepositoryTest {
         runTest {
             val id = recorded()
             capturedAt = minute(5)
-            hikes.addPhoto(id, Uri.parse("content://picker/1"))
-            val added = hikes.observePhotos(id).first().single()
+            outings.addPhoto(id, Uri.parse("content://picker/1"))
+            val added = outings.observePhotos(id).first().single()
 
-            hikes.setCaption(added.id, "  Hala Gąsienicowa ")
-            hikes.unpin(added.id)
-            val changed = hikes.observePhotos(id).first().single()
+            outings.setCaption(added.id, "  Hala Gąsienicowa ")
+            outings.unpin(added.id)
+            val changed = outings.observePhotos(id).first().single()
             assertEquals("Hala Gąsienicowa", changed.caption)
             assertNull(changed.latitude)
-            hikes.setCaption(added.id, " ")
+            outings.setCaption(added.id, " ")
             assertNull(
-                hikes
+                outings
                     .observePhotos(id)
                     .first()
                     .single()
                     .caption,
             )
 
-            hikes.deletePhoto(added.id)
+            outings.deletePhoto(added.id)
 
-            assertEquals(emptyList<OutingPhotoEntity>(), hikes.observePhotos(id).first())
+            assertEquals(emptyList<OutingPhotoEntity>(), outings.observePhotos(id).first())
             assertEquals(listOf("photos/1.jpg", "thumbnails/1.jpg"), deleted)
         }
 

@@ -44,7 +44,7 @@ fun OutingsScreen(
     viewModel: OutingsViewModel = viewModel(factory = OutingsViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val rows = state.hikes
+    val rows = state.outings
     val context = LocalContext.current
 
     LaunchedEffect(state.exported) {
@@ -90,11 +90,11 @@ fun OutingsScreen(
                     }
                 else ->
                     LazyColumn(Modifier.fillMaxSize()) {
-                        items(rows, key = { it.id }) { hike ->
+                        items(rows, key = { it.id }) { outing ->
                             OutingRow(
-                                hike = hike,
+                                outing = outing,
                                 onShow = {
-                                    viewModel.show(hike.id)
+                                    viewModel.show(outing.id)
                                     onShow()
                                 },
                             )
@@ -107,16 +107,16 @@ fun OutingsScreen(
 
 @Composable
 private fun OutingRow(
-    hike: OutingSummary,
+    outing: OutingSummary,
     onShow: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val facts =
         listOfNotNull(
-            hikeDate(hike.startedAt, locale),
-            length(hike.metres, locale),
-            hike.endedAt?.let { Duration.between(hike.startedAt, it).toKotlinDuration().short(locale) },
-            hike.ascentMetres?.let { "↑ ${climbMetres(it, hike.ascentFromGps, locale)}" },
+            hikeDate(outing.startedAt, locale),
+            length(outing.metres, locale),
+            outing.endedAt?.let { Duration.between(outing.startedAt, it).toKotlinDuration().short(locale) },
+            outing.ascentMetres?.let { "↑ ${climbMetres(it, outing.ascentFromGps, locale)}" },
         )
     Column(
         Modifier
@@ -124,7 +124,7 @@ private fun OutingRow(
             .clickable(onClick = onShow)
             .padding(horizontal = Spacing.base, vertical = Spacing.tight),
     ) {
-        Text(hike.name, style = MaterialTheme.typography.bodyLarge)
+        Text(outing.name, style = MaterialTheme.typography.bodyLarge)
         Text(
             facts.joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium,

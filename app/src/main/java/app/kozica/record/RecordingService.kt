@@ -131,7 +131,7 @@ class RecordingService : Service() {
     private fun start(resumeId: String?) {
         startForeground(placeholder())
         if (state != null) return
-        val hikes = app.container.outings
+        val outings = app.container.outings
         val off = !LocationManagerCompat.isLocationEnabled(locations)
         if (resumeId == null) {
             val id = UUID.randomUUID().toString()
@@ -139,17 +139,17 @@ class RecordingService : Service() {
             // Reported before its row exists, so the new Hike never reads as a lost one.
             recorder.report(Recording(id, now, locationOff = off))
             serially {
-                hikes.start(id, now)
+                outings.start(id, now)
                 stretch = 0
                 begin()
             }
         } else {
             serially {
                 if (state != null) return@serially
-                val hike = hikes.get(resumeId)?.takeIf { it.endedAt == null } ?: return@serially stop()
-                stretch = hikes.nextStretch(resumeId)
+                val outing = outings.get(resumeId)?.takeIf { it.endedAt == null } ?: return@serially stop()
+                stretch = outings.nextStretch(resumeId)
                 recorder.report(
-                    Recording(resumeId, hike.startedAt, metres = hikes.track(resumeId).metres(), locationOff = off),
+                    Recording(resumeId, outing.startedAt, metres = outings.track(resumeId).metres(), locationOff = off),
                 )
                 begin()
             }
