@@ -112,3 +112,16 @@ Decided with the owner while planning phase 7b ([`phase-7b.md`](../phase-7b.md))
 - **Following in Cycling is on screen from 7b**, ahead of 7d: it is Following over a ride's line and
   needs nothing else. The screen kept on and the spoken junction directions above stay 7d's, so a ride
   is followed on screen alone until 7d ships.
+
+## Amendment — 2026-11-17: a Ride teaches the kind it mostly rode
+
+Decided with the owner while planning phase 7c ([`phase-7c.md`](../phase-7c.md) § 5).
+
+- **A Ride is timed by the Bike routes it rode.** Each piece of its Track takes the surface class and
+  `mtb:scale` of the Bike route edge within 30 m, and a piece off them is timed as paved.
+- **It teaches MTB when more than half of its matched length is on MTB routes, else Touring**, with
+  nothing for the user to set. A chip-at-Record rule would teach the wrong Pace whenever the chip was left
+  on the other kind.
+- **A Ride counts from 5 km and 20 minutes moving, at a ratio between 0.4 and 2.5; the Pace is the median
+  of a Bike and kind's 10 newest, from 3, and never below 0.5**, since an e-bike can ride the rule in half
+  its time. Rides with no Bike keep a Pace of their own.
