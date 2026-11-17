@@ -73,9 +73,9 @@ let us do otherwise".">
   `translatable="false"` — is `TranslationTest` and holds continuously. Translate from **English
   only**, per [`docs/translator-brief.md`](docs/translator-brief.md).
 - **Media paths in the DB are relative** and split by kind — `thumbnails/<uuid>.jpg`,
-  `photos/<uuid>.jpg`, `documents/<uuid>.jpg` — resolved against `filesDir` at read time. Absolute
-  paths change across installs and break restored backups; the split makes the backup export scopes a
-  list of directories.
+  `photos/<uuid>.jpg`, `documents/<uuid>.jpg`, `bikes/<uuid>.jpg` — resolved against `filesDir` at
+  read time. Absolute paths change across installs and break restored backups; the split makes the
+  backup export scopes a list of directories.
 - **All image writes go through `media/MediaFiles.kt`** — it downsamples and re-encodes per kind,
   bakes in EXIF rotation, strips metadata (GPS included), and writes the file before the row.
   Bypassing it puts full-resolution bitmaps in memory and blows up any image grid.
@@ -140,7 +140,7 @@ app/src/main/java/<namespace>/
 
 app/src/debug/    the developer-only build: the sample-data seeder, Settings' debug section and its
                   strings, the schema-mismatch screen's continue button, SeedReceiver for the
-                  capture driver, ui/map/ModeSwitch.kt with its ic_bike and strings, data/regions/'s RegionSource.kt, which falls back to an archive
+                  capture driver, ui/map/ModeSwitch.kt with its strings and CYCLING_OPEN, data/regions/'s RegionSource.kt, which falls back to an archive
                   hand-pushed to files/regions/<id>.pmtiles, and the position override:
                   PositionReceiver for scripted readings and Settings' "real position" row to
                   undo it (the long press plans a Route in every build); a relief hand-pushed to files/relief/ stands in for the

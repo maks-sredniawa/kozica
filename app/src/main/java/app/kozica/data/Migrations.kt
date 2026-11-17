@@ -67,6 +67,26 @@ val MIGRATION_3_4 =
     }
 
 /**
+ * Bikes, and an Outing's Mode and Bike (docs/phase-7c.md § 2): a table and two columns, every Outing
+ * before them a Hike with no Bike. Transcribed from `schemas/…/5.json`.
+ */
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `bikes` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `photoPath` TEXT, " +
+                    "`thumbnailPath` TEXT, `addedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("ALTER TABLE `hikes` ADD COLUMN `mode` TEXT NOT NULL DEFAULT 'HIKING'")
+            db.execSQL(
+                "ALTER TABLE `hikes` ADD COLUMN `bikeId` TEXT " +
+                    "REFERENCES `bikes`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_hikes_bikeId` ON `hikes` (`bikeId`)")
+        }
+    }
+
+/**
  * Every migration this build can run, in the order they were written.
  *
  * **Registering it here is the half that is easy to forget**, and forgetting it fails silently: the
@@ -77,7 +97,7 @@ val MIGRATION_3_4 =
  * and `*APP_MIGRATIONS` spreads an array into one. `SchemaGate` converts it to a list of integer
  * pairs so the reachability rule can be a pure function.
  */
-val APP_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+val APP_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
 /*
  * ---------------------------------------------------------------------------------------------

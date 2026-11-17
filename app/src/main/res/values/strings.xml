@@ -192,6 +192,38 @@
     <string name="settings_data">Your data</string>
     <string name="settings_backup">Backup and restore</string>
 
+    <!-- My bikes (docs/phase-7c.md § 3): the user's bikes, each a name and an optional photo, from Settings. A "ride" is one recorded outing on a bike. -->
+    <string name="bikes_title">My bikes</string>
+    <string name="bikes_add">Add bike</string>
+    <!-- The confirm button of the dialog "Add bike" opens. -->
+    <string name="bikes_add_confirm">Add</string>
+    <!-- The label of the field holding a bike's name, such as "Gravel". -->
+    <string name="bikes_name">Bike name</string>
+    <!-- Under the name field when another bike already has that name, ignoring capitals and spaces. -->
+    <string name="bikes_name_taken">That name is taken.</string>
+    <!-- In a bike's menu, and as the title and confirm button of the dialog that renames it. -->
+    <string name="bikes_rename">Rename</string>
+    <string name="bikes_add_photo">Add photo</string>
+    <string name="bikes_change_photo">Change photo</string>
+    <string name="bikes_remove_photo">Remove photo</string>
+    <!-- In a bike's menu, and on the button that confirms it. -->
+    <string name="bikes_delete">Delete</string>
+    <!-- Asked before a bike with rides is deleted: %1$s is its name, as the user typed it, such as "Gravel"; %2$d how many rides were recorded on it. The rides are kept, with no bike. -->
+    <plurals name="bikes_delete_confirm_rides">
+        <item quantity="one">Delete %1$s? Its %2$d ride stays, with no bike.</item>
+        <item quantity="other">Delete %1$s? Its %2$d rides stay, with no bike.</item>
+    </plurals>
+    <!-- Asked before a bike with no rides is deleted: %1$s is its name, as the user typed it. -->
+    <string name="bikes_delete_confirm">Delete %1$s?</string>
+    <!-- Under a bike's name: how many rides were recorded on it. -->
+    <plurals name="bikes_rides">
+        <item quantity="one">%d ride</item>
+        <item quantity="other">%d rides</item>
+    </plurals>
+    <string name="bikes_empty">No bikes yet. Add one to keep a pace per bike.</string>
+    <!-- What a screen reader says for a bike's menu button: %1$s is the bike's name. -->
+    <string name="bikes_more">Options for %1$s</string>
+
     <!-- Backup and restore (docs/phase-6.md § 7). "Records" and "Everything" are the two export scopes. -->
     <string name="backup_auto_title">Automatic backup</string>
     <string name="backup_auto_never">No automatic backup has been recorded on this phone</string>
