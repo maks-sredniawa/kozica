@@ -64,6 +64,7 @@ fun MyBikesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val bikes = state.bikes
     var deleting by rememberSaveable { mutableStateOf<String?>(null) }
+    var removingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
     var pickingFor by rememberSaveable { mutableStateOf<String?>(null) }
     val pickPhoto =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -93,7 +94,7 @@ fun MyBikesScreen(
                             pickingFor = bike.id
                             pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         },
-                        onRemovePhoto = { viewModel.removePhoto(bike.id) },
+                        onRemovePhoto = { removingPhoto = bike.id },
                         onDelete = { deleting = bike.id },
                     )
                 }
@@ -143,6 +144,22 @@ fun MyBikesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
+
+    bikes?.firstOrNull { it.id == removingPhoto && it.photo != null }?.let { bike ->
+        AlertDialog(
+            onDismissRequest = { removingPhoto = null },
+            text = { Text(stringResource(R.string.bikes_remove_photo_confirm, bike.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removePhoto(bike.id)
+                    removingPhoto = null
+                }) { Text(stringResource(R.string.bikes_remove)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { removingPhoto = null }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
