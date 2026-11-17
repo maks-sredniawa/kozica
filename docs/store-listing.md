@@ -478,7 +478,10 @@ Settings → Help and feedback is laid out anew. Tap Kozica's support address to
 Ustawienia → Pomoc i opinie mają nowy układ. Dotknij adresu pomocy Kozicy, aby go skopiować i napisać bezpośrednio. „Zgłoś problem” wymienia teraz, co wpisuje: wersję aplikacji i Androida, model telefonu i język, bez twoich zapisów. Nowa sekcja O aplikacji ma Stronę aplikacji, Politykę prywatności, Więcej aplikacji MaksForge i Podziękowania, które zaczynają się od tego, kto zrobił aplikację, i podają pełną nazwę każdej licencji z odnośnikiem do jej warunków. Dotknij wersji, aby ją skopiować.
 ```
 
-### 0.20.0 — Save changes, and Back closes a route
+### 0.21.0 — Save changes, and Back closes a route
+
+0.21.0's change, the Bikes kept beside the Outings in schema 5 and My bikes, is Cycling's alone, which a
+release build does not offer yet, so 0.20.0's notes stand unchanged.
 
 **English** — 233/500:
 
