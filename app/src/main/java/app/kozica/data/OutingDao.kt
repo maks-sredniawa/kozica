@@ -10,7 +10,7 @@ import java.time.Instant
 @Dao
 interface OutingDao {
     @Insert
-    suspend fun insert(hike: OutingEntity)
+    suspend fun insert(outing: OutingEntity)
 
     @Query("SELECT * FROM hikes WHERE id = :id")
     suspend fun get(id: String): OutingEntity?
@@ -177,18 +177,18 @@ interface OutingDao {
     @Transaction
     suspend fun finish(
         id: String,
-        ending: suspend (hike: OutingEntity, points: List<TrackPointEntity>) -> OutingEnding,
+        ending: suspend (outing: OutingEntity, points: List<TrackPointEntity>) -> OutingEnding,
     ) {
-        val hike = get(id)?.takeIf { it.endedAt == null } ?: return
+        val outing = get(id)?.takeIf { it.endedAt == null } ?: return
         val points = points(id)
         if (points.isEmpty()) return delete(id)
-        val end = ending(hike, points)
+        val end = ending(outing, points)
         end(id, end.name, end.endedAt, end.track, end.metres, end.movingSeconds)
         deletePoints(id)
     }
 }
 
-/** A Hike as the Hikes tab lists it, without its Track. */
+/** An Outing as the Outings tab lists it, without its Track. */
 data class OutingSummary(
     val id: String,
     val name: String,

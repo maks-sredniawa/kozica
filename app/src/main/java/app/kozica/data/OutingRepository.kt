@@ -107,8 +107,8 @@ class OutingRepository(
         }
     }
 
-    private suspend fun trackOf(hike: OutingEntity): Track =
-        if (hike.endedAt == null) track(hike.id) else hike.track?.let(::decodeTrack).orEmpty()
+    private suspend fun trackOf(outing: OutingEntity): Track =
+        if (outing.endedAt == null) track(outing.id) else outing.track?.let(::decodeTrack).orEmpty()
 
     /** A blank caption is no caption. */
     suspend fun setCaption(
@@ -134,8 +134,8 @@ class OutingRepository(
 
     /** Reads [id]'s height grid unless it has been read; a read that fails leaves it unread, to be tried again. */
     suspend fun fillClimb(id: String) {
-        val hike = dao.get(id)?.takeIf { it.endedAt != null && it.ascentMetres == null } ?: return
-        val climb = hike.track?.let(::decodeTrack)?.let { climbOf(it) } ?: return
+        val outing = dao.get(id)?.takeIf { it.endedAt != null && it.ascentMetres == null } ?: return
+        val climb = outing.track?.let(::decodeTrack)?.let { climbOf(it) } ?: return
         dao.setClimb(id, climb.ascent, climb.descent, climb.fromGps)
     }
 
@@ -166,9 +166,9 @@ class OutingRepository(
         first: Int,
         last: Int,
     ) {
-        val hike = dao.get(id) ?: return
-        val endedAt = hike.endedAt ?: return
-        val whole = hike.track?.let(::decodeTrack) ?: return
+        val outing = dao.get(id) ?: return
+        val endedAt = outing.endedAt ?: return
+        val whole = outing.track?.let(::decodeTrack) ?: return
         val count = whole.sumOf { it.size }
         val track = whole.trim(first, last)
         val points = track.flatten()
@@ -177,7 +177,7 @@ class OutingRepository(
         dao.trim(
             id,
             OutingTrim(
-                startedAt = if (first > 0) Instant.ofEpochMilli(points.first().timeMillis) else hike.startedAt,
+                startedAt = if (first > 0) Instant.ofEpochMilli(points.first().timeMillis) else outing.startedAt,
                 endedAt = if (last < count - 1) Instant.ofEpochMilli(points.last().timeMillis) else endedAt,
                 track = encodeTrack(track),
                 metres = track.metres(),
@@ -227,12 +227,12 @@ class OutingRepository(
     suspend fun finish(
         hikeId: String,
         now: Instant,
-        name: suspend (hike: OutingEntity, first: TrackPoint?) -> String,
-    ) = dao.finish(hikeId) { hike, rows ->
+        name: suspend (outing: OutingEntity, first: TrackPoint?) -> String,
+    ) = dao.finish(hikeId) { outing, rows ->
         val track = rows.toTrack()
         val points = track.flatten()
         OutingEnding(
-            name = name(hike, points.firstOrNull()),
+            name = name(outing, points.firstOrNull()),
             endedAt = points.lastOrNull()?.let { Instant.ofEpochMilli(it.timeMillis) } ?: now,
             track = encodeTrack(track),
             metres = track.metres(),

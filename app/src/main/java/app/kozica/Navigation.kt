@@ -122,8 +122,8 @@ fun MainNavigation(
             },
         )
     }
-    recording.unfinished?.let { hike ->
-        UnfinishedDialog(hike = hike, onResume = record, onFinish = recordingViewModel::finishUnfinished)
+    recording.unfinished?.let { outing ->
+        UnfinishedDialog(outing = outing, onResume = record, onFinish = recordingViewModel::finishUnfinished)
     }
     Scaffold(
         modifier = modifier,

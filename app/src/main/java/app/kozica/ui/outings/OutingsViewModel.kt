@@ -27,11 +27,11 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * @param hikes null until the first read, then newest first.
+ * @param outings null until the first read, then newest first.
  * @param photosNotBackedUp photos added since the last Everything export (docs/phase-6.md § 7).
  */
 data class OutingsUiState(
-    val hikes: List<OutingSummary>? = null,
+    val outings: List<OutingSummary>? = null,
     val photosNotBackedUp: Int = 0,
     val exporting: Boolean = false,
     val exported: File? = null,
@@ -53,8 +53,8 @@ class OutingsViewModel(
     private val export = MutableStateFlow(OutingsUiState())
 
     val state: StateFlow<OutingsUiState> =
-        combine(ended, photosNotBackedUp, export) { hikes, photos, export ->
-            export.copy(hikes = hikes, photosNotBackedUp = photos)
+        combine(ended, photosNotBackedUp, export) { outings, photos, export ->
+            export.copy(outings = outings, photosNotBackedUp = photos)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutingsUiState())
 
     init {

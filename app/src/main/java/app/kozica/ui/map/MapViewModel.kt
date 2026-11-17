@@ -101,7 +101,7 @@ import kotlin.time.Duration
  * @param fix the newest position, null until the first arrives or while location cannot be read.
  * @param recording the Hike being recorded, null when none is.
  * @param track the recording Hike's Track so far, drawn live (docs/phase-6.md § 2).
- * @param hike the Hike the Hikes tab asked the map to show, null when none is (docs/phase-6.md § 4).
+ * @param outing the Outing the Outings tab asked the map to show, null when none is (docs/phase-6.md § 4).
  * @param trail the Trail picked on the map, or the Trails a tap offers (docs/phase-6c.md § 3).
  * @param bikeRoute the same for Bike routes, in Cycling (docs/phase-7a.md § 4); at most one of the two is selected.
  */
@@ -118,7 +118,7 @@ data class MapUiState(
     val route: RouteUiState = RouteUiState(),
     val recording: Recording? = null,
     val track: Track = emptyList(),
-    val hike: OutingUiState? = null,
+    val outing: OutingUiState? = null,
     val trail: TrailUiState = TrailUiState(),
     val bikeRoute: BikeRouteUiState = BikeRouteUiState(),
     val pace: Pace? = null,
@@ -136,13 +136,13 @@ data class MapUiState(
     val osmDate: Instant? get() = ready.mapNotNull { it.osmDate }.minOrNull()
 
     /** The recording's Track and the shown Hike's, each stretch its own line. */
-    val drawnTrack: Track get() = track + hike?.drawn.orEmpty()
+    val drawnTrack: Track get() = track + outing?.drawn.orEmpty()
 
     /** A selected Trail or Bike route sets a planned Route aside until it is closed. */
     val selection: Boolean get() = trail.shown != null || bikeRoute.shown != null
 
     /** A planned Route, a shown Hike or a selection fades the rest of the map (docs/phase-5.md § 4). */
-    val faded: Boolean get() = route.planned != null || hike != null || selection
+    val faded: Boolean get() = route.planned != null || outing != null || selection
 }
 
 /**
@@ -467,20 +467,20 @@ class MapViewModel(
     private val hikeOpenings = MutableStateFlow(0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val hike: Flow<OutingUiState?> =
+    private val outing: Flow<OutingUiState?> =
         combine(
             shownOuting.flatMapLatest { id ->
                 if (id == null) {
                     flowOf(null)
                 } else {
-                    combine(observeOuting(id), observePhotos(id), ::Pair).mapLatest { (hike, photos) ->
-                        hike?.let { hikeState(it, photos) }
+                    combine(observeOuting(id), observePhotos(id), ::Pair).mapLatest { (outing, photos) ->
+                        outing?.let { hikeState(it, photos) }
                     }
                 }
             },
             hikeKeep,
             hikeOpenings,
-        ) { hike, keep, opening -> hike?.copy(keep = keep, opening = opening) }
+        ) { outing, keep, opening -> outing?.copy(keep = keep, opening = opening) }
 
     private val mode: StateFlow<Mode> =
         preferences.mapMode
@@ -497,10 +497,10 @@ class MapViewModel(
                 MapUiState(packs?.first, packs?.second, style, camera, location, fix)
             },
             combine(combine(search, pace, ::Pair), combine(mode, bikeRouteFilter, ::Pair), ::Pair),
-            combine(route, hike.onStart { emit(null) }, combine(trail, bikeRoute, ::Pair), ::Triple),
+            combine(route, outing.onStart { emit(null) }, combine(trail, bikeRoute, ::Pair), ::Triple),
             recording,
             track.onStart { emit(emptyList()) },
-        ) { map, (found, chosen), (route, hike, selection), recording, track ->
+        ) { map, (found, chosen), (route, outing, selection), recording, track ->
             val (search, pace) = found
             val (trail, bikeRoute) = selection
             val (mode, bikeRouteFilter) = chosen
@@ -511,7 +511,7 @@ class MapViewModel(
                 route = route,
                 recording = recording,
                 track = track,
-                hike = hike,
+                outing = outing,
                 trail = trail,
                 bikeRoute = bikeRoute,
                 pace = pace,
@@ -1071,30 +1071,30 @@ class MapViewModel(
     private var readHeights: Pair<ByteArray, List<Height?>>? = null
 
     private suspend fun hikeState(
-        hike: OutingEntity,
+        outing: OutingEntity,
         photos: List<OutingPhotoEntity>,
     ): OutingUiState? {
-        val endedAt = hike.endedAt ?: return null
-        val bytes = hike.track ?: return null
+        val endedAt = outing.endedAt ?: return null
+        val bytes = outing.track ?: return null
         val track = decodeTrack(bytes)
         val heights =
             readHeights?.takeIf { it.first.contentEquals(bytes) }?.second
                 ?: heightsOf(track).also { readHeights = bytes to it }
         val stored =
-            hike.ascentMetres?.let { ascent -> Climb(ascent, hike.descentMetres ?: 0.0, hike.ascentFromGps) }
+            outing.ascentMetres?.let { ascent -> Climb(ascent, outing.descentMetres ?: 0.0, outing.ascentFromGps) }
         return OutingUiState(
-            id = hike.id,
-            name = hike.name,
-            startedAt = hike.startedAt,
+            id = outing.id,
+            name = outing.name,
+            startedAt = outing.startedAt,
             endedAt = endedAt,
-            metres = hike.metres,
-            movingSeconds = hike.movingSeconds,
+            metres = outing.metres,
+            movingSeconds = outing.movingSeconds,
             track = track,
             along = track.along(),
             climb = shownClimb(stored, heights),
             heights = heights,
             profile = profileOf(track, heights),
-            note = hike.note,
+            note = outing.note,
             photos =
                 photos.map {
                     OutingPhoto(
@@ -1120,7 +1120,7 @@ class MapViewModel(
 
     /** Trim's handles start at the two ends, keeping everything. */
     fun startTrim() {
-        val along = state.value.hike?.along ?: return
+        val along = state.value.outing?.along ?: return
         hikeKeep.value = 0.0..(along.lastOrNull() ?: 0.0)
     }
 
@@ -1133,10 +1133,10 @@ class MapViewModel(
     }
 
     fun trim() {
-        val hike = state.value.hike ?: return
-        val kept = hike.kept ?: return
+        val outing = state.value.outing ?: return
+        val kept = outing.kept ?: return
         hikeKeep.value = null
-        applicationScope.launch { trimOuting(hike.id, kept.first, kept.last) }
+        applicationScope.launch { trimOuting(outing.id, kept.first, kept.last) }
     }
 
     fun renameOuting(name: String) {
@@ -1181,10 +1181,10 @@ class MapViewModel(
 
     /** The shown Hike as a GPX file for the share sheet (docs/phase-6.md § 8). */
     fun exportOutingGpx() {
-        val hike = state.value.hike ?: return
-        val pinned = hike.photos.mapNotNull { photo -> photo.pin?.let { it to photo.caption } }
-        gpxExports.start(hike.startedAt.atZone(ZoneId.systemDefault()).toLocalDate()) {
-            hikeGpx(hike.name, hike.note, hike.track, hike.heights, pinned)
+        val outing = state.value.outing ?: return
+        val pinned = outing.photos.mapNotNull { photo -> photo.pin?.let { it to photo.caption } }
+        gpxExports.start(outing.startedAt.atZone(ZoneId.systemDefault()).toLocalDate()) {
+            hikeGpx(outing.name, outing.note, outing.track, outing.heights, pinned)
         }
     }
 

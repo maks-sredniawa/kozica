@@ -37,7 +37,7 @@ data class Recording(
 /** What the screens see of the recording, and how they drive it (docs/phase-6.md § 2–3). */
 class Recorder(
     private val context: Context,
-    private val hikes: OutingRepository,
+    private val outings: OutingRepository,
     private val places: () -> PlaceSearch?,
     private val applicationScope: CoroutineScope,
 ) {
@@ -69,9 +69,9 @@ class Recorder(
         now: Instant,
     ) {
         withContext(Dispatchers.IO) {
-            hikes.finish(hikeId, now) { hike, first -> nameFor(hike.startedAt, first) }
+            outings.finish(hikeId, now) { outing, first -> nameFor(outing.startedAt, first) }
         }
-        applicationScope.launch { hikes.fillClimb(hikeId) }
+        applicationScope.launch { outings.fillClimb(hikeId) }
     }
 
     /** The date, and the nearest named place to where the Hike began, by phase 5's naming rule. */

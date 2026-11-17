@@ -59,7 +59,7 @@ import kotlin.time.toKotlinDuration
 /** docs/phase-6.md § 4 and § 6: a Hike's totals, profile, note and photos under its Track on the map, and what can be done to it. */
 @Composable
 internal fun OutingSheet(
-    hike: OutingUiState,
+    outing: OutingUiState,
     onClose: () -> Unit,
     onRename: (String) -> Unit,
     onStartTrim: () -> Unit,
@@ -81,7 +81,7 @@ internal fun OutingSheet(
     var confirmingTrim by rememberSaveable { mutableStateOf(false) }
     var deleting by rememberSaveable { mutableStateOf(false) }
     var editingNote by rememberSaveable { mutableStateOf(false) }
-    val keep = hike.keep
+    val keep = outing.keep
     Surface(
         shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
         tonalElevation = 1.dp,
@@ -95,9 +95,9 @@ internal fun OutingSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
                 Column(Modifier.weight(1f)) {
-                    Text(hike.name, style = MaterialTheme.typography.titleMedium)
+                    Text(outing.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        hikeDate(hike.startedAt, locale),
+                        hikeDate(outing.startedAt, locale),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -107,7 +107,7 @@ internal fun OutingSheet(
                 }
             }
             if (keep == null) {
-                Totals(hike, locale)
+                Totals(outing, locale)
             } else {
                 Text(
                     stringResource(R.string.hike_trim_title),
@@ -115,14 +115,14 @@ internal fun OutingSheet(
                     modifier = Modifier.padding(top = Spacing.tight),
                 )
             }
-            if (hike.profile.size >= 2) {
-                Profile(hike.profile, locale, Modifier.padding(top = Spacing.base), kept = keep)
+            if (outing.profile.size >= 2) {
+                Profile(outing.profile, locale, Modifier.padding(top = Spacing.base), kept = keep)
             }
             if (keep == null) {
-                Note(hike.note, onEdit = { editingNote = true }, Modifier.padding(top = Spacing.base))
-                PhotoStrip(hike, onAddPhotos, onOpenPhoto, Modifier.padding(top = Spacing.base))
+                Note(outing.note, onEdit = { editingNote = true }, Modifier.padding(top = Spacing.base))
+                PhotoStrip(outing, onAddPhotos, onOpenPhoto, Modifier.padding(top = Spacing.base))
             }
-            val total = hike.along.lastOrNull() ?: 0.0
+            val total = outing.along.lastOrNull() ?: 0.0
             if (keep != null && total > 0) {
                 RangeSlider(
                     value = keep.start.toFloat()..keep.endInclusive.toFloat(),
@@ -133,7 +133,7 @@ internal fun OutingSheet(
             FlowRow(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                 if (keep == null) {
                     TextButton(onClick = {
-                        draft = hike.name
+                        draft = outing.name
                         renaming = true
                     }) { Text(stringResource(R.string.routes_rename)) }
                     TextButton(onClick = onStartTrim) { Text(stringResource(R.string.hike_trim)) }
@@ -143,7 +143,7 @@ internal fun OutingSheet(
                     TextButton(onClick = { deleting = true }) { Text(stringResource(R.string.hike_delete)) }
                 } else {
                     TextButton(onClick = onCancelTrim) { Text(stringResource(R.string.action_cancel)) }
-                    TextButton(onClick = { confirmingTrim = true }, enabled = hike.cuts) {
+                    TextButton(onClick = { confirmingTrim = true }, enabled = outing.cuts) {
                         Text(stringResource(R.string.hike_trim))
                     }
                 }
@@ -168,7 +168,7 @@ internal fun OutingSheet(
     if (editingNote) {
         TextDialog(
             title = stringResource(R.string.hike_note),
-            initial = hike.note.orEmpty(),
+            initial = outing.note.orEmpty(),
             onSave = {
                 editingNote = false
                 onSetNote(it)
@@ -199,10 +199,10 @@ internal fun OutingSheet(
             title = { Text(stringResource(R.string.hike_delete_title)) },
             text = {
                 Text(
-                    if (hike.photoCount == 0) {
+                    if (outing.photoCount == 0) {
                         stringResource(R.string.hike_delete_body)
                     } else {
-                        pluralStringResource(R.plurals.hike_delete_body_photos, hike.photoCount, hike.photoCount)
+                        pluralStringResource(R.plurals.hike_delete_body_photos, outing.photoCount, outing.photoCount)
                     },
                 )
             },
@@ -221,27 +221,27 @@ internal fun OutingSheet(
 
 @Composable
 private fun Totals(
-    hike: OutingUiState,
+    outing: OutingUiState,
     locale: Locale,
 ) {
-    val climb = hike.climb
+    val climb = outing.climb
     val fromGps = climb?.fromGps == true
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.tight),
         modifier = Modifier.padding(top = Spacing.tight),
     ) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Total(stringResource(R.string.hike_distance), length(hike.metres, locale))
+            Total(stringResource(R.string.hike_distance), length(outing.metres, locale))
             if (climb != null) {
                 Total(stringResource(R.string.route_ascent), climbMetres(climb.ascent, fromGps, locale))
                 Total(stringResource(R.string.route_descent), climbMetres(climb.descent, fromGps, locale))
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.block), modifier = Modifier.fillMaxWidth()) {
-            Total(stringResource(R.string.hike_moving_time), hike.movingSeconds.seconds.short(locale))
+            Total(stringResource(R.string.hike_moving_time), outing.movingSeconds.seconds.short(locale))
             Total(
                 stringResource(R.string.hike_total_time),
-                Duration.between(hike.startedAt, hike.endedAt).toKotlinDuration().short(locale),
+                Duration.between(outing.startedAt, outing.endedAt).toKotlinDuration().short(locale),
             )
         }
         if (fromGps) {
@@ -288,7 +288,7 @@ private fun Note(
 
 @Composable
 private fun PhotoStrip(
-    hike: OutingUiState,
+    outing: OutingUiState,
     onAdd: () -> Unit,
     onOpen: (id: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -307,10 +307,10 @@ private fun PhotoStrip(
                 Text(stringResource(R.string.hike_add_photos))
             }
         }
-        items(hike.photos, key = { it.id }) { photo ->
+        items(outing.photos, key = { it.id }) { photo ->
             AsyncImage(
                 model = photo.thumbnail,
-                contentDescription = photo.caption ?: hike.name,
+                contentDescription = photo.caption ?: outing.name,
                 contentScale = ContentScale.Crop,
                 error = missing,
                 fallback = missing,

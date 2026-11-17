@@ -390,7 +390,7 @@ fun MapScreen(
         (style.getSource(HIKE_TRACK_SOURCE) as? GeoJsonSource)?.setGeoJson(trackGeoJson(drawnTrack))
     }
 
-    val photos = state.hike?.photos.orEmpty()
+    val photos = state.outing?.photos.orEmpty()
     LaunchedEffect(loaded, photos) {
         val style = loaded ?: return@LaunchedEffect
         (style.getSource(HIKE_PHOTOS_SOURCE) as? GeoJsonSource)?.setGeoJson(photoPinsGeoJson(photos))
@@ -520,14 +520,14 @@ fun MapScreen(
         )
     }
 
-    val hike = state.hike
+    val outing = state.outing
     var fittedOuting by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(map, hike?.id, hike?.opening, hike?.track, regions, placed) {
-        if (hike == null) fittedOuting = null
+    LaunchedEffect(map, outing?.id, outing?.opening, outing?.track, regions, placed) {
+        if (outing == null) fittedOuting = null
         val map = map ?: return@LaunchedEffect
         if (regions == null || !placed) return@LaunchedEffect
-        val points = hike?.track?.flatten()?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
-        val opened = "${hike.id}#${hike.opening}"
+        val points = outing?.track?.flatten()?.takeIf { it.size >= 2 } ?: return@LaunchedEffect
+        val opened = "${outing.id}#${outing.opening}"
         if (opened == fittedOuting) return@LaunchedEffect
         fittedOuting = opened
         val bounds =
@@ -545,7 +545,15 @@ fun MapScreen(
     BackHandler(enabled = state.route.points.isNotEmpty() && state.route.following == null) {
         viewModel.closeRoute(undoTime)
     }
-    BackHandler(enabled = hike != null) { if (hike?.keep != null) viewModel.cancelTrim() else viewModel.closeOuting() }
+    BackHandler(enabled = outing != null) {
+        if (outing?.keep !=
+            null
+        ) {
+            viewModel.cancelTrim()
+        } else {
+            viewModel.closeOuting()
+        }
+    }
     // After the Hike's, which a chooser opens over: the handler composed last wins.
     BackHandler(enabled = state.bikeRoute.shown != null || state.bikeRoute.choices.isNotEmpty()) {
         if (state.bikeRoute.choices.isNotEmpty()) viewModel.dismissBikeRouteChoices() else viewModel.closeSelection()
@@ -627,11 +635,11 @@ fun MapScreen(
     }
 
     val viewing = viewingPhoto?.let { id -> photos.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
-    if (viewing != null && hike != null) {
+    if (viewing != null && outing != null) {
         PhotoViewer(
             photos = photos,
             initialIndex = viewing,
-            hikeName = hike.name,
+            hikeName = outing.name,
             onShown = { viewingPhoto = it },
             onSetCaption = viewModel::setCaption,
             onUnpin = viewModel::unpinPhoto,
@@ -824,9 +832,9 @@ fun MapScreen(
                     onDismissGpxFailure = viewModel::dismissGpxFailure,
                     modifier = Modifier.heightIn(max = sheetHeight),
                 )
-            } else if (hike != null) {
+            } else if (outing != null) {
                 OutingSheet(
-                    hike = hike,
+                    outing = outing,
                     onClose = viewModel::closeOuting,
                     onRename = viewModel::renameOuting,
                     onStartTrim = viewModel::startTrim,
@@ -836,7 +844,7 @@ fun MapScreen(
                     onDelete = viewModel::deleteOuting,
                     onSetNote = viewModel::setNote,
                     onAddPhotos = {
-                        pickingFor = hike.id
+                        pickingFor = outing.id
                         pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                     onOpenPhoto = { viewingPhoto = it },

@@ -138,7 +138,7 @@ fun StopDialog(
 /** A recording lost with its process: resumed in a new stretch, or finished at its last point, or discarded if it kept none. */
 @Composable
 fun UnfinishedDialog(
-    hike: OutingEntity,
+    outing: OutingEntity,
     onResume: (hikeId: String) -> Unit,
     onFinish: (hikeId: String) -> Unit,
 ) {
@@ -146,10 +146,10 @@ fun UnfinishedDialog(
         onDismissRequest = {},
         title = { Text(stringResource(R.string.record_unfinished_title)) },
         confirmButton = {
-            TextButton(onClick = { onResume(hike.id) }) { Text(stringResource(R.string.record_unfinished_resume)) }
+            TextButton(onClick = { onResume(outing.id) }) { Text(stringResource(R.string.record_unfinished_resume)) }
         },
         dismissButton = {
-            TextButton(onClick = { onFinish(hike.id) }) { Text(stringResource(R.string.record_unfinished_finish)) }
+            TextButton(onClick = { onFinish(outing.id) }) { Text(stringResource(R.string.record_unfinished_finish)) }
         },
     )
 }

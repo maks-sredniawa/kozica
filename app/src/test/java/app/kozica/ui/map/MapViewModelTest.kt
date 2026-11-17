@@ -879,13 +879,13 @@ class MapViewModelTest {
             val viewModel = routingViewModel(hikeToShow = asked, observeOuting = { stored })
 
             asked.value = "h"
-            val first = settled(viewModel) { it.hike?.id == "h" }.hike!!.opening
+            val first = settled(viewModel) { it.outing?.id == "h" }.outing!!.opening
 
             asked.value = "h"
-            settled(viewModel) { it.hike?.opening == first + 1 }
+            settled(viewModel) { it.outing?.opening == first + 1 }
 
             stored.value = stored.value.copy(note = "Mgła")
-            assertEquals(first + 1, settled(viewModel) { it.hike?.note == "Mgła" }.hike?.opening)
+            assertEquals(first + 1, settled(viewModel) { it.outing?.note == "Mgła" }.outing?.opening)
         }
 
     @Test
