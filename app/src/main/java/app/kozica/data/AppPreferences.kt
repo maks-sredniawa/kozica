@@ -145,7 +145,10 @@ class AppPreferences(
         store.edit { it[Keys.MAP_BIKE_ROUTE_FILTER] = filter.name }
     }
 
-    /** The Bike Record starts on and the Route sheet times by (docs/phase-7c.md § 2); null for none. */
+    /**
+     * The Bike Record starts on and the Route sheet times by (docs/phase-7c.md § 2); null for none. It
+     * can name a Bike that is gone, so read it through `BikeRepository.observeCurrentId`.
+     */
     val currentBikeId: Flow<String?> = store.data.map { it[Keys.CURRENT_BIKE] }
 
     suspend fun setCurrentBike(id: String?) {
@@ -154,10 +157,14 @@ class AppPreferences(
         }
     }
 
-    /** A first Bike, or one added while none is current, becomes the current one. */
-    suspend fun setCurrentBikeIfUnset(id: String) {
+    /** A first Bike, or one added while none is current or the current one [isBike] no longer finds, becomes the current one. */
+    suspend fun setCurrentBikeIfUnset(
+        id: String,
+        isBike: suspend (String) -> Boolean,
+    ) {
         store.edit { prefs ->
-            if (prefs[Keys.CURRENT_BIKE] == null) prefs[Keys.CURRENT_BIKE] = id
+            val current = prefs[Keys.CURRENT_BIKE]
+            if (current == null || !isBike(current)) prefs[Keys.CURRENT_BIKE] = id
         }
     }
 

@@ -132,6 +132,19 @@ class BikeRepositoryTest {
         }
 
     @Test
+    fun aCurrentIdWithNoBikeReadsAsNoBikeAndGivesWayToTheNextAdded() =
+        runTest {
+            preferences.setCurrentBike("gone")
+            assertNull(bikes.observeCurrentId().first())
+
+            bikes.add("Gravel", start)
+
+            val gravel = bikeNamed("Gravel").id
+            assertEquals(gravel, preferences.currentBikeId.first())
+            assertEquals(gravel, bikes.observeCurrentId().first())
+        }
+
+    @Test
     fun deletingAnotherBikeLeavesTheCurrentOne() =
         runTest {
             bikes.add("Gravel")

@@ -2,6 +2,7 @@ package app.kozica.data
 
 import android.net.Uri
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import java.time.Instant
 
 enum class BikeNaming {
@@ -25,6 +26,10 @@ class BikeRepository(
     /** In the order they were added. */
     fun observeAll(): Flow<List<BikeWithRides>> = dao.observeAll()
 
+    /** The current Bike, null for none and for an id whose Bike is gone, as a delete the process did not outlive leaves it. */
+    fun observeCurrentId(): Flow<String?> =
+        combine(preferences.currentBikeId, dao.observeIds()) { id, ids -> id?.takeIf { it in ids } }
+
     /** Becomes the current Bike while none is. */
     suspend fun add(
         name: String,
@@ -34,7 +39,7 @@ class BikeRepository(
         if (trimmed.isEmpty()) return BikeNaming.Blank
         val bike = BikeEntity(name = trimmed, addedAt = now)
         if (!dao.insertUnlessTaken(bike)) return BikeNaming.Taken
-        preferences.setCurrentBikeIfUnset(bike.id)
+        preferences.setCurrentBikeIfUnset(bike.id) { dao.get(it) != null }
         return BikeNaming.Saved
     }
 
