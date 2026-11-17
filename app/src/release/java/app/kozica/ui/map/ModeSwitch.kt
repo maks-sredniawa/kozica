@@ -6,6 +6,9 @@ import androidx.compose.ui.unit.dp
 import app.kozica.data.BikeRouteFilter
 import app.kozica.data.Mode
 
+/** No Bike and no Ride reach a release build until phase 7c's E opens Cycling in one release. */
+const val CYCLING_OPEN = false
+
 /** The release half of the switch, until phase 7c opens it to everyone: Hiking, whatever is stored. */
 fun modeOf(stored: Mode): Mode = Mode.HIKING
 

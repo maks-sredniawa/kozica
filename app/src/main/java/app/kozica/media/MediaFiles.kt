@@ -98,6 +98,9 @@ enum class MediaKind(
      * dimensions — is usually what decides the number.
      */
     Document("documents", DownsampleSpec.LongEdge(maxEdge = 3000, quality = 92)),
+
+    /** A Bike's photo, shown no larger than a sheet: one file at a thumbnail's spec (docs/phase-7c.md § 2). */
+    Bike("bikes", DownsampleSpec.CentreCropSquare(size = 512, quality = 85)),
 }
 
 /**

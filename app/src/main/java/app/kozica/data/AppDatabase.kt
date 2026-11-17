@@ -18,7 +18,7 @@ import app.kozica.BuildConfig
  * migration, its registration in [APP_MIGRATIONS], the exported `schemas/<n>.json`, and the
  * `SchemaGateTest` assertion. See ADR-0001.
  */
-const val APP_SCHEMA_VERSION = 4
+const val APP_SCHEMA_VERSION = 5
 
 /** The database file name, under the app's standard databases directory. */
 const val APP_DATABASE_FILE = "kozica.db"
@@ -56,6 +56,7 @@ const val APP_DATABASE_FILE = "kozica.db"
         OutingEntity::class,
         TrackPointEntity::class,
         OutingPhotoEntity::class,
+        BikeEntity::class,
     ],
     version = APP_SCHEMA_VERSION,
     // Room writes the schema JSON these migrations are transcribed from. Committed, and shipped
@@ -67,6 +68,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun routeDao(): RouteDao
 
     abstract fun outingDao(): OutingDao
+
+    abstract fun bikeDao(): BikeDao
 }
 
 /**

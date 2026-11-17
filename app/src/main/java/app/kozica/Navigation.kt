@@ -34,6 +34,7 @@ import androidx.navigation3.ui.NavDisplay
 import app.kozica.theme.Spacing
 import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.backup.BackupScreen
+import app.kozica.ui.bikes.MyBikesScreen
 import app.kozica.ui.common.WarningBanner
 import app.kozica.ui.map.MapScreen
 import app.kozica.ui.outings.OutingsScreen
@@ -222,7 +223,11 @@ fun MainNavigation(
                             onOpenLicences = { backStack.add(Licences) },
                             onOpenSupport = { backStack.add(Support) },
                             onOpenBackup = { backStack.add(Backup) },
+                            onOpenBikes = { backStack.add(Bikes) },
                         )
+                    }
+                    entry<Bikes> {
+                        MyBikesScreen(onBack = { backStack.removeLastOrNull() })
                     }
                     entry<Backup> {
                         BackupScreen(onBack = { backStack.removeLastOrNull() })
