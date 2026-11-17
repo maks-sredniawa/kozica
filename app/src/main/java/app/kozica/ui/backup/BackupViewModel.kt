@@ -179,7 +179,7 @@ class BackupViewModel(
         if (transient.value.working != null) return
         transient.update { it.copy(working = BackupWork.Restoring, pendingRestore = null) }
         viewModelScope.launch {
-            if (container.hikes.observeUnfinished().first() != null) {
+            if (container.outings.observeUnfinished().first() != null) {
                 transient.update { it.copy(working = null, refusal = RestoreRefusal.RecordingUnderway) }
                 return@launch
             }

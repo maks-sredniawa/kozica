@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable

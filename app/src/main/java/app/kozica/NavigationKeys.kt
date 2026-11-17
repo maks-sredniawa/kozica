@@ -20,7 +20,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object Routes : NavKey
 
 /** The third tab, pushed over [Home] as [Routes] is (docs/phase-6.md § 4). */
-@Serializable data object Hikes : NavKey
+@Serializable data object Outings : NavKey
 
 @Serializable data object Settings : NavKey
 

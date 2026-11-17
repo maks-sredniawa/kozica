@@ -131,7 +131,7 @@ class RecordingService : Service() {
     private fun start(resumeId: String?) {
         startForeground(placeholder())
         if (state != null) return
-        val hikes = app.container.hikes
+        val hikes = app.container.outings
         val off = !LocationManagerCompat.isLocationEnabled(locations)
         if (resumeId == null) {
             val id = UUID.randomUUID().toString()
@@ -171,7 +171,7 @@ class RecordingService : Service() {
         val recording = state ?: return
         if (recording.paused || !fix.hasAccuracy() || fix.accuracy > MAX_ACCURACY_METRES) return
         val point = TrackPoint(fix.time, fix.latitude, fix.longitude, if (fix.hasAltitude()) fix.altitude else null)
-        app.container.hikes.addPoint(recording.hikeId, stretch, point)
+        app.container.outings.addPoint(recording.hikeId, stretch, point)
         val step = last?.let { Router.metres(it.latitude, it.longitude, point.latitude, point.longitude) } ?: 0.0
         last = point
         recorder.report(recording.copy(metres = recording.metres + step, locationOff = false))

@@ -53,9 +53,9 @@ const val APP_DATABASE_FILE = "kozica.db"
     entities = [
         RouteEntity::class,
         RoutePointEntity::class,
-        HikeEntity::class,
+        OutingEntity::class,
         TrackPointEntity::class,
-        HikePhotoEntity::class,
+        OutingPhotoEntity::class,
     ],
     version = APP_SCHEMA_VERSION,
     // Room writes the schema JSON these migrations are transcribed from. Committed, and shipped
@@ -66,7 +66,7 @@ const val APP_DATABASE_FILE = "kozica.db"
 abstract class AppDatabase : RoomDatabase() {
     abstract fun routeDao(): RouteDao
 
-    abstract fun hikeDao(): HikeDao
+    abstract fun outingDao(): OutingDao
 }
 
 /**

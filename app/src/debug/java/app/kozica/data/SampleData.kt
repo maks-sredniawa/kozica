@@ -43,7 +43,7 @@ object SampleData {
      * Kasprowy Wierch with a pause at Myślenickie Turnie, inside the Tatry, so its ascent is the
      * grid's; and a walk along the Vistula in Warsaw, outside every Region, so it is GPS's.
      */
-    suspend fun seedHikes(repository: HikeRepository) {
+    suspend fun seedHikes(repository: OutingRepository) {
         for (hike in repository.observeEnded().first()) repository.delete(hike.id)
         val morning = Instant.parse("2026-09-12T06:30:00Z")
         hike(
@@ -71,7 +71,7 @@ object SampleData {
      * Trails, then its planned line recorded as a Hike, so the two ascents can be read side by side.
      */
     suspend fun seedRouteHike(
-        repository: HikeRepository,
+        repository: OutingRepository,
         plan: suspend (List<RoutePoint>) -> PlannedRoute?,
     ) {
         val points =
@@ -91,7 +91,7 @@ object SampleData {
      * The `pace` variant, for docs/phase-6b.md § 2: Kuźnice to Kasprowy Wierch walked three times at
      * three speeds, every height the grid's, so the Pace is their middle one.
      */
-    suspend fun seedPace(repository: HikeRepository) {
+    suspend fun seedPace(repository: OutingRepository) {
         for (hike in repository.observeEnded().first()) repository.delete(hike.id)
         listOf(12_000L, 15_000L, 18_000L).forEachIndexed { day, fixMillis ->
             hike(
@@ -128,7 +128,7 @@ object SampleData {
     )
 
     private suspend fun hike(
-        repository: HikeRepository,
+        repository: OutingRepository,
         name: String,
         start: Instant,
         stretches: List<Stretch>,
