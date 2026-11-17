@@ -1,4 +1,4 @@
-package app.kozica.ui.hikes
+package app.kozica.ui.outings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -33,7 +33,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.kozica.R
 import app.kozica.theme.Spacing
-import app.kozica.ui.map.HikePhoto
+import app.kozica.ui.map.OutingPhoto
 import coil3.compose.AsyncImage
 
 /**
@@ -44,7 +44,7 @@ import coil3.compose.AsyncImage
  */
 @Composable
 internal fun PhotoViewer(
-    photos: List<HikePhoto>,
+    photos: List<OutingPhoto>,
     initialIndex: Int,
     hikeName: String,
     onShown: (id: String) -> Unit,

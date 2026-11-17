@@ -4,7 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import app.kozica.R
-import app.kozica.data.HikeRepository
+import app.kozica.data.OutingRepository
 import app.kozica.data.hikes.TrackPoint
 import app.kozica.data.routes.PlaceSearch
 import app.kozica.ui.settings.inAppLanguage
@@ -37,7 +37,7 @@ data class Recording(
 /** What the screens see of the recording, and how they drive it (docs/phase-6.md § 2–3). */
 class Recorder(
     private val context: Context,
-    private val hikes: HikeRepository,
+    private val hikes: OutingRepository,
     private val places: () -> PlaceSearch?,
     private val applicationScope: CoroutineScope,
 ) {

@@ -9,9 +9,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import app.kozica.data.AppPreferences
 import app.kozica.data.BikeRouteFilter
-import app.kozica.data.HikeEntity
 import app.kozica.data.MapCamera
 import app.kozica.data.Mode
+import app.kozica.data.OutingEntity
 import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
 import app.kozica.data.hikes.TrackPoint
@@ -865,7 +865,7 @@ class MapViewModelTest {
             val asked = MutableStateFlow<String?>(null)
             val stored =
                 MutableStateFlow(
-                    HikeEntity(
+                    OutingEntity(
                         id = "h",
                         name = "Kopa",
                         startedAt = Instant.EPOCH,
@@ -876,7 +876,7 @@ class MapViewModelTest {
                             ),
                     ),
                 )
-            val viewModel = routingViewModel(hikeToShow = asked, observeHike = { stored })
+            val viewModel = routingViewModel(hikeToShow = asked, observeOuting = { stored })
 
             asked.value = "h"
             val first = settled(viewModel) { it.hike?.id == "h" }.hike!!.opening
@@ -1935,7 +1935,7 @@ private fun routingViewModel(
     preferences: AppPreferences = AppPreferences(MemoryPreferences()),
     now: () -> Long = System::currentTimeMillis,
     hikeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
-    observeHike: (String) -> Flow<HikeEntity?> = { flowOf(null) },
+    observeOuting: (String) -> Flow<OutingEntity?> = { flowOf(null) },
 ) = MapViewModel(
     regions = flowOf(emptyList()),
     preferences = preferences,
@@ -1953,7 +1953,7 @@ private fun routingViewModel(
     saveRoute = saveRoute,
     observeName = observeName,
     hikeToShow = hikeToShow,
-    observeHike = observeHike,
+    observeOuting = observeOuting,
     loadTrail = loadTrail,
     sectionsOf = sectionsOf,
     routeAlong = routeAlong,

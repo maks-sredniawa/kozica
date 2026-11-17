@@ -26,8 +26,8 @@ import java.time.Instant
  * @param deleteMedia deletes a file by its relative path, as `MediaFiles.delete` does.
  * @param persistPhoto writes a photo and its thumbnail, as `MediaFiles.persistPhoto` does.
  */
-class HikeRepository(
-    private val dao: HikeDao,
+class OutingRepository(
+    private val dao: OutingDao,
     private val heights: suspend (Track) -> List<Height?> = { track -> track.flatten().map { null } },
     private val deleteMedia: (relativePath: String) -> Unit = {},
     private val persistPhoto: suspend (source: Uri) -> PersistedPhoto = { error("No media in this repository") },
@@ -36,18 +36,18 @@ class HikeRepository(
     suspend fun start(
         id: String,
         at: Instant,
-    ) = dao.insert(HikeEntity(id = id, name = "", startedAt = at))
+    ) = dao.insert(OutingEntity(id = id, name = "", startedAt = at))
 
-    suspend fun get(id: String): HikeEntity? = dao.get(id)
+    suspend fun get(id: String): OutingEntity? = dao.get(id)
 
-    fun observeUnfinished(): Flow<HikeEntity?> = dao.observeUnfinished()
+    fun observeUnfinished(): Flow<OutingEntity?> = dao.observeUnfinished()
 
     /** Newest first. */
-    fun observeEnded(): Flow<List<HikeSummary>> = dao.observeEnded()
+    fun observeEnded(): Flow<List<OutingSummary>> = dao.observeEnded()
 
-    fun observe(id: String): Flow<HikeEntity?> = dao.observe(id)
+    fun observe(id: String): Flow<OutingEntity?> = dao.observe(id)
 
-    fun observePhotos(id: String): Flow<List<HikePhotoEntity>> = dao.observePhotos(id)
+    fun observePhotos(id: String): Flow<List<OutingPhotoEntity>> = dao.observePhotos(id)
 
     /** Every photo when [since] is null, before any Everything export (docs/phase-6.md § 7). */
     fun observePhotosAddedAfter(since: Instant?): Flow<Int> = dao.observePhotosAddedAfter(since ?: Instant.EPOCH)
@@ -89,7 +89,7 @@ class HikeRepository(
                 media.capturedAt?.let { track.pinAt(it.toEpochMilli()) }
             }
         val photo =
-            HikePhotoEntity(
+            OutingPhotoEntity(
                 hikeId = hikeId,
                 photoPath = media.path,
                 thumbnailPath = media.thumbnailPath,
@@ -107,7 +107,7 @@ class HikeRepository(
         }
     }
 
-    private suspend fun trackOf(hike: HikeEntity): Track =
+    private suspend fun trackOf(hike: OutingEntity): Track =
         if (hike.endedAt == null) track(hike.id) else hike.track?.let(::decodeTrack).orEmpty()
 
     /** A blank caption is no caption. */
@@ -176,7 +176,7 @@ class HikeRepository(
         val climb = climbOf(track)
         dao.trim(
             id,
-            HikeTrim(
+            OutingTrim(
                 startedAt = if (first > 0) Instant.ofEpochMilli(points.first().timeMillis) else hike.startedAt,
                 endedAt = if (last < count - 1) Instant.ofEpochMilli(points.last().timeMillis) else endedAt,
                 track = encodeTrack(track),
@@ -227,11 +227,11 @@ class HikeRepository(
     suspend fun finish(
         hikeId: String,
         now: Instant,
-        name: suspend (hike: HikeEntity, first: TrackPoint?) -> String,
+        name: suspend (hike: OutingEntity, first: TrackPoint?) -> String,
     ) = dao.finish(hikeId) { hike, rows ->
         val track = rows.toTrack()
         val points = track.flatten()
-        HikeEnding(
+        OutingEnding(
             name = name(hike, points.firstOrNull()),
             endedAt = points.lastOrNull()?.let { Instant.ofEpochMilli(it.timeMillis) } ?: now,
             track = encodeTrack(track),
