@@ -109,8 +109,11 @@ and **the Track's length against the line's**.
 ### The apparatus
 
 The matcher is a pure function in `data/hikes/` (§ 5), so the replay runs it on the JVM:
-`RideMatchReplay`, a test in `app/src/test/` skipped unless `-PrideGate=<trails.network>` names a
-network, writing one row per route and speed to `build/ride-gate.tsv` and the totals to its log.
+`RideMatchReplay`, a test in `app/src/test/` skipped unless `-PrideGate` names a base-assets directory
+(`trails.network` and `trails.edges` in walks format 2). `scripts/ride-gate.py <dir>` exports each Bike
+route's kind and one-way flag from its `places.sqlite` to `<dir>/../ride-gate/bike-routes.tsv` and runs
+the test, which writes one row per route, direction and speed to `ride-gate.tsv` beside it and the
+totals to its log.
 `app/build.gradle.kts` passes `-PrideGate` to the test JVM as the `rideGate` system property, and with
 it set marks the test task never up to date, since the replay reads a file Gradle cannot see. The
 noise is seeded. The same run at 1 s is the comparison verdict 2 needs.
@@ -125,9 +128,17 @@ noise is seeded. The same run at 1 s is the comparison verdict 2 needs.
 3. **Short of either even at 1 s** → the matcher, not the interval, is wrong: § 5's matching is
    rethought before C, and the owner sees the rows first.
 
-### The verdict, taken *(date)*
+### The verdict, taken 2026-11-17
 
-*(Which one, the reading behind it, and anything it found that neither verdict anticipated.)*
+**Verdict 1: Rides keep the walker's 5 s and 5 m.** Over all 1,443 Bike routes, 2,646 rides counting each
+way, at 5 s: 99.73 %, 99.76 % and 99.75 % of the length matched to the right route at 15, 25 and 35 km/h,
+and the length off by +0.37 %, −0.58 % and −1.14 %. Among the 1,683 rides of 5 km or more the worst
+twentieth is still 99.0 % matched, and the 95th percentile of the length error is 1.0 %, 1.8 % and 2.9 %.
+No route matched under 89 %. R1 has the run.
+
+One thing neither verdict anticipated: **1 s reads a Ride longer, not truer.** At 15 km/h a fix every
+second measures the GPS noise as distance, +4.6 % against 5 s's +0.4 %; only at 35 km/h does 1 s do
+better. The interval that keeps corners at speed costs more at the speeds most Rides go.
 
 ## 2. Schema 5
 
@@ -356,7 +367,7 @@ override, as 6b's R3 replays a walk.
 
 | # | Reading | Command | Result |
 | --- | --- | --- | --- |
-| R1 | The gate (§ 1): matched share and length per speed at 5 s, and at 1 s | `./gradlew testDebugUnitTest --tests '*RideMatchReplay*' -PrideGate=<trails.network>` | *(owed)* |
+| R1 | The gate (§ 1): matched share and length per speed at 5 s, and at 1 s | `python3 scripts/ride-gate.py <base-assets dir>` | **Verdict 1**, 2026-11-17, the PC: pin 4965's network rebuilt at `ce4df02` (walks format 2) into `map-data/pin-4965-net2`, seed 20261117, 20 min. Every 5 s: matched 99.73 / 99.76 / 99.75 %, length +0.37 / −0.58 / −1.14 % at 15 / 25 / 35 km/h; every 1 s: 99.66 / 99.68 / 99.68 %, +4.61 / +1.55 / +0.65 %. Rows in `map-data/ride-gate/ride-gate.tsv`. |
 | R2 | My bikes: add, rename to a taken name refused, photo, delete with Rides, at 360 dp and font scale 1.3 in Polish | by hand on `pixel-api37` | *(owed)* |
 | R3 | A replayed Ride on a Bike, the chip changed mid-Ride, Stop, the row and sheet in Outings, made a Hike and back | position override replay | *(owed)* |
 | R4 | Schema 4 to 5 on a device: the previous release-shaped build with a Hike, photos and a saved ride, the new one over it | `./gradlew assembleDebug -PreleaseShapedDebug` both builds | *(owed)* |
