@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -55,12 +56,17 @@ fun BikeChip(
 ) {
     var choosing by rememberSaveable { mutableStateOf(false) }
     val name = bikes.firstOrNull { it.id == bikeId }?.name ?: stringResource(R.string.bike_none)
+    val description = stringResource(R.string.bike_chip, name)
     AssistChip(
         onClick = { choosing = true },
         label = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(painterResource(R.drawable.ic_bike), contentDescription = null) },
         trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
-        modifier = modifier.semantics { role = Role.DropdownList },
+        modifier =
+            modifier.semantics {
+                role = Role.DropdownList
+                contentDescription = description
+            },
     )
     if (choosing) {
         BikeSheet(

@@ -231,6 +231,8 @@
     <string name="bike_title">Bike</string>
     <!-- On a Ride's Bike chip and in that sheet: the Ride is on none of the user's bikes. -->
     <string name="bike_none">No bike</string>
+    <!-- What a screen reader says for the Bike chip, whose visible label is only %1$s: the Bike's name, or bike_none. -->
+    <string name="bike_chip">Bike: %1$s</string>
 
     <!-- Backup and restore (docs/phase-6.md § 7). "Records" and "Everything" are the two export scopes. -->
     <string name="backup_auto_title">Automatic backup</string>
@@ -369,6 +371,9 @@
     <string name="record_hike">Record hike</string>
     <!-- The map's Record button in both Modes (docs/phase-7c.md § 4): records a Hike on foot, or in Cycling a Ride. A verb. -->
     <string name="record">Record</string>
+    <!-- What a screen reader says for that Record button in Hiking and in Cycling, naming what it records. -->
+    <string name="record_a_hike">Record a hike</string>
+    <string name="record_a_ride">Record a ride</string>
     <string name="record_channel">Hike recording</string>
     <string name="record_recording">Recording</string>
     <!-- As record_recording, on the recording bar and the notification while a Ride records: "ride" is one recorded outing on a bike. -->

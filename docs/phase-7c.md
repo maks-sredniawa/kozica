@@ -203,10 +203,12 @@ for a saved Route's).
 ## 4. Recording a Ride
 
 **Record follows the Mode.** The button reads "Record" / "Nagraj" in both, its icon the walker or the
-bike; in Cycling it records a Ride, at § 1's interval, on the current Bike, with no question asked.
+bike, and its accessible name says which: "Record a hike" or "Record a ride". In Cycling it records a
+Ride, at § 1's interval, on the current Bike, with no question asked.
 
 **The recording bar** carries the same icon in its title line, and in a Ride, once a Bike exists, a third
-line: a chip with the bike icon, the Bike's name (one line, ellipsised) and a drop-down arrow. A tap opens
+line: a chip with the bike icon, the Bike's name (one line, ellipsised) and a drop-down arrow, its
+accessible name "Bike: Trek", keeping the visible label. A tap opens
 a bottom sheet, one 56 dp row per Bike (thumbnail, name, radio button), then "No bike" and "My bikes".
 Picking one changes the Ride's Bike and the current Bike. The Route sheet in Cycling shows the same chip
 (§ 6), bound to the same current Bike.
@@ -214,7 +216,7 @@ Picking one changes the Ride's Bike and the current Bike. The Route sheet in Cyc
 Everything else is phase 6's: pause, auto-resume, Stop, the asks, the notification, which reads "Recording
 a ride" in Cycling.
 
-Copy: "Record", "Recording a ride", "No bike", "Bike".
+Copy: "Record", "Record a hike", "Record a ride", "Recording a ride", "No bike", "Bike", "Bike: %1$s".
 
 ## 5. A Ride's Pace
 

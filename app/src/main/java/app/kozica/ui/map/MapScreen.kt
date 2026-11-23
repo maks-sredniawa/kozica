@@ -20,6 +20,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -67,6 +68,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -769,7 +772,16 @@ fun MapScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         if (state.recording == null) {
-                            FilledTonalButton(onClick = onRecord) {
+                            val recordDescription = stringResource(state.mode.recordName)
+                            FilledTonalButton(
+                                onClick = onRecord,
+                                modifier =
+                                    if (CYCLING_OPEN) {
+                                        Modifier.semantics { contentDescription = recordDescription }
+                                    } else {
+                                        Modifier
+                                    },
+                            ) {
                                 Icon(
                                     painterResource(if (CYCLING_OPEN) state.mode.icon else R.drawable.ic_record),
                                     contentDescription = null,
@@ -1259,3 +1271,6 @@ private fun bikeRouteFilter(
         else -> own ?: chosen ?: Expression.literal(true)
     }
 }
+
+@get:StringRes
+private val Mode.recordName: Int get() = if (this == Mode.HIKING) R.string.record_a_hike else R.string.record_a_ride

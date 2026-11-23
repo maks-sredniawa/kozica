@@ -159,6 +159,7 @@
     <string name="bikes_more">Opcje: %1$s</string>
     <string name="bike_title">Rower</string>
     <string name="bike_none">Bez roweru</string>
+    <string name="bike_chip">Rower: %1$s</string>
 
     <string name="backup_auto_title">Automatyczna kopia zapasowa</string>
     <string name="backup_auto_never">Na tym telefonie nie odnotowano automatycznej kopii zapasowej</string>
@@ -269,6 +270,8 @@
 
     <string name="record_hike">Nagraj wycieczkę</string>
     <string name="record">Nagraj</string>
+    <string name="record_a_hike">Nagraj wycieczkę pieszą</string>
+    <string name="record_a_ride">Nagraj wycieczkę rowerową</string>
     <string name="record_channel">Nagrywanie wycieczki</string>
     <string name="record_recording">Nagrywanie</string>
     <string name="record_recording_ride">Nagrywanie wycieczki rowerowej</string>
