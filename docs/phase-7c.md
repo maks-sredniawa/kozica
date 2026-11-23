@@ -324,6 +324,13 @@ Copy, moved from `app/src/debug/` and now translated: `mode_hiking`, `mode_cycli
 routes: %1$s" (the menu chip's name). Deleted with their reads: `hikes_title`, `hikes_empty` and
 `record_hike` (§ 7).
 
+**Copy that says "hike" of what may be a Ride** is reworded here, since this is where a release user
+first meets a Ride; until E only a developer build shows one. R3 found it on a Ride's Stop confirm
+(`record_stop_body`), its sheet (`hike_delete_title`, `hike_delete_body_photos`, `hike_close`), and
+the recording's other asks and channel (`record_precise_title`, `record_precise_body`,
+`record_unfinished_title`, `record_channel`); Backup's lines that list "your hikes" go with them.
+Each names the Outing it is about where it knows the Mode, or says "outing" where it does not.
+
 **The listing.** `docs/store-listing.md`'s descriptions gain Cycling, the Bike routes and the Rides; the
 Play icon and feature graphic change with the mark. The Console upload of the listing and graphics is
 asked first (`DOD.md`'s Play rules).
