@@ -89,10 +89,13 @@ or a Bike they could add but never ride, is the half-open state 7a refused. `mod
 `otherModeMatches()` pin only the Mode, and most of B–D's surfaces do not depend on it, so B adds
 **`CYCLING_OPEN`** to `ui/map/ModeSwitch.kt`, `true` in the debug half and `false` in the release one,
 and every B–D surface outside the Mode reads it: the "My bikes" Settings row, the tab's "Outings" label
-(a release build keeps "Hikes" until E), a row's walker or bike icon and its Bike, the sheet's
-"Ride"/"Hike" line, "Make it a Ride", the Bike chip on the recording bar and the Route sheet, and the
-Ride Pace line. B's first `feat:` lands with it, so no surface reaches a release build early. E deletes
-the seam's release halves, `CYCLING_OPEN` with them.
+(a release build keeps "Hikes" until E) and its empty line, a row's walker or bike icon and its Bike,
+the sheet's "Ride"/"Hike" line, "Make it a Ride", Record's "Record" and Mode icon (a release build keeps
+"Record hike" and the record icon until E), the recording bar's Mode icon, the Bike chip on the
+recording bar and the Route sheet, and the Ride Pace line. The GPX `<type>` and the Polish Pace lines'
+Hikes on foot are not surfaces of Cycling and reach every build from C. B's first `feat:` lands with it,
+so no surface reaches a release build early. E deletes the seam's release halves, `CYCLING_OPEN` with
+them.
 
 ---
 
@@ -279,11 +282,12 @@ read Rides alone. The action row wraps (`FlowRow`): five buttons do not fit one 
 
 GPX export carries `<type>` `hiking` or `cycling`, as Strava and Komoot read it.
 
-Copy: "Outings", "Ride", "Hike", "Make it a Ride", "Make it a Hike", "No outings yet. Record one from the
-map." (replacing the empty Hikes line in the same key's place). In Polish a Hike beside a Ride is
-*wycieczka piesza* (`CONTEXT.md`), so the sheet's "Hike" line and the walking Pace line's count (`pace_*`,
-`pace_none`, today "z %d wycieczki") are translated again to name Hikes on foot, and do not read as
-counting every Outing.
+Copy: "Outings", "Ride", "Hike", "Make it a Ride", "Make it a Hike", "No outings yet. Record one from
+the map." (`outings_title` and `outings_empty`, beside `hikes_title` and `hikes_empty` while a release
+build still shows those; E deletes the two, with `record_hike`). In Polish a Hike beside a Ride is
+*wycieczka piesza* (`CONTEXT.md`), so the sheet's "Hike" line and the walking Pace line's count
+(`pace_*`, `pace_none`, today "z %d wycieczki") are translated again to name Hikes on foot, and do not
+read as counting every Outing.
 
 ## 8. Cycling for everyone
 
@@ -317,7 +321,8 @@ for the owner before it merges.
 
 Copy, moved from `app/src/debug/` and now translated: `mode_hiking`, `mode_cycling`, `filter_all`,
 `filter_touring`, `filter_mtb`, `search_hint_trails`, `search_hint_bike_routes`. New: "Search", "Bike
-routes: %1$s" (the menu chip's name).
+routes: %1$s" (the menu chip's name). Deleted with their reads: `hikes_title`, `hikes_empty` and
+`record_hike` (§ 7).
 
 **The listing.** `docs/store-listing.md`'s descriptions gain Cycling, the Bike routes and the Rides; the
 Play icon and feature graphic change with the mark. The Console upload of the listing and graphics is

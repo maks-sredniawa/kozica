@@ -1,14 +1,17 @@
 package app.kozica.ui.outings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.kozica.R
@@ -30,7 +35,9 @@ import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.backup.text
 import app.kozica.ui.common.DetailScaffold
 import app.kozica.ui.common.WarningBanner
+import app.kozica.ui.common.icon
 import app.kozica.ui.common.shareBackupArchive
+import app.kozica.ui.map.CYCLING_OPEN
 import app.kozica.ui.map.length
 import app.kozica.ui.map.short
 import java.time.Duration
@@ -54,7 +61,11 @@ fun OutingsScreen(
         }
     }
 
-    DetailScaffold(title = stringResource(R.string.hikes_title), onBack = null, modifier = modifier) { content ->
+    DetailScaffold(
+        title = stringResource(if (CYCLING_OPEN) R.string.outings_title else R.string.hikes_title),
+        onBack = null,
+        modifier = modifier,
+    ) { content ->
         Column(content.fillMaxSize()) {
             if (state.photosNotBackedUp > 0) {
                 WarningBanner(
@@ -83,7 +94,7 @@ fun OutingsScreen(
                 rows.isEmpty() ->
                     Box(Modifier.fillMaxSize().padding(Spacing.base), contentAlignment = Alignment.Center) {
                         Text(
-                            stringResource(R.string.hikes_empty),
+                            stringResource(if (CYCLING_OPEN) R.string.outings_empty else R.string.hikes_empty),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -93,6 +104,7 @@ fun OutingsScreen(
                         items(rows, key = { it.id }) { outing ->
                             OutingRow(
                                 outing = outing,
+                                kindShown = CYCLING_OPEN && state.hasRides,
                                 onShow = {
                                     viewModel.show(outing.id)
                                     onShow()
@@ -105,9 +117,11 @@ fun OutingsScreen(
     }
 }
 
+/** @param kindShown whether the row starts with the walker or the bike, and a Ride's facts end with its Bike. */
 @Composable
 private fun OutingRow(
     outing: OutingSummary,
+    kindShown: Boolean,
     onShow: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -117,18 +131,34 @@ private fun OutingRow(
             length(outing.metres, locale),
             outing.endedAt?.let { Duration.between(outing.startedAt, it).toKotlinDuration().short(locale) },
             outing.ascentMetres?.let { "↑ ${climbMetres(it, outing.ascentFromGps, locale)}" },
+            outing.rideBikeName?.takeIf { kindShown },
         )
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onShow)
-            .padding(horizontal = Spacing.base, vertical = Spacing.tight),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.base),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onShow)
+                .padding(horizontal = Spacing.base, vertical = Spacing.tight),
     ) {
-        Text(outing.name, style = MaterialTheme.typography.bodyLarge)
-        Text(
-            facts.joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (kindShown) {
+            Icon(
+                painterResource(outing.mode.icon),
+                contentDescription = stringResource(outing.mode.outingKind),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(KIND_ICON_SIZE),
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(outing.name, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                facts.joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
+
+private val KIND_ICON_SIZE = 24.dp

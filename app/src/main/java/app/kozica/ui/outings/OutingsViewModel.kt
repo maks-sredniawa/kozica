@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
+import app.kozica.data.Mode
 import app.kozica.data.OutingSummary
 import app.kozica.data.backup.BackupScope
 import app.kozica.data.backup.ExportResult
@@ -36,7 +37,10 @@ data class OutingsUiState(
     val exporting: Boolean = false,
     val exported: File? = null,
     val notice: BackupNotice? = null,
-)
+) {
+    /** Whether the rows tell Hikes from Rides (docs/phase-7c.md § 7): a log with no Ride looks as it did. */
+    val hasRides: Boolean get() = outings.orEmpty().any { it.mode == Mode.CYCLING }
+}
 
 /**
  * docs/phase-6.md § 4: ended Outings newest first. Opening the tab reads the height grid for any

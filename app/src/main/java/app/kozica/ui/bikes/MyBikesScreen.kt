@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -231,12 +232,15 @@ private fun MenuItem(
 
 /** The bike icon on `surfaceVariant`, under the photo, so a Bike with none or whose file is gone shows the icon. */
 @Composable
-private fun BikeThumbnail(photo: File?) {
+internal fun BikeThumbnail(
+    photo: File?,
+    size: Dp = BIKE_THUMBNAIL_SIZE,
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier =
             Modifier
-                .size(BIKE_THUMBNAIL_SIZE)
+                .size(size)
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {

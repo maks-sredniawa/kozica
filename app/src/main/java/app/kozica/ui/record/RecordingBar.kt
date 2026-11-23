@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
@@ -27,21 +28,30 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.data.OutingEntity
 import app.kozica.record.Recording
 import app.kozica.record.hasMotionSensor
 import app.kozica.theme.Spacing
+import app.kozica.ui.bikes.BikeChip
+import app.kozica.ui.bikes.BikeRow
 import app.kozica.ui.common.WarningBanner
+import app.kozica.ui.common.icon
+import app.kozica.ui.map.CYCLING_OPEN
 import app.kozica.ui.map.distance
 import app.kozica.ui.map.short
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-/** Under every tab while an Outing records: what it has so far, and Pause, Resume, the camera and Stop. */
+/**
+ * Under every tab while an Outing records: what it has so far, and Pause, Resume, the camera and Stop; on a Ride,
+ * once a Bike exists, its Bike chip (docs/phase-7c.md § 4).
+ */
 @Composable
 fun RecordingBar(
     recording: Recording,
@@ -50,6 +60,10 @@ fun RecordingBar(
     onTakePhoto: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
+    bikes: List<BikeRow> = emptyList(),
+    bikeId: String? = null,
+    onPickBike: (bikeId: String?) -> Unit = {},
+    onOpenBikes: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
@@ -70,6 +84,7 @@ fun RecordingBar(
         when {
             recording.paused -> R.string.record_paused
             recording.resumedByMotion -> R.string.record_resumed_moving
+            CYCLING_OPEN && recording.mode == Mode.CYCLING -> R.string.record_recording_ride
             else -> R.string.record_recording
         }
     val elapsed = (now - recording.startedAt.toEpochMilli()).coerceAtLeast(0).milliseconds
@@ -82,7 +97,19 @@ fun RecordingBar(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
+                    ) {
+                        if (CYCLING_OPEN) {
+                            Icon(
+                                painterResource(recording.mode.icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(TITLE_ICON_SIZE),
+                            )
+                        }
+                        Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
+                    }
                     Text(
                         "${distance(recording.metres, locale)} · ${elapsed.inWholeSeconds.seconds.short(locale)}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -93,6 +120,9 @@ fun RecordingBar(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (CYCLING_OPEN && recording.mode == Mode.CYCLING && bikes.isNotEmpty()) {
+                        BikeChip(bikes = bikes, bikeId = bikeId, onPick = onPickBike, onOpenBikes = onOpenBikes)
                     }
                 }
                 if (recording.paused) {
@@ -153,3 +183,5 @@ fun UnfinishedDialog(
         },
     )
 }
+
+private val TITLE_ICON_SIZE = 18.dp

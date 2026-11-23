@@ -227,6 +227,10 @@
     <string name="bikes_empty">No bikes yet. Add one to keep a pace per bike.</string>
     <!-- What a screen reader says for a bike's menu button: %1$s is the bike's name. -->
     <string name="bikes_more">Options for %1$s</string>
+    <!-- The title of the sheet a Ride's Bike chip opens, listing the user's bikes (docs/phase-7c.md § 4). -->
+    <string name="bike_title">Bike</string>
+    <!-- On a Ride's Bike chip and in that sheet: the Ride is on none of the user's bikes. -->
+    <string name="bike_none">No bike</string>
 
     <!-- Backup and restore (docs/phase-6.md § 7). "Records" and "Everything" are the two export scopes. -->
     <string name="backup_auto_title">Automatic backup</string>
@@ -363,8 +367,12 @@
 
     <!-- Recording a Hike (docs/phase-6.md § 2–3). "Hike" is CONTEXT.md's term: Polish "wycieczka". -->
     <string name="record_hike">Record hike</string>
+    <!-- The map's Record button in both Modes (docs/phase-7c.md § 4): records a Hike on foot, or in Cycling a Ride. A verb. -->
+    <string name="record">Record</string>
     <string name="record_channel">Hike recording</string>
     <string name="record_recording">Recording</string>
+    <!-- As record_recording, on the recording bar and the notification while a Ride records: "ride" is one recorded outing on a bike. -->
+    <string name="record_recording_ride">Recording a ride</string>
     <string name="record_paused">Paused</string>
     <string name="record_resumed_moving">Resumed — you\'re moving</string>
     <string name="record_pause">Pause</string>
@@ -390,6 +398,17 @@
     <!-- The Hikes tab and a Hike's sheet on the map (docs/phase-6.md § 4–5). -->
     <string name="hikes_title">Hikes</string>
     <string name="hikes_empty">No hikes yet. Press Record on the map to record one.</string>
+    <!-- The tab that holds Hikes and Rides alike (docs/phase-7c.md § 7), CONTEXT.md's Outing: one recorded outing on foot or on a bike. -->
+    <string name="outings_title">Outings</string>
+    <string name="outings_empty">No outings yet. Record one from the map.</string>
+    <!-- Under an Outing's title on its sheet, and what a screen reader says for a row's walker icon: an Outing recorded on foot. -->
+    <string name="outing_hike">Hike</string>
+    <!-- As outing_hike, for an Outing recorded on a bike, beside its Bike. -->
+    <string name="outing_ride">Ride</string>
+    <!-- A button on a Hike's sheet: it was ridden, not walked. Undone by outing_make_hike. -->
+    <string name="outing_make_ride">Make it a Ride</string>
+    <!-- A button on a Ride's sheet: it was walked, not ridden. Undone by outing_make_ride. -->
+    <string name="outing_make_hike">Make it a Hike</string>
     <string name="hike_distance">Distance</string>
     <!-- The time spent walking, leaving out pauses and rests. -->
     <string name="hike_moving_time">Moving time</string>

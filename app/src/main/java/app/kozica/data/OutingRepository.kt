@@ -32,11 +32,31 @@ class OutingRepository(
     private val deleteMedia: (relativePath: String) -> Unit = {},
     private val persistPhoto: suspend (source: Uri) -> PersistedPhoto = { error("No media in this repository") },
 ) {
-    /** Starts an Outing with a placeholder name; Stop names it (docs/phase-6.md § 2). */
+    /** Starts an Outing with a placeholder name; Stop names it (docs/phase-6.md § 2). [bikeId] counts only on a Ride. */
     suspend fun start(
         id: String,
         at: Instant,
-    ) = dao.insert(OutingEntity(id = id, name = "", startedAt = at))
+        mode: Mode = Mode.HIKING,
+        bikeId: String? = null,
+    ) = dao.insertOnBike(
+        OutingEntity(id = id, name = "", startedAt = at, mode = mode, bikeId = bikeId.takeIf { mode == Mode.CYCLING }),
+    )
+
+    /** A Bike gone meanwhile leaves it with none. */
+    suspend fun setBike(
+        id: String,
+        bikeId: String?,
+    ) = dao.setBike(id, bikeId)
+
+    /**
+     * "Make it a Ride" and "Make it a Hike" (docs/phase-7c.md § 7): a Hike made a Ride takes [currentBikeId]
+     * unless it kept a Bike from being one before; a Ride made a Hike keeps its Bike for that.
+     */
+    suspend fun setMode(
+        id: String,
+        mode: Mode,
+        currentBikeId: String?,
+    ) = if (mode == Mode.CYCLING) dao.makeRide(id, currentBikeId) else dao.makeHike(id)
 
     suspend fun get(id: String): OutingEntity? = dao.get(id)
 

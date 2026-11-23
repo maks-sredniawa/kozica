@@ -12,6 +12,14 @@ interface OutingDao {
     @Insert
     suspend fun insert(outing: OutingEntity)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM bikes WHERE id = :id)")
+    suspend fun bikeExists(id: String): Boolean
+
+    /** A Bike deleted since it was read leaves the new Outing with none rather than failing its foreign key. */
+    @Transaction
+    suspend fun insertOnBike(outing: OutingEntity) =
+        insert(outing.copy(bikeId = outing.bikeId?.takeIf { bikeExists(it) }))
+
     @Query("SELECT * FROM hikes WHERE id = :id")
     suspend fun get(id: String): OutingEntity?
 
@@ -19,10 +27,42 @@ interface OutingDao {
     fun observe(id: String): Flow<OutingEntity?>
 
     @Query(
-        "SELECT id, name, startedAt, endedAt, metres, movingSeconds, ascentMetres, ascentFromGps FROM hikes " +
-            "WHERE endedAt IS NOT NULL ORDER BY startedAt DESC",
+        "SELECT hikes.id, hikes.name, hikes.startedAt, hikes.endedAt, hikes.metres, hikes.movingSeconds, " +
+            "hikes.ascentMetres, hikes.ascentFromGps, hikes.mode, bikes.name AS bikeName " +
+            "FROM hikes LEFT JOIN bikes ON bikes.id = hikes.bikeId " +
+            "WHERE hikes.endedAt IS NOT NULL ORDER BY hikes.startedAt DESC",
     )
     fun observeEnded(): Flow<List<OutingSummary>>
+
+    @Query("UPDATE hikes SET bikeId = (SELECT id FROM bikes WHERE id = :bikeId) WHERE id = :id")
+    suspend fun setBike(
+        id: String,
+        bikeId: String?,
+    )
+
+    /** A Bike it kept from an earlier time as a Ride wins over [bikeId] (docs/phase-7c.md § 7). */
+    suspend fun makeRide(
+        id: String,
+        bikeId: String?,
+    ) = setModeKeepingBike(id, Mode.CYCLING, bikeId)
+
+    suspend fun makeHike(id: String) = setMode(id, Mode.HIKING)
+
+    @Query(
+        "UPDATE hikes SET mode = :mode, bikeId = COALESCE(bikeId, (SELECT id FROM bikes WHERE id = :bikeId)) " +
+            "WHERE id = :id",
+    )
+    suspend fun setModeKeepingBike(
+        id: String,
+        mode: Mode,
+        bikeId: String?,
+    )
+
+    @Query("UPDATE hikes SET mode = :mode WHERE id = :id")
+    suspend fun setMode(
+        id: String,
+        mode: Mode,
+    )
 
     /** Ended Hikes whose height grid has not been read, at Stop or by a build before it was. */
     @Query("SELECT id FROM hikes WHERE endedAt IS NOT NULL AND ascentMetres IS NULL")
@@ -188,7 +228,11 @@ interface OutingDao {
     }
 }
 
-/** An Outing as the Outings tab lists it, without its Track. */
+/**
+ * An Outing as the Outings tab lists it, without its Track.
+ *
+ * @param bikeName the name of the Bike it holds, which a Hike may keep from when it was a Ride.
+ */
 data class OutingSummary(
     val id: String,
     val name: String,
@@ -198,7 +242,12 @@ data class OutingSummary(
     val movingSeconds: Long,
     val ascentMetres: Double?,
     val ascentFromGps: Boolean,
-)
+    val mode: Mode = Mode.HIKING,
+    val bikeName: String? = null,
+) {
+    /** The Ride's Bike, null for a Hike whatever it keeps. */
+    val rideBikeName: String? get() = bikeName.takeIf { mode == Mode.CYCLING }
+}
 
 class OutingTrim(
     val startedAt: Instant,

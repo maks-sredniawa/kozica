@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.data.OutingRepository
 import app.kozica.data.hikes.TrackPoint
 import app.kozica.data.routes.PlaceSearch
@@ -24,6 +25,7 @@ import java.time.format.FormatStyle
  * An Outing being recorded, as [RecordingService] last reported it.
  *
  * @param resumedByMotion whether the last resume was the motion sensor's rather than the user's.
+ * @param mode Cycling for a Ride (docs/phase-7c.md § 4).
  */
 data class Recording(
     val outingId: String,
@@ -32,6 +34,7 @@ data class Recording(
     val metres: Double = 0.0,
     val locationOff: Boolean = false,
     val resumedByMotion: Boolean = false,
+    val mode: Mode = Mode.HIKING,
 )
 
 /** What the screens see of the recording, and how they drive it (docs/phase-6.md § 2–3). */
@@ -50,8 +53,14 @@ class Recorder(
         current.value = recording
     }
 
-    /** Starts a new Outing, or resumes [outingId] in a new stretch. Only from the visible app. */
-    fun start(outingId: String? = null) = RecordingService.start(context, outingId)
+    /**
+     * Starts a new Outing in [mode], a Ride on the current Bike in Cycling, or resumes [outingId] in a new stretch
+     * in its own. Only from the visible app.
+     */
+    fun start(
+        outingId: String? = null,
+        mode: Mode = Mode.HIKING,
+    ) = RecordingService.start(context, outingId, mode)
 
     fun pause() = RecordingService.send(context, RecordingService.ACTION_PAUSE)
 

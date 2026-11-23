@@ -93,6 +93,7 @@ import app.kozica.theme.LocalDarkTheme
 import app.kozica.theme.Spacing
 import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.common.WarningBanner
+import app.kozica.ui.common.icon
 import app.kozica.ui.common.osmDateLine
 import app.kozica.ui.common.shareGpx
 import app.kozica.ui.common.startActivitySafely
@@ -132,6 +133,7 @@ fun MapScreen(
     onOpenSettings: () -> Unit,
     onOpenSafety: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenBikes: () -> Unit = {},
     viewModel: MapViewModel = viewModel(factory = MapViewModel.Factory, extras = appViewModelExtras()),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -768,9 +770,12 @@ fun MapScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         if (state.recording == null) {
                             FilledTonalButton(onClick = onRecord) {
-                                Icon(painterResource(R.drawable.ic_record), contentDescription = null)
+                                Icon(
+                                    painterResource(if (CYCLING_OPEN) state.mode.icon else R.drawable.ic_record),
+                                    contentDescription = null,
+                                )
                                 Spacer(Modifier.width(Spacing.tight))
-                                Text(stringResource(R.string.record_hike))
+                                Text(stringResource(if (CYCLING_OPEN) R.string.record else R.string.record_hike))
                             }
                         }
                         Spacer(Modifier.weight(1f))
@@ -852,6 +857,9 @@ fun MapScreen(
                     onExportGpx = viewModel::exportOutingGpx,
                     onDismissGpxFailure = viewModel::dismissGpxFailure,
                     modifier = Modifier.heightIn(max = sheetHeight),
+                    onPickBike = viewModel::setOutingBike,
+                    onSetMode = viewModel::setOutingMode,
+                    onOpenBikes = onOpenBikes,
                 )
             } else if (state.route.points.isNotEmpty()) {
                 RouteSheet(

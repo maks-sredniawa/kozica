@@ -54,6 +54,8 @@ import app.kozica.data.routes.after
 import app.kozica.data.routes.boxAway
 import app.kozica.data.routes.chipFrom
 import app.kozica.record.Recording
+import app.kozica.ui.bikes.BikeRow
+import app.kozica.ui.bikes.toRows
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxExports
 import kotlinx.coroutines.CancellationException
@@ -153,6 +155,9 @@ data class MapUiState(
  * @param keep the metres Trim keeps, null while not trimming.
  * @param photos in the order they were taken (docs/phase-6.md § 6).
  * @param opening counts the times an Outing was opened, so re-opening the same one is still fitted to.
+ * @param bikeId its Bike, which only a Ride counts (docs/phase-7c.md § 7).
+ * @param bikes every Bike, for a Ride's Bike chip.
+ * @param logHasRides whether any ended Outing is a Ride, which decides whether a Hike's sheet says "Hike".
  */
 data class OutingUiState(
     val id: String,
@@ -170,6 +175,10 @@ data class OutingUiState(
     val photos: List<OutingPhoto> = emptyList(),
     val keep: ClosedFloatingPointRange<Double>? = null,
     val opening: Int = 0,
+    val mode: Mode = Mode.HIKING,
+    val bikeId: String? = null,
+    val bikes: List<BikeRow> = emptyList(),
+    val logHasRides: Boolean = false,
 ) {
     val photoCount: Int get() = photos.size
 
@@ -384,6 +393,10 @@ class MapViewModel(
     private val bikeRouteWhole: (parent: Long) -> List<Long> = { emptyList() },
     pace: Flow<Pace?> = flowOf(null),
     private val now: () -> Long = System::currentTimeMillis,
+    bikes: Flow<List<BikeRow>> = flowOf(emptyList()),
+    logHasRides: Flow<Boolean> = flowOf(false),
+    private val saveOutingBike: suspend (id: String, bikeId: String?) -> Unit = { _, _ -> },
+    private val saveOutingMode: suspend (id: String, mode: Mode) -> Unit = { _, _ -> },
 ) : ViewModel() {
     // Paired before stateIn, so the style is never built from Regions whose relief has not been read yet.
     private val packs: StateFlow<Pair<List<Region>, Region?>?> =
@@ -480,7 +493,11 @@ class MapViewModel(
             },
             outingKeep,
             outingOpenings,
-        ) { outing, keep, opening -> outing?.copy(keep = keep, opening = opening) }
+            bikes,
+            logHasRides,
+        ) { outing, keep, opening, bikes, logHasRides ->
+            outing?.copy(keep = keep, opening = opening, bikes = bikes, logHasRides = logHasRides)
+        }
 
     private val mode: StateFlow<Mode> =
         preferences.mapMode
@@ -1095,6 +1112,8 @@ class MapViewModel(
             heights = heights,
             profile = profileOf(track, heights),
             note = outing.note,
+            mode = outing.mode,
+            bikeId = outing.bikeId,
             photos =
                 photos.map {
                     OutingPhoto(
@@ -1144,6 +1163,18 @@ class MapViewModel(
         viewModelScope.launch { renameOuting(id, name) }
     }
 
+    /** The shown Ride's Bike alone; the current Bike stays (docs/phase-7c.md § 7). */
+    fun setOutingBike(bikeId: String?) {
+        val id = shownOuting.value ?: return
+        applicationScope.launch { saveOutingBike(id, bikeId) }
+    }
+
+    /** "Make it a Ride" and "Make it a Hike", with no confirm: the same button undoes it. */
+    fun setOutingMode(mode: Mode) {
+        val id = shownOuting.value ?: return
+        applicationScope.launch { saveOutingMode(id, mode) }
+    }
+
     fun setNote(note: String) {
         val id = shownOuting.value ?: return
         applicationScope.launch { saveNote(id, note) }
@@ -1184,7 +1215,7 @@ class MapViewModel(
         val outing = state.value.outing ?: return
         val pinned = outing.photos.mapNotNull { photo -> photo.pin?.let { it to photo.caption } }
         gpxExports.start(outing.startedAt.atZone(ZoneId.systemDefault()).toLocalDate()) {
-            outingGpx(outing.name, outing.note, outing.track, outing.heights, pinned)
+            outingGpx(outing.name, outing.note, outing.track, outing.heights, pinned, outing.mode)
         }
     }
 
@@ -1527,6 +1558,27 @@ class MapViewModel(
                         loadBikeRoute = app.container::bikeRoute,
                         bikeRouteWhole = app.container::bikeRouteWhole,
                         pace = app.container.pace,
+                        bikes =
+                            app.container.bikes
+                                .observeAll()
+                                .map { it.toRows(app.container.media::resolve) },
+                        logHasRides =
+                            app.container.outings.observeEnded().map { all ->
+                                all.any {
+                                    it.mode ==
+                                        Mode.CYCLING
+                                }
+                            },
+                        saveOutingBike = app.container.outings::setBike,
+                        saveOutingMode = { id, mode ->
+                            app.container.outings.setMode(
+                                id,
+                                mode,
+                                app.container.bikes
+                                    .observeCurrentId()
+                                    .first(),
+                            )
+                        },
                     )
                 }
             }
