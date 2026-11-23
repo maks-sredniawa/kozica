@@ -127,7 +127,7 @@ private fun OutingRow(
     val locale = LocalConfiguration.current.locales[0]
     val facts =
         listOfNotNull(
-            hikeDate(outing.startedAt, locale),
+            outingDate(outing.startedAt, locale),
             length(outing.metres, locale),
             outing.endedAt?.let { Duration.between(outing.startedAt, it).toKotlinDuration().short(locale) },
             outing.ascentMetres?.let { "↑ ${climbMetres(it, outing.ascentFromGps, locale)}" },

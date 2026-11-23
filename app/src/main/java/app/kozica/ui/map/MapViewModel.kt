@@ -1169,7 +1169,6 @@ class MapViewModel(
         applicationScope.launch { saveOutingBike(id, bikeId) }
     }
 
-    /** "Make it a Ride" and "Make it a Hike", with no confirm: the same button undoes it. */
     fun setOutingMode(mode: Mode) {
         val id = shownOuting.value ?: return
         applicationScope.launch { saveOutingMode(id, mode) }

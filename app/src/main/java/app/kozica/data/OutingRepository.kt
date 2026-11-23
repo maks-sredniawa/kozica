@@ -48,10 +48,6 @@ class OutingRepository(
         bikeId: String?,
     ) = dao.setBike(id, bikeId)
 
-    /**
-     * "Make it a Ride" and "Make it a Hike" (docs/phase-7c.md § 7): a Hike made a Ride takes [currentBikeId]
-     * unless it kept a Bike from being one before; a Ride made a Hike keeps its Bike for that.
-     */
     suspend fun setMode(
         id: String,
         mode: Mode,

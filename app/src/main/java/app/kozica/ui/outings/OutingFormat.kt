@@ -11,7 +11,7 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /** The day an Outing started, as the recording named it (docs/phase-6.md § 2). */
-internal fun hikeDate(
+internal fun outingDate(
     startedAt: Instant,
     locale: Locale,
 ): String =
@@ -27,6 +27,5 @@ internal fun climbMetres(
     locale: Locale,
 ): String = if (fromGps) "≈ ${wholeMetres(metres, locale)}" else wholeMetres(metres, locale)
 
-/** "Hike" or "Ride", as a row's icon reads and a sheet names it (docs/phase-7c.md § 7). */
 @get:StringRes
 internal val Mode.outingKind: Int get() = if (this == Mode.HIKING) R.string.outing_hike else R.string.outing_ride

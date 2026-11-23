@@ -103,7 +103,7 @@ internal fun OutingSheet(
                 Column(Modifier.weight(1f)) {
                     Text(outing.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        hikeDate(outing.startedAt, locale),
+                        outingDate(outing.startedAt, locale),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
