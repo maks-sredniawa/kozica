@@ -24,29 +24,29 @@ import java.util.UUID
  * What the result needs is saved state, because the camera app in front is exactly when a
  * low-memory kill takes this process, and the result is then delivered to a new one.
  *
- * @param onTaken the shot, for [hikeId]'s photos, taken after the button was pressed at [pressedAt].
+ * @param onTaken the shot, for [outingId]'s photos, taken after the button was pressed at [pressedAt].
  * @param onDiscard a target the camera left no photo in.
  */
 @Composable
 fun rememberTakePhoto(
-    onTaken: (hikeId: String, shot: Uri, pressedAt: Instant) -> Unit,
+    onTaken: (outingId: String, shot: Uri, pressedAt: Instant) -> Unit,
     onDiscard: (target: Uri) -> Unit,
-): (hikeId: String) -> Unit {
+): (outingId: String) -> Unit {
     val context = LocalContext.current
     var target by rememberSaveable { mutableStateOf<Uri?>(null) }
-    var hikeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var outingId by rememberSaveable { mutableStateOf<String?>(null) }
     var pressedAt by rememberSaveable { mutableLongStateOf(0L) }
     val camera =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
             val shot = target ?: return@rememberLauncherForActivityResult
-            val hike = hikeId
+            val outing = outingId
             target = null
-            if (taken && hike != null) onTaken(hike, shot, Instant.ofEpochMilli(pressedAt)) else onDiscard(shot)
+            if (taken && outing != null) onTaken(outing, shot, Instant.ofEpochMilli(pressedAt)) else onDiscard(shot)
         }
     return { id ->
         val shot = context.cameraTarget()
         target = shot
-        hikeId = id
+        outingId = id
         pressedAt = System.currentTimeMillis()
         try {
             camera.launch(shot)

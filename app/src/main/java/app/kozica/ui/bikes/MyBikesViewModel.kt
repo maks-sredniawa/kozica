@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
 import app.kozica.data.BikeNaming
 import app.kozica.data.BikeRepository
+import app.kozica.data.BikeWithRides
 import app.kozica.ui.map.addEach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,9 @@ data class BikeRow(
     val photo: File?,
     val rides: Int,
 )
+
+fun List<BikeWithRides>.toRows(resolveMedia: (relativePath: String) -> File): List<BikeRow> =
+    map { BikeRow(it.bike.id, it.bike.name, it.bike.thumbnailPath?.let(resolveMedia), it.rides) }
 
 /** The name dialog, for a new Bike when [bikeId] is null; [taken] after a save another Bike's name refused. */
 data class BikeNameDialog(
@@ -53,15 +57,7 @@ class MyBikesViewModel(
     val state: StateFlow<MyBikesUiState> =
         combine(repository.observeAll(), naming) { bikes, naming ->
             MyBikesUiState(
-                bikes =
-                    bikes.map {
-                        BikeRow(
-                            it.bike.id,
-                            it.bike.name,
-                            it.bike.thumbnailPath?.let(resolveMedia),
-                            it.rides,
-                        )
-                    },
+                bikes = bikes.toRows(resolveMedia),
                 naming = naming,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MyBikesUiState())

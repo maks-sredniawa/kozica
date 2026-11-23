@@ -30,6 +30,9 @@ class BikeRepository(
     fun observeCurrentId(): Flow<String?> =
         combine(preferences.currentBikeId, dao.observeIds()) { id, ids -> id?.takeIf { it in ids } }
 
+    /** Null for no Bike. */
+    suspend fun setCurrent(id: String?) = preferences.setCurrentBike(id)
+
     /** Becomes the current Bike while none is. */
     suspend fun add(
         name: String,

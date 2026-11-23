@@ -36,6 +36,7 @@ import app.kozica.ui.appViewModelExtras
 import app.kozica.ui.backup.BackupScreen
 import app.kozica.ui.bikes.MyBikesScreen
 import app.kozica.ui.common.WarningBanner
+import app.kozica.ui.map.CYCLING_OPEN
 import app.kozica.ui.map.MapScreen
 import app.kozica.ui.outings.OutingsScreen
 import app.kozica.ui.record.RecordingBar
@@ -148,8 +149,12 @@ fun MainNavigation(
                         recording = it,
                         onPause = recordingViewModel::pause,
                         onResume = recordingViewModel::resume,
-                        onTakePhoto = { takePhoto(it.hikeId) },
+                        onTakePhoto = { takePhoto(it.outingId) },
                         onStop = { stopping = true },
+                        bikes = recording.bikes,
+                        bikeId = recording.bikeId,
+                        onPickBike = recordingViewModel::chooseBike,
+                        onOpenBikes = { backStack.add(Bikes) },
                     )
                 }
                 if (top == Home || top == Routes || top == Outings) {
@@ -170,7 +175,9 @@ fun MainNavigation(
                             selected = top == Outings,
                             onClick = { showTab(Outings) },
                             icon = { Icon(painterResource(R.drawable.ic_hike), contentDescription = null) },
-                            label = { Text(stringResource(R.string.hikes_title)) },
+                            label = {
+                                Text(stringResource(if (CYCLING_OPEN) R.string.outings_title else R.string.hikes_title))
+                            },
                         )
                     }
                 }
@@ -206,6 +213,7 @@ fun MainNavigation(
                             onRecord = { record(null) },
                             onOpenSettings = { backStack.add(Settings) },
                             onOpenSafety = { backStack.add(Safety) },
+                            onOpenBikes = { backStack.add(Bikes) },
                         )
                     }
                     entry<Routes> {

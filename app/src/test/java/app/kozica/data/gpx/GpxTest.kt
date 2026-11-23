@@ -1,5 +1,6 @@
 package app.kozica.data.gpx
 
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Height
 import app.kozica.data.hikes.HeightSource
 import app.kozica.data.hikes.Pin
@@ -20,7 +21,7 @@ class GpxTest {
     private val start = 1_761_480_000_000L
 
     private val hike =
-        hikeGpx(
+        outingGpx(
             name = "Kuźnice & <Kasprowy> \"szczyt\" 'tam'\u0001",
             note = "Mgła < 10 m & wiatr",
             track =
@@ -74,6 +75,18 @@ class GpxTest {
         assertEquals(2, gpx.all("wpt").size)
         assertEquals(listOf("Widok > mgła"), gpx.all("wpt").flatMap { it.texts("name") })
         assertEquals(0, gpx.all("metadata").size)
+    }
+
+    @Test
+    fun `an Outing's GPX names its type as Strava and Komoot read it, after the description`() {
+        val ride = outingGpx("Gorce", null, emptyList(), emptyList(), emptyList(), Mode.CYCLING)
+
+        assertEquals(listOf("hiking"), parse(hike).texts("type"))
+        assertEquals(listOf("cycling"), parse(ride).texts("type"))
+        val children = parse(hike).all("trk").single().childNodes
+        val tags = List(children.length) { children.item(it) }.filterIsInstance<Element>().map { it.tagName }
+        assertEquals(listOf("name", "desc", "type", "trkseg", "trkseg"), tags)
+        assertEquals(0, parse(route).all("type").size)
     }
 
     @Test

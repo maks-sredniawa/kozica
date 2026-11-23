@@ -89,10 +89,13 @@ or a Bike they could add but never ride, is the half-open state 7a refused. `mod
 `otherModeMatches()` pin only the Mode, and most of B–D's surfaces do not depend on it, so B adds
 **`CYCLING_OPEN`** to `ui/map/ModeSwitch.kt`, `true` in the debug half and `false` in the release one,
 and every B–D surface outside the Mode reads it: the "My bikes" Settings row, the tab's "Outings" label
-(a release build keeps "Hikes" until E), a row's walker or bike icon and its Bike, the sheet's
-"Ride"/"Hike" line, "Make it a Ride", the Bike chip on the recording bar and the Route sheet, and the
-Ride Pace line. B's first `feat:` lands with it, so no surface reaches a release build early. E deletes
-the seam's release halves, `CYCLING_OPEN` with them.
+(a release build keeps "Hikes" until E) and its empty line, a row's walker or bike icon and its Bike,
+the sheet's "Ride"/"Hike" line, "Make it a Ride", Record's "Record" and Mode icon (a release build keeps
+"Record hike" and the record icon until E), the recording bar's Mode icon, the Bike chip on the
+recording bar and the Route sheet, and the Ride Pace line. The GPX `<type>` and the Polish Pace lines'
+Hikes on foot are not surfaces of Cycling and reach every build from C. B's first `feat:` lands with it,
+so no surface reaches a release build early. E deletes the seam's release halves, `CYCLING_OPEN` with
+them.
 
 ---
 
@@ -200,10 +203,12 @@ for a saved Route's).
 ## 4. Recording a Ride
 
 **Record follows the Mode.** The button reads "Record" / "Nagraj" in both, its icon the walker or the
-bike; in Cycling it records a Ride, at § 1's interval, on the current Bike, with no question asked.
+bike, and its accessible name says which: "Record a hike" or "Record a ride". In Cycling it records a
+Ride, at § 1's interval, on the current Bike, with no question asked.
 
 **The recording bar** carries the same icon in its title line, and in a Ride, once a Bike exists, a third
-line: a chip with the bike icon, the Bike's name (one line, ellipsised) and a drop-down arrow. A tap opens
+line: a chip with the bike icon, the Bike's name (one line, ellipsised) and a drop-down arrow, its
+accessible name "Bike: Trek", keeping the visible label. A tap opens
 a bottom sheet, one 56 dp row per Bike (thumbnail, name, radio button), then "No bike" and "My bikes".
 Picking one changes the Ride's Bike and the current Bike. The Route sheet in Cycling shows the same chip
 (§ 6), bound to the same current Bike.
@@ -211,7 +216,7 @@ Picking one changes the Ride's Bike and the current Bike. The Route sheet in Cyc
 Everything else is phase 6's: pause, auto-resume, Stop, the asks, the notification, which reads "Recording
 a ride" in Cycling.
 
-Copy: "Record", "Recording a ride", "No bike", "Bike".
+Copy: "Record", "Record a hike", "Record a ride", "Recording a ride", "No bike", "Bike", "Bike: %1$s".
 
 ## 5. A Ride's Pace
 
@@ -279,11 +284,12 @@ read Rides alone. The action row wraps (`FlowRow`): five buttons do not fit one 
 
 GPX export carries `<type>` `hiking` or `cycling`, as Strava and Komoot read it.
 
-Copy: "Outings", "Ride", "Hike", "Make it a Ride", "Make it a Hike", "No outings yet. Record one from the
-map." (replacing the empty Hikes line in the same key's place). In Polish a Hike beside a Ride is
-*wycieczka piesza* (`CONTEXT.md`), so the sheet's "Hike" line and the walking Pace line's count (`pace_*`,
-`pace_none`, today "z %d wycieczki") are translated again to name Hikes on foot, and do not read as
-counting every Outing.
+Copy: "Outings", "Ride", "Hike", "Make it a Ride", "Make it a Hike", "No outings yet. Record one from
+the map." (`outings_title` and `outings_empty`, beside `hikes_title` and `hikes_empty` while a release
+build still shows those; E deletes the two, with `record_hike`). In Polish a Hike beside a Ride is
+*wycieczka piesza* (`CONTEXT.md`), so the sheet's "Hike" line and the walking Pace line's count
+(`pace_*`, `pace_none`, today "z %d wycieczki") are translated again to name Hikes on foot, and do not
+read as counting every Outing.
 
 ## 8. Cycling for everyone
 
@@ -317,7 +323,15 @@ for the owner before it merges.
 
 Copy, moved from `app/src/debug/` and now translated: `mode_hiking`, `mode_cycling`, `filter_all`,
 `filter_touring`, `filter_mtb`, `search_hint_trails`, `search_hint_bike_routes`. New: "Search", "Bike
-routes: %1$s" (the menu chip's name).
+routes: %1$s" (the menu chip's name). Deleted with their reads: `hikes_title`, `hikes_empty` and
+`record_hike` (§ 7).
+
+**Copy that says "hike" of what may be a Ride** is reworded here, since this is where a release user
+first meets a Ride; until E only a developer build shows one. R3 found it on a Ride's Stop confirm
+(`record_stop_body`), its sheet (`hike_delete_title`, `hike_delete_body_photos`, `hike_close`), and
+the recording's other asks and channel (`record_precise_title`, `record_precise_body`,
+`record_unfinished_title`, `record_channel`); Backup's lines that list "your hikes" go with them.
+Each names the Outing it is about where it knows the Mode, or says "outing" where it does not.
 
 **The listing.** `docs/store-listing.md`'s descriptions gain Cycling, the Bike routes and the Rides; the
 Play icon and feature graphic change with the mark. The Console upload of the listing and graphics is
@@ -365,6 +379,9 @@ asked first (`DOD.md`'s Play rules).
   such Ride from moving the Pace.
 - **The no-Bike Pace and a Bike's are not merged.** Adding a first Bike after 20 Rides starts it at the
   rule's time until it has 3 Rides of its own, unless the old Rides are moved to it on their sheets.
+- **A Ride with no Bike made a Hike and back comes back on the current Bike.** A Hike with no `bikeId`
+  cannot tell "was a Ride on no Bike" from "never a Ride"; telling them apart would need a column, and
+  the Bike chip on its sheet sets it back.
 
 ## Readings
 
@@ -375,7 +392,7 @@ override, as 6b's R3 replays a walk.
 | --- | --- | --- | --- |
 | R1 | The gate (§ 1): matched share and length per speed at 5 s, and at 1 s | `python3 scripts/ride-gate.py <base-assets dir>` | **Verdict 1**, 2026-11-17, the PC: pin 4965's network rebuilt at `ce4df02` (walks format 2) into `map-data/pin-4965-net2`, seed 20261117, 20 min. Every 5 s: matched 99.73 / 99.76 / 99.75 %, length +0.37 / −0.58 / −1.14 % at 15 / 25 / 35 km/h; every 1 s: 99.66 / 99.68 / 99.68 %, +4.61 / +1.55 / +0.65 %. Rows in `map-data/ride-gate/ride-gate.tsv`. |
 | R2 | My bikes: add, rename to a taken name refused, photo, delete with Rides, at 360 dp and font scale 1.3 in Polish | by hand on `pixel-api37` | 2026-11-17, emulator `pixel-api37` (API 37), headless, the debug build at `78ad3c3`, `wm density 480` on 1080 px for 360 dp, font scale 1.3, the app's language set to Polski in Settings. "Moje rowery" sits under *Twoje dane* above the backup row; with no Bike the screen reads "Nie masz jeszcze rowerów. Dodaj rower, aby mieć tempo dla każdego z nich." over "Dodaj rower", and the dialog's "Dodaj" is disabled while the name is empty. "Gravel" added; " gRAVEL " refused with "Ta nazwa jest już zajęta." in red under the field, gone at the next keystroke; "Szosa" added, renamed to "GRAVEL" and refused the same way, then renamed to "Szosa Kross"; "Gravel" renamed to its own name recased, "GrAvEl", accepted. A photo through the Photo Picker shows as the row's centre crop, and the ⋮ menu then reads Zmień nazwę, Zmień zdjęcie, Usuń zdjęcie, Usuń; Usuń zdjęcie brings back the bike icon and empties `files/bikes/`. Delete with no Rides: "Usunąć Szosa Kross?". Delete with Rides: B records none, so two `CYCLING` rows on GrAvEl were written into the pulled database and pushed back; the row read "2 wycieczki rowerowe", the confirm "Usunąć GrAvEl? 2 wycieczki rowerowe na nim zostaną, bez roweru.", and afterwards both rows stay with `bikeId` null, `bikes` and `files/bikes/` are empty and no current-Bike key is left in the preferences. Nothing on the new surfaces is clipped, overlapping or untranslated; "0 wycieczek rowerowych" wraps to a second line and the row grows to hold it. No crash. TalkBack's reading of the error not heard. Outside B's surfaces, Settings' Wygląd and Język chips break "Ciemny" and "Polski" mid-word at this size. Screencaps `r2/02-my-bikes-empty.png` to `r2/20-deleted-with-rides.png`. **Pass** |
-| R3 | A replayed Ride on a Bike, the chip changed mid-Ride, Stop, the row and sheet in Outings, made a Hike and back | position override replay | *(owed)* |
+| R3 | A replayed Ride on a Bike, the chip changed mid-Ride, Stop, the row and sheet in Outings, made a Hike and back | position override replay | 2026-11-23, emulator `pixel-api36` (API 36), headless, the debug build at `d0af1d1` `install -r` over a debug copy holding Gravel and two Hikes. The recorder reads `GPS_PROVIDER` itself, so the Ride was fed with `emu geo fix` near Kuźnice, eleven fixes 6 s and about 90 m apart, not through `PositionReceiver`. "Szosa" added on My bikes beside Gravel, the current Bike. Cycling: Record reads "Record" with the bike icon; Record: the bar reads "Recording a ride" with the bike icon and a Gravel chip, the notification "Recording a ride". After 445 m the chip opened its sheet, "Bike" over 56 dp rows Gravel (selected), Szosa, "No bike", then "My bikes"; Szosa picked, 467 m more, Stop. The tab reads "Outings"; the Ride's row has the bike icon ("Ride") and its facts end "· Szosa", both Hikes the walker ("Hike"). Its sheet has "Ride" and the Szosa chip under the title; the chip set to Gravel changed that Ride and left the current Bike Szosa in the preferences, and the next Record started on Szosa. "Make it a Hike" with no other Ride in the log: no icons on any row, no Bike on the facts, no kind line on the sheet, My bikes 0 rides each, as § 7 says of a log with no Ride; with a second Ride on Szosa recorded, the made Hike's row has the walker and its sheet "Hike", and Szosa counts 1 ride. "Make it a Ride" brings Szosa back, also with Gravel current, so the kept `bikeId` wins. Export GPX writes `<type>cycling</type>` in the `<trk>`, read from `cache/gpx/`. Polski, `wm density 480` for 360 dp, font scale 1.3: "Wycieczki", "Wycieczka rowerowa" / "Wycieczka piesza" on rows and sheets, "Nagrywanie wycieczki rowerowej", "Rower", "Bez roweru", "Moje rowery"; the action row wraps to two lines (Zmień nazwę, Zmień na pieszą / Przytnij, Eksportuj GPX, Usuń); with Szosa renamed to a 50-character name the sheet's chip reads "Szosa Kross Vento 4.…", the recording bar's "Szosa …", the Bike sheet's row ellipsises, and the facts line wraps the whole name. Nothing clipped or untranslated on 7c's surfaces. `-PreleaseShapedDebug` over it opens under R8 with no crash, but it is the debug variant, so `src/debug/`'s seam keeps Cycling open (the switch, "Wycieczki", icons, chips: what R6 reads). The release half was read on `assembleRelease`, fresh, with a records backup from the debug copy restored into it: "Hikes", "Record hike", no switch, no icons, no Bike on the facts, no chip, no kind line, the action row Rename, Trim, Export GPX, Delete. The plain debug build `install -r` back, the database pulled with its `-wal` and checkpointed on the PC: both Rides `CYCLING` with Szosa's `bikeId`, both Hikes `HIKING` with `bikeId` null. No crash. Outside 7c's scope: the Stop ask reads "The hike is saved…", the delete confirm "Delete hike?" and the sheet's close button "Close hike" on a Ride in English (Polish "Wycieczka", "Usunąć wycieczkę?" read right), all phase 6's copy that § 4 leaves as it is; Stop with no fix saves a 0 km Ride; the debug switch's "All", "Touring", "MTB" stay English in Polish; `wm density` changed while the map was open hung the app (main thread in MapLibre's `RenderThread.onWindowResize`, its GL thread in `eglSwapBuffers`), and a relaunch at the new density was fine. Screencaps `r3/02-cycling-record.png` to `r3/49-release-ride-sheet-expanded.png`, the export `r3/ride.gpx`. **Pass** |
 | R4 | Schema 4 to 5 on a device: the previous release-shaped build with a Hike, photos and a saved ride, the new one over it | `./gradlew assembleDebug -PreleaseShapedDebug` both builds | 2026-11-17, emulator `pixel-api36` (API 36). `main` at `ce4df02` (schema 4) as `assembleDebug -PreleaseShapedDebug`, so `BuildConfig.DEBUG` is false and the migrations are registered with no destructive fallback, installed fresh (versionCode 576). `SeedReceiver`'s plain variant saved two Routes, Kuźnice – Morskie Oko and Kasprowy Wierch, both walks: the emulator has no network to plan a ride. Its `hikes` variant recorded two Hikes through the path a Stop takes, Kuźnice – Kasprowy Wierch 4.5 km and Wisła 3.1 km, and a photo was added to the first through the Photo Picker. B at `78ad3c3` the same way, `adb install -r` over it (576 → 579, first-install time unchanged), opened straight to the map past the launch gate with no refusal screen; Hikes lists both, the first's sheet shows its photo, and Routes lists both. B's plain debug build `install -r` over it, not opened, the database pulled with its `-wal` and checkpointed on the PC: `user_version` 5; `bikes` present and empty; both `hikes` rows `HIKING` with `bikeId` null, `index_hikes_bikeId` and the `ON DELETE SET NULL` key in place; `hike_photos` 1 row with its `photos/` and `thumbnails/` files on disk; `routes` 2, `route_points` 5. Screencaps `r4/03-hike-photo-v4.png`, `r4/05-7c-open.png`, `r4/07-7c-hike-photo.png`, `r4/08-7c-routes.png`. **Pass** |
 | R5 | Three replayed Rides at 0.8× along Touring routes: the Route sheet's time and Pace line before and after, and a second Bike's | position override replay | *(owed)* |
 | R6 | The release-shaped build in Cycling: the switch, "All ▾", "Szukaj", Record's icon, the draw order, at 360 dp and 1.3 in Polish | `-PreleaseShapedDebug`, `pixel-api37` with `-gpu host` | *(owed)* |

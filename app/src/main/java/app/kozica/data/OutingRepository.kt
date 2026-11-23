@@ -32,11 +32,27 @@ class OutingRepository(
     private val deleteMedia: (relativePath: String) -> Unit = {},
     private val persistPhoto: suspend (source: Uri) -> PersistedPhoto = { error("No media in this repository") },
 ) {
-    /** Starts a Hike with a placeholder name; Stop names it (docs/phase-6.md § 2). */
+    /** Starts an Outing with a placeholder name; Stop names it (docs/phase-6.md § 2). [bikeId] counts only on a Ride. */
     suspend fun start(
         id: String,
         at: Instant,
-    ) = dao.insert(OutingEntity(id = id, name = "", startedAt = at))
+        mode: Mode = Mode.HIKING,
+        bikeId: String? = null,
+    ) = dao.insertOnBike(
+        OutingEntity(id = id, name = "", startedAt = at, mode = mode, bikeId = bikeId.takeIf { mode == Mode.CYCLING }),
+    )
+
+    /** A Bike gone meanwhile leaves it with none. */
+    suspend fun setBike(
+        id: String,
+        bikeId: String?,
+    ) = dao.setBike(id, bikeId)
+
+    suspend fun setMode(
+        id: String,
+        mode: Mode,
+        currentBikeId: String?,
+    ) = if (mode == Mode.CYCLING) dao.makeRide(id, currentBikeId) else dao.makeHike(id)
 
     suspend fun get(id: String): OutingEntity? = dao.get(id)
 
@@ -64,24 +80,24 @@ class OutingRepository(
     ) = dao.setNote(id, note.trim().ifEmpty { null })
 
     /**
-     * Writes [source] as one of [hikeId]'s photos, files before the row, pinned by docs/phase-6.md
+     * Writes [source] as one of [outingId]'s photos, files before the row, pinned by docs/phase-6.md
      * § 6's rule: a photo from the camera at the last fix when its button was [pressedAt], one picked
-     * afterwards at the Track's position when it was taken. A Hike gone before its row is written
+     * afterwards at the Track's position when it was taken. An Outing gone before its row is written
      * takes the files with it.
      */
     suspend fun addPhoto(
-        hikeId: String,
+        outingId: String,
         source: Uri,
         pressedAt: Instant? = null,
         now: Instant = Instant.now(),
     ) {
-        if (dao.get(hikeId) == null) return
+        if (dao.get(outingId) == null) return
         val media = persistPhoto(source)
         val forget = {
             deleteMedia(media.path)
             deleteMedia(media.thumbnailPath)
         }
-        val track = dao.get(hikeId)?.let { trackOf(it) } ?: return forget()
+        val track = dao.get(outingId)?.let { trackOf(it) } ?: return forget()
         val pin =
             if (pressedAt != null) {
                 track.lastFixAt(pressedAt.toEpochMilli())
@@ -90,7 +106,7 @@ class OutingRepository(
             }
         val photo =
             OutingPhotoEntity(
-                hikeId = hikeId,
+                hikeId = outingId,
                 photoPath = media.path,
                 thumbnailPath = media.thumbnailPath,
                 addedAt = now,
@@ -102,7 +118,7 @@ class OutingRepository(
         try {
             dao.insertPhoto(photo)
         } catch (_: SQLiteConstraintException) {
-            // The foreign key: the Hike was deleted between the read above and this write.
+            // The foreign key: the Outing was deleted between the read above and this write.
             forget()
         }
     }
@@ -116,7 +132,7 @@ class OutingRepository(
         caption: String,
     ) = dao.setCaption(photoId, caption.trim().ifEmpty { null })
 
-    /** "Remove from map": the photo stays in the Hike's strip, off its Track and map (decided with the owner on 2026-10-27). */
+    /** "Remove from map": the photo stays in the Outing's strip, off its Track and map (decided with the owner on 2026-10-27). */
     suspend fun unpin(photoId: String) = dao.unpin(photoId)
 
     /** The row, then its files. */
@@ -127,7 +143,7 @@ class OutingRepository(
         deleteMedia(photo.thumbnailPath)
     }
 
-    /** Reads the height grid for every ended Hike that has not had it read. */
+    /** Reads the height grid for every ended Outing that has not had it read. */
     suspend fun fillClimbs() {
         for (id in dao.withoutClimb()) fillClimb(id)
     }
@@ -189,7 +205,7 @@ class OutingRepository(
         )
     }
 
-    /** Deletes the Hike and its photos' rows, then their files (docs/phase-6.md § 4). */
+    /** Deletes the Outing and its photos' rows, then their files (docs/phase-6.md § 4). */
     suspend fun delete(id: String) {
         for (photo in dao.deleteWithPhotos(id)) {
             deleteMedia(photo.photoPath)
@@ -197,16 +213,16 @@ class OutingRepository(
         }
     }
 
-    /** The stretch the next fix of [hikeId] starts: one past the last, so a resume never joins the two. */
-    suspend fun nextStretch(hikeId: String): Int = dao.lastStretch(hikeId) + 1
+    /** The stretch the next fix of [outingId] starts: one past the last, so a resume never joins the two. */
+    suspend fun nextStretch(outingId: String): Int = dao.lastStretch(outingId) + 1
 
     suspend fun addPoint(
-        hikeId: String,
+        outingId: String,
         stretch: Int,
         point: TrackPoint,
     ) = dao.insertPoint(
         TrackPointEntity(
-            hikeId = hikeId,
+            hikeId = outingId,
             stretch = stretch,
             time = Instant.ofEpochMilli(point.timeMillis),
             latitude = point.latitude,
@@ -215,20 +231,20 @@ class OutingRepository(
         ),
     )
 
-    /** The Track of a Hike still recording, as its rows arrive. */
-    fun observeTrack(hikeId: String): Flow<Track> = dao.observePoints(hikeId).map { it.toTrack() }
+    /** The Track of an Outing still recording, as its rows arrive. */
+    fun observeTrack(outingId: String): Flow<Track> = dao.observePoints(outingId).map { it.toTrack() }
 
-    suspend fun track(hikeId: String): Track = dao.points(hikeId).toTrack()
+    suspend fun track(outingId: String): Track = dao.points(outingId).toTrack()
 
     /**
-     * Ends [hikeId] at its last point, or at [now] with none, under the name [name] gives it from
-     * its first point; does nothing to a Hike that has already ended.
+     * Ends [outingId] at its last point, or at [now] with none, under the name [name] gives it from
+     * its first point; does nothing to an Outing that has already ended.
      */
     suspend fun finish(
-        hikeId: String,
+        outingId: String,
         now: Instant,
         name: suspend (outing: OutingEntity, first: TrackPoint?) -> String,
-    ) = dao.finish(hikeId) { outing, rows ->
+    ) = dao.finish(outingId) { outing, rows ->
         val track = rows.toTrack()
         val points = track.flatten()
         OutingEnding(

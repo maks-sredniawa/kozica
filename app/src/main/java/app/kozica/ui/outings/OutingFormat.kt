@@ -1,5 +1,8 @@
 package app.kozica.ui.outings
 
+import androidx.annotation.StringRes
+import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.ui.map.wholeMetres
 import java.time.Instant
 import java.time.ZoneId
@@ -7,8 +10,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/** The day a Hike started, as the recording named it (docs/phase-6.md § 2). */
-internal fun hikeDate(
+/** The day an Outing started, as the recording named it (docs/phase-6.md § 2). */
+internal fun outingDate(
     startedAt: Instant,
     locale: Locale,
 ): String =
@@ -23,3 +26,6 @@ internal fun climbMetres(
     fromGps: Boolean,
     locale: Locale,
 ): String = if (fromGps) "≈ ${wholeMetres(metres, locale)}" else wholeMetres(metres, locale)
+
+@get:StringRes
+internal val Mode.outingKind: Int get() = if (this == Mode.HIKING) R.string.outing_hike else R.string.outing_ride

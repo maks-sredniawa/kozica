@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.kozica.MainApplication
+import app.kozica.data.Mode
 import app.kozica.data.OutingSummary
 import app.kozica.data.backup.BackupScope
 import app.kozica.data.backup.ExportResult
@@ -36,17 +37,20 @@ data class OutingsUiState(
     val exporting: Boolean = false,
     val exported: File? = null,
     val notice: BackupNotice? = null,
-)
+) {
+    /** Whether the rows tell Hikes from Rides (docs/phase-7c.md § 7): a log with no Ride looks as it did. */
+    val hasRides: Boolean get() = outings.orEmpty().any { it.mode == Mode.CYCLING }
+}
 
 /**
- * docs/phase-6.md § 4: ended Hikes newest first. Opening the tab reads the height grid for any
- * Hike still without its ascent, which a Stop the process did not outlive leaves behind.
+ * docs/phase-6.md § 4: ended Outings newest first. Opening the tab reads the height grid for any
+ * Outing still without its ascent, which a Stop the process did not outlive leaves behind.
  */
 class OutingsViewModel(
     ended: Flow<List<OutingSummary>>,
     photosNotBackedUp: Flow<Int>,
     private val fillClimbs: suspend () -> Unit,
-    private val hikeToShow: MutableStateFlow<String?>,
+    private val outingToShow: MutableStateFlow<String?>,
     private val exportEverything: suspend () -> ExportResult,
     io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
@@ -62,7 +66,7 @@ class OutingsViewModel(
     }
 
     fun show(id: String) {
-        hikeToShow.value = id
+        outingToShow.value = id
     }
 
     /** The banner's button: to the remembered folder if one is granted, else the share sheet. */
@@ -99,7 +103,7 @@ class OutingsViewModel(
                             container.outings::observePhotosAddedAfter,
                         ),
                         container.outings::fillClimbs,
-                        container.hikeToShow,
+                        container.outingToShow,
                         { container.backupExports.export(BackupScope.Everything, toFolder = true) },
                     )
                 }

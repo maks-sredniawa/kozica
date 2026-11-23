@@ -42,9 +42,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.theme.Spacing
+import app.kozica.ui.bikes.BikeChip
 import app.kozica.ui.common.GpxExport
 import app.kozica.ui.common.GpxFailureNotice
+import app.kozica.ui.map.CYCLING_OPEN
 import app.kozica.ui.map.OutingUiState
 import app.kozica.ui.map.Profile
 import app.kozica.ui.map.RouteNameDialog
@@ -56,7 +59,7 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
-/** docs/phase-6.md § 4 and § 6: a Hike's totals, profile, note and photos under its Track on the map, and what can be done to it. */
+/** docs/phase-6.md § 4 and § 6: an Outing's totals, profile, note and photos under its Track on the map, and what can be done to it. */
 @Composable
 internal fun OutingSheet(
     outing: OutingUiState,
@@ -74,6 +77,9 @@ internal fun OutingSheet(
     onExportGpx: () -> Unit,
     onDismissGpxFailure: () -> Unit,
     modifier: Modifier = Modifier,
+    onPickBike: (bikeId: String?) -> Unit = {},
+    onSetMode: (Mode) -> Unit = {},
+    onOpenBikes: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -97,10 +103,13 @@ internal fun OutingSheet(
                 Column(Modifier.weight(1f)) {
                     Text(outing.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        hikeDate(outing.startedAt, locale),
+                        outingDate(outing.startedAt, locale),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (CYCLING_OPEN && (outing.mode == Mode.CYCLING || outing.logHasRides)) {
+                        KindLine(outing, onPickBike, onOpenBikes)
+                    }
                 }
                 IconButton(onClick = onClose) {
                     Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.hike_close))
@@ -136,6 +145,12 @@ internal fun OutingSheet(
                         draft = outing.name
                         renaming = true
                     }) { Text(stringResource(R.string.routes_rename)) }
+                    if (CYCLING_OPEN) {
+                        val ride = outing.mode == Mode.CYCLING
+                        TextButton(onClick = { onSetMode(if (ride) Mode.HIKING else Mode.CYCLING) }) {
+                            Text(stringResource(if (ride) R.string.outing_make_hike else R.string.outing_make_ride))
+                        }
+                    }
                     TextButton(onClick = onStartTrim) { Text(stringResource(R.string.hike_trim)) }
                     TextButton(onClick = onExportGpx, enabled = !gpx.running) {
                         Text(stringResource(R.string.gpx_export))
@@ -216,6 +231,28 @@ internal fun OutingSheet(
                 TextButton(onClick = { deleting = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
+    }
+}
+
+/** "Ride" with its Bike chip once a Bike exists, or "Hike" (docs/phase-7c.md § 7). */
+@Composable
+private fun KindLine(
+    outing: OutingUiState,
+    onPickBike: (bikeId: String?) -> Unit,
+    onOpenBikes: () -> Unit,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(outing.mode.outingKind),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (outing.mode == Mode.CYCLING && outing.bikes.isNotEmpty()) {
+            BikeChip(bikes = outing.bikes, bikeId = outing.bikeId, onPick = onPickBike, onOpenBikes = onOpenBikes)
+        }
     }
 }
 

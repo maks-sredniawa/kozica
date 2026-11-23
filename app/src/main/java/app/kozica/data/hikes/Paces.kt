@@ -1,5 +1,6 @@
 package app.kozica.data.hikes
 
+import app.kozica.data.Mode
 import app.kozica.data.OutingSummary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -7,15 +8,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * The user's [Pace], read again whenever the ended Hikes or the relief change; nothing of it is
- * stored, so a trim, a delete or a restore changes it (docs/phase-6b.md § 2).
+ * The user's walking [Pace], read again whenever the ended Outings or the relief change; nothing of it is
+ * stored, so a trim, a delete, a restore or a Hike made a Ride changes it (docs/phase-6b.md § 2). Rides
+ * never teach it (docs/phase-7c.md § 6).
  *
- * @param hikes newest first.
+ * @param outings newest first, Hikes and Rides alike.
  * @param relief whether the relief is on the phone, which decides whether a Track's heights are the grid's.
  * @param ruleSecondsOf the rule's time for a Hike's Track, which reads its heights; null where it cannot be timed, and throws where the read failed.
  */
 class Paces(
-    hikes: Flow<List<OutingSummary>>,
+    outings: Flow<List<OutingSummary>>,
     relief: Flow<Boolean>,
     private val ruleSecondsOf: suspend (id: String) -> Double?,
 ) {
@@ -25,7 +27,8 @@ class Paces(
     private val readFailed = mutableSetOf<String>()
 
     val pace: Flow<Pace?> =
-        combine(hikes, relief.distinctUntilChanged()) { hikes, relief ->
+        combine(outings, relief.distinctUntilChanged()) { outings, relief ->
+            val hikes = outings.filter { it.mode == Mode.HIKING }
             if (relief != timedWithRelief) {
                 timed.clear()
                 timedWithRelief = relief

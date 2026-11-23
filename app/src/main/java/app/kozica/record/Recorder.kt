@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import app.kozica.R
+import app.kozica.data.Mode
 import app.kozica.data.OutingRepository
 import app.kozica.data.hikes.TrackPoint
 import app.kozica.data.routes.PlaceSearch
@@ -21,17 +22,19 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * A Hike being recorded, as [RecordingService] last reported it.
+ * An Outing being recorded, as [RecordingService] last reported it.
  *
  * @param resumedByMotion whether the last resume was the motion sensor's rather than the user's.
+ * @param mode Cycling for a Ride (docs/phase-7c.md § 4).
  */
 data class Recording(
-    val hikeId: String,
+    val outingId: String,
     val startedAt: Instant,
     val paused: Boolean = false,
     val metres: Double = 0.0,
     val locationOff: Boolean = false,
     val resumedByMotion: Boolean = false,
+    val mode: Mode = Mode.HIKING,
 )
 
 /** What the screens see of the recording, and how they drive it (docs/phase-6.md § 2–3). */
@@ -50,8 +53,14 @@ class Recorder(
         current.value = recording
     }
 
-    /** Starts a new Hike, or resumes [hikeId] in a new stretch. Only from the visible app. */
-    fun start(hikeId: String? = null) = RecordingService.start(context, hikeId)
+    /**
+     * Starts a new Outing in [mode], a Ride on the current Bike in Cycling, or resumes [outingId] in a new stretch
+     * in its own. Only from the visible app.
+     */
+    fun start(
+        outingId: String? = null,
+        mode: Mode = Mode.HIKING,
+    ) = RecordingService.start(context, outingId, mode)
 
     fun pause() = RecordingService.send(context, RecordingService.ACTION_PAUSE)
 
@@ -60,21 +69,21 @@ class Recorder(
     fun stop() = RecordingService.send(context, RecordingService.ACTION_STOP)
 
     /**
-     * Ends [hikeId] at its last point and names it, or discards it if it kept no point; Stop's ending,
+     * Ends [outingId] at its last point and names it, or discards it if it kept no point; Stop's ending,
      * and a lost recording's. Its ascent is read after, on [applicationScope], so the ending does not
      * wait on the relief.
      */
     suspend fun finish(
-        hikeId: String,
+        outingId: String,
         now: Instant,
     ) {
         withContext(Dispatchers.IO) {
-            outings.finish(hikeId, now) { outing, first -> nameFor(outing.startedAt, first) }
+            outings.finish(outingId, now) { outing, first -> nameFor(outing.startedAt, first) }
         }
-        applicationScope.launch { outings.fillClimb(hikeId) }
+        applicationScope.launch { outings.fillClimb(outingId) }
     }
 
-    /** The date, and the nearest named place to where the Hike began, by phase 5's naming rule. */
+    /** The date, and the nearest named place to where the Outing began, by phase 5's naming rule. */
     private fun nameFor(
         startedAt: Instant,
         first: TrackPoint?,

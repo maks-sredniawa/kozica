@@ -1,5 +1,6 @@
 package app.kozica.data.hikes
 
+import app.kozica.data.Mode
 import app.kozica.data.OutingSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -29,6 +30,7 @@ class PacesTest {
         metres: Double = 10_000.0,
         movingSeconds: Long = 4 * 3600,
         name: String = id,
+        mode: Mode = Mode.HIKING,
     ) = OutingSummary(
         id,
         name,
@@ -38,12 +40,30 @@ class PacesTest {
         movingSeconds,
         ascentMetres = null,
         ascentFromGps = false,
+        mode = mode,
     )
 
     private fun walked(
         id: String,
         ratio: Double,
-    ): OutingSummary = hike(id).also { ruleSeconds[id] = it.movingSeconds / ratio }
+        mode: Mode = Mode.HIKING,
+    ): OutingSummary = hike(id, mode = mode).also { ruleSeconds[id] = it.movingSeconds / ratio }
+
+    @Test
+    fun `a Ride never teaches the walking Pace, and a Hike made a Ride stops teaching it`() =
+        runTest {
+            val rides = List(3) { walked("ride$it", 0.5, Mode.CYCLING) }
+            hikes.value = rides + listOf(walked("a", 1.0), walked("b", 1.2), walked("c", 1.4))
+
+            val pace = paces.pace.first()!!
+            assertEquals(1.2, pace.factor, 1e-9)
+            assertEquals(3, pace.hikes)
+            assertEquals(listOf("a", "b", "c"), read)
+
+            hikes.value = rides + listOf(hike("a", mode = Mode.CYCLING), hike("b"), hike("c"))
+
+            assertNull(paces.pace.first())
+        }
 
     @Test
     fun `stops reading once ten Hikes count`() =

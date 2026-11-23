@@ -85,18 +85,18 @@
     <string name="following_back_no_way_bike_routes">Brak przejazdu szlakami rowerowymi z powrotem na trasę</string>
     <string name="route_time_signposts">wg drogowskazów %1$s</string>
     <plurals name="pace_yours">
-        <item quantity="one">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczki</item>
-        <item quantity="few">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczek</item>
-        <item quantity="many">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczek</item>
-        <item quantity="other">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczki</item>
+        <item quantity="one">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczki pieszej</item>
+        <item quantity="few">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczek pieszych</item>
+        <item quantity="many">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczek pieszych</item>
+        <item quantity="other">Twoje tempo: %1$s× czasu z drogowskazów, z %2$d wycieczki pieszej</item>
     </plurals>
     <plurals name="pace_floored">
-        <item quantity="one">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczki</item>
-        <item quantity="few">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczek</item>
-        <item quantity="many">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczek</item>
-        <item quantity="other">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczki</item>
+        <item quantity="one">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczki pieszej</item>
+        <item quantity="few">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczek pieszych</item>
+        <item quantity="many">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczek pieszych</item>
+        <item quantity="other">Twoje tempo: %1$s× czasu z drogowskazów, najszybsze, jakie pokazuje Kozica, z %2$d wycieczki pieszej</item>
     </plurals>
-    <string name="pace_none">Czasy z drogowskazów. Twoje własne tempo pojawi się po 3 zapisanych wycieczkach na co najmniej 3 km i godzinę.</string>
+    <string name="pace_none">Czasy z drogowskazów. Twoje własne tempo pojawi się po 3 zapisanych wycieczkach pieszych na co najmniej 3 km i godzinę.</string>
 
     <string name="nav_map">Mapa</string>
     <string name="routes_title">Trasy</string>
@@ -157,6 +157,9 @@
     </plurals>
     <string name="bikes_empty">Nie masz jeszcze rowerów. Dodaj rower, aby mieć tempo dla każdego z nich.</string>
     <string name="bikes_more">Opcje: %1$s</string>
+    <string name="bike_title">Rower</string>
+    <string name="bike_none">Bez roweru</string>
+    <string name="bike_chip">Rower: %1$s</string>
 
     <string name="backup_auto_title">Automatyczna kopia zapasowa</string>
     <string name="backup_auto_never">Na tym telefonie nie odnotowano automatycznej kopii zapasowej</string>
@@ -266,8 +269,12 @@
     <string name="safety_czechia">Czechy</string>
 
     <string name="record_hike">Nagraj wycieczkę</string>
+    <string name="record">Nagraj</string>
+    <string name="record_a_hike">Nagraj wycieczkę pieszą</string>
+    <string name="record_a_ride">Nagraj wycieczkę rowerową</string>
     <string name="record_channel">Nagrywanie wycieczki</string>
     <string name="record_recording">Nagrywanie</string>
+    <string name="record_recording_ride">Nagrywanie wycieczki rowerowej</string>
     <string name="record_paused">Wstrzymano</string>
     <string name="record_resumed_moving">Wznowiono — jesteś w ruchu</string>
     <string name="record_pause">Wstrzymaj</string>
@@ -290,6 +297,12 @@
 
     <string name="hikes_title">Wycieczki</string>
     <string name="hikes_empty">Nie masz jeszcze wycieczek. Naciśnij Nagraj wycieczkę na mapie, aby nagrać pierwszą.</string>
+    <string name="outings_title">Wycieczki</string>
+    <string name="outings_empty">Nie masz jeszcze wycieczek. Nagraj pierwszą z mapy.</string>
+    <string name="outing_hike">Wycieczka piesza</string>
+    <string name="outing_ride">Wycieczka rowerowa</string>
+    <string name="outing_make_ride">Zmień na rowerową</string>
+    <string name="outing_make_hike">Zmień na pieszą</string>
     <string name="hike_distance">Dystans</string>
     <string name="hike_moving_time">Czas w ruchu</string>
     <string name="hike_total_time">Czas całkowity</string>

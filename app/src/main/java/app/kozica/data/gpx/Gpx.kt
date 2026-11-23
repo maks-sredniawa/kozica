@@ -1,5 +1,6 @@
 package app.kozica.data.gpx
 
+import app.kozica.data.Mode
 import app.kozica.data.hikes.Height
 import app.kozica.data.hikes.Pin
 import app.kozica.data.hikes.Track
@@ -27,6 +28,7 @@ data class GpxWaypoint(
  * One file of docs/phase-6.md § 8: a single `<trk>` of [segments] and its [waypoints].
  *
  * @param fromOsm whether the line came from OpenStreetMap, so the file carries its attribution.
+ * @param type the `<trk>`'s `<type>`, as Strava and Komoot read it (docs/phase-7c.md § 7).
  */
 data class Gpx(
     val name: String,
@@ -34,15 +36,17 @@ data class Gpx(
     val segments: List<List<GpxPoint>>,
     val waypoints: List<GpxWaypoint>,
     val fromOsm: Boolean,
+    val type: String? = null,
 )
 
 /** A `<trkseg>` per stretch, each point with its height by § 5's rule, and a `<wpt>` per pinned photo. */
-fun hikeGpx(
+fun outingGpx(
     name: String,
     note: String?,
     track: Track,
     heights: List<Height?>,
     photos: List<Pair<Pin, String?>>,
+    mode: Mode = Mode.HIKING,
 ): Gpx {
     val each = heights.iterator()
     val segments =
@@ -53,7 +57,8 @@ fun hikeGpx(
             }
         }
     val waypoints = photos.map { (pin, caption) -> GpxWaypoint(pin.latitude, pin.longitude, caption) }
-    return Gpx(name, note, segments, waypoints, fromOsm = false)
+    val type = if (mode == Mode.CYCLING) "cycling" else "hiking"
+    return Gpx(name, note, segments, waypoints, fromOsm = false, type = type)
 }
 
 /** The planned line with the network's heights, and the user's points as `<wpt>`s. */
@@ -99,6 +104,7 @@ fun Gpx.write(out: Appendable) {
     }
     out.append(" <trk>\n  <name>").text(name).append("</name>\n")
     description?.let { out.append("  <desc>").text(it).append("</desc>\n") }
+    type?.let { out.append("  <type>").text(it).append("</type>\n") }
     for (segment in segments) {
         out.append("  <trkseg>\n")
         for (point in segment) {
@@ -118,7 +124,7 @@ fun Gpx.write(out: Appendable) {
     out.append(" </trk>\n</gpx>\n")
 }
 
-/** The Hike's or Route's name and [date], with what a file system or a share target would refuse left out. */
+/** The Outing's or Route's name and [date], with what a file system or a share target would refuse left out. */
 fun gpxFileName(
     name: String,
     date: LocalDate,

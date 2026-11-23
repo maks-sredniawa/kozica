@@ -31,22 +31,22 @@ import app.kozica.ui.map.readLocation
  * system's ask, or its upgrade from approximate), then notifications once on API 33+, then [onStart].
  * Precise location still missing after its ask shows why, with the app's settings one tap away.
  *
- * Returns what Record calls, with the Hike to resume or null for a new one.
+ * Returns what Record calls, with the Outing to resume or null for a new one.
  */
 @Composable
 fun rememberRecordStart(
     notificationsAsked: Boolean,
     onNotificationsAsked: () -> Unit,
-    onStart: (hikeId: String?) -> Unit,
-): (hikeId: String?) -> Unit {
+    onStart: (outingId: String?) -> Unit,
+): (outingId: String?) -> Unit {
     val context = LocalContext.current
     // Saveable, so an ask that outlives a configuration change still knows what it was for.
     var asking by rememberSaveable { mutableStateOf(false) }
-    var hikeToResume by rememberSaveable { mutableStateOf<String?>(null) }
+    var outingToResume by rememberSaveable { mutableStateOf<String?>(null) }
     var needsPrecise by remember { mutableStateOf(false) }
     val notifications =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            if (asking) onStart(hikeToResume)
+            if (asking) onStart(outingToResume)
             asking = false
         }
     val afterLocation: () -> Unit = {
@@ -56,7 +56,7 @@ fun rememberRecordStart(
                 PackageManager.PERMISSION_GRANTED
         if (granted || notificationsAsked) {
             asking = false
-            onStart(hikeToResume)
+            onStart(outingToResume)
         } else {
             onNotificationsAsked()
             notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -95,9 +95,9 @@ fun rememberRecordStart(
         )
     }
 
-    return { hikeId ->
+    return { outingId ->
         asking = true
-        hikeToResume = hikeId
+        outingToResume = outingId
         if (context.readLocation().grant ==
             LocationGrant.PRECISE
         ) {

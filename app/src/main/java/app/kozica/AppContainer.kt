@@ -183,8 +183,8 @@ class AppContainer(
     /** A saved Route the Routes tab asked the map to show, until the map takes it. */
     val routeToShow = MutableStateFlow<String?>(null)
 
-    /** A Hike the Hikes tab asked the map to show, until the map takes it. */
-    val hikeToShow = MutableStateFlow<String?>(null)
+    /** An Outing the Outings tab asked the map to show, until the map takes it. */
+    val outingToShow = MutableStateFlow<String?>(null)
 
     /** Photos that could not be read as an image and so were not added, until the user dismisses the count. */
     val photosLeftOut = MutableStateFlow(0)

@@ -237,6 +237,104 @@ class OutingRepositoryTest {
             assertEquals(listOf("photos/1.jpg", "thumbnails/1.jpg"), deleted)
         }
 
+    private suspend fun bike(name: String): String =
+        BikeEntity(name = name, addedAt = start).also { database.bikeDao().insert(it) }.id
+
+    private suspend fun ride(
+        id: String,
+        bikeId: String?,
+    ) {
+        outings.start(id, start, Mode.CYCLING, bikeId)
+        outings.addPoint(id, 0, TrackPoint(start.toEpochMilli() + 60_000, 49.2, 20.0, null))
+        outings.finish(id, start.plusSeconds(3_600)) { _, _ -> id }
+    }
+
+    @Test
+    fun aRideIsRecordedOnItsBikeAndAHikeKeepsNone() =
+        runTest {
+            val gravel = bike("Gravel")
+            ride("ride", gravel)
+            outings.start("walk", start, Mode.HIKING, gravel)
+
+            assertEquals(Mode.CYCLING, outings.get("ride")!!.mode)
+            assertEquals(gravel, outings.get("ride")!!.bikeId)
+            assertEquals(Mode.HIKING, outings.get("walk")!!.mode)
+            assertNull(outings.get("walk")!!.bikeId)
+        }
+
+    @Test
+    fun aRideStartedOnABikeDeletedMeanwhileHasNone() =
+        runTest {
+            ride("ride", "gone")
+
+            assertEquals(Mode.CYCLING, outings.get("ride")!!.mode)
+            assertNull(outings.get("ride")!!.bikeId)
+        }
+
+    @Test
+    fun aRideMadeAHikeKeepsItsBikeAndGetsItBackWhenMadeARideAgain() =
+        runTest {
+            val gravel = bike("Gravel")
+            val road = bike("Road")
+            ride("ride", gravel)
+
+            outings.setMode("ride", Mode.HIKING, road)
+            assertEquals(Mode.HIKING, outings.get("ride")!!.mode)
+            assertEquals(gravel, outings.get("ride")!!.bikeId)
+            val asHike = outings.observeEnded().first().single()
+            assertEquals("Gravel", asHike.bikeName)
+            assertNull(asHike.rideBikeName)
+
+            outings.setMode("ride", Mode.CYCLING, road)
+            assertEquals(Mode.CYCLING, outings.get("ride")!!.mode)
+            assertEquals(gravel, outings.get("ride")!!.bikeId)
+            assertEquals(
+                "Gravel",
+                outings
+                    .observeEnded()
+                    .first()
+                    .single()
+                    .rideBikeName,
+            )
+        }
+
+    @Test
+    fun aHikeMadeARideGetsTheCurrentBike() =
+        runTest {
+            val gravel = bike("Gravel")
+            val id = recorded()
+
+            outings.setMode(id, Mode.CYCLING, gravel)
+
+            assertEquals(Mode.CYCLING, outings.get(id)!!.mode)
+            assertEquals(gravel, outings.get(id)!!.bikeId)
+        }
+
+    @Test
+    fun aRidesBikeChangesToAnotherOrToNone() =
+        runTest {
+            val gravel = bike("Gravel")
+            val road = bike("Road")
+            ride("ride", gravel)
+
+            outings.setBike("ride", road)
+            assertEquals(
+                "Road",
+                outings
+                    .observeEnded()
+                    .first()
+                    .single()
+                    .rideBikeName,
+            )
+
+            outings.setBike("ride", "gone")
+            assertNull(outings.get("ride")!!.bikeId)
+
+            outings.setBike("ride", gravel)
+            outings.setBike("ride", null)
+            assertNull(outings.get("ride")!!.bikeId)
+        }
+
     private fun photo(
         hikeId: String,
         id: String,

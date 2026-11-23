@@ -876,7 +876,7 @@ class MapViewModelTest {
                             ),
                     ),
                 )
-            val viewModel = routingViewModel(hikeToShow = asked, observeOuting = { stored })
+            val viewModel = routingViewModel(outingToShow = asked, observeOuting = { stored })
 
             asked.value = "h"
             val first = settled(viewModel) { it.outing?.id == "h" }.outing!!.opening
@@ -1934,7 +1934,7 @@ private fun routingViewModel(
     io: CoroutineDispatcher = Dispatchers.Main,
     preferences: AppPreferences = AppPreferences(MemoryPreferences()),
     now: () -> Long = System::currentTimeMillis,
-    hikeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
+    outingToShow: MutableStateFlow<String?> = MutableStateFlow(null),
     observeOuting: (String) -> Flow<OutingEntity?> = { flowOf(null) },
 ) = MapViewModel(
     regions = flowOf(emptyList()),
@@ -1952,7 +1952,7 @@ private fun routingViewModel(
     loadRoute = loadRoute,
     saveRoute = saveRoute,
     observeName = observeName,
-    hikeToShow = hikeToShow,
+    outingToShow = outingToShow,
     observeOuting = observeOuting,
     loadTrail = loadTrail,
     sectionsOf = sectionsOf,
