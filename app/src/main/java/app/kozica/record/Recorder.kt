@@ -21,12 +21,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * A Hike being recorded, as [RecordingService] last reported it.
+ * An Outing being recorded, as [RecordingService] last reported it.
  *
  * @param resumedByMotion whether the last resume was the motion sensor's rather than the user's.
  */
 data class Recording(
-    val hikeId: String,
+    val outingId: String,
     val startedAt: Instant,
     val paused: Boolean = false,
     val metres: Double = 0.0,
@@ -50,8 +50,8 @@ class Recorder(
         current.value = recording
     }
 
-    /** Starts a new Hike, or resumes [hikeId] in a new stretch. Only from the visible app. */
-    fun start(hikeId: String? = null) = RecordingService.start(context, hikeId)
+    /** Starts a new Outing, or resumes [outingId] in a new stretch. Only from the visible app. */
+    fun start(outingId: String? = null) = RecordingService.start(context, outingId)
 
     fun pause() = RecordingService.send(context, RecordingService.ACTION_PAUSE)
 
@@ -60,21 +60,21 @@ class Recorder(
     fun stop() = RecordingService.send(context, RecordingService.ACTION_STOP)
 
     /**
-     * Ends [hikeId] at its last point and names it, or discards it if it kept no point; Stop's ending,
+     * Ends [outingId] at its last point and names it, or discards it if it kept no point; Stop's ending,
      * and a lost recording's. Its ascent is read after, on [applicationScope], so the ending does not
      * wait on the relief.
      */
     suspend fun finish(
-        hikeId: String,
+        outingId: String,
         now: Instant,
     ) {
         withContext(Dispatchers.IO) {
-            outings.finish(hikeId, now) { outing, first -> nameFor(outing.startedAt, first) }
+            outings.finish(outingId, now) { outing, first -> nameFor(outing.startedAt, first) }
         }
-        applicationScope.launch { outings.fillClimb(hikeId) }
+        applicationScope.launch { outings.fillClimb(outingId) }
     }
 
-    /** The date, and the nearest named place to where the Hike began, by phase 5's naming rule. */
+    /** The date, and the nearest named place to where the Outing began, by phase 5's naming rule. */
     private fun nameFor(
         startedAt: Instant,
         first: TrackPoint?,

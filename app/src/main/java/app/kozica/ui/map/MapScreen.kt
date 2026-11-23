@@ -287,9 +287,9 @@ fun MapScreen(
         rememberLauncherForActivityResult(
             ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PICKED),
         ) { picked ->
-            val hikeId = pickingFor ?: return@rememberLauncherForActivityResult
+            val outingId = pickingFor ?: return@rememberLauncherForActivityResult
             pickingFor = null
-            viewModel.addPhotos(hikeId, picked)
+            viewModel.addPhotos(outingId, picked)
         }
 
     LaunchedEffect(map) {
@@ -639,7 +639,7 @@ fun MapScreen(
         PhotoViewer(
             photos = photos,
             initialIndex = viewing,
-            hikeName = outing.name,
+            outingName = outing.name,
             onShown = { viewingPhoto = it },
             onSetCaption = viewModel::setCaption,
             onUnpin = viewModel::unpinPhoto,

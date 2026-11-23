@@ -36,7 +36,7 @@ import app.kozica.ui.map.short
 import java.time.Duration
 import kotlin.time.toKotlinDuration
 
-/** The Hikes tab (docs/phase-6.md § 4): newest first; one opens on the map. */
+/** The Outings tab (docs/phase-6.md § 4, docs/phase-7c.md § 7): newest first; one opens on the map. */
 @Composable
 fun OutingsScreen(
     onShow: () -> Unit,

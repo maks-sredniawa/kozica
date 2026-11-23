@@ -41,7 +41,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-/** Under every tab while a Hike records: what it has so far, and Pause, Resume, the camera and Stop. */
+/** Under every tab while an Outing records: what it has so far, and Pause, Resume, the camera and Stop. */
 @Composable
 fun RecordingBar(
     recording: Recording,
@@ -139,8 +139,8 @@ fun StopDialog(
 @Composable
 fun UnfinishedDialog(
     outing: OutingEntity,
-    onResume: (hikeId: String) -> Unit,
-    onFinish: (hikeId: String) -> Unit,
+    onResume: (outingId: String) -> Unit,
+    onFinish: (outingId: String) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = {},

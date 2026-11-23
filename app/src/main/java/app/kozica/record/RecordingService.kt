@@ -44,7 +44,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * The `location` foreground service that records a Hike (docs/phase-6.md § 2–3).
+ * The `location` foreground service that records an Outing (docs/phase-6.md § 2–3).
  *
  * Started only from the visible app: a foreground service started from the background holds no
  * while-in-use location (a platform rule from API 30), which is also why it is not sticky and no
@@ -112,7 +112,7 @@ class RecordingService : Service() {
             return START_NOT_STICKY
         }
         when {
-            action == ACTION_START -> start(intent.getStringExtra(EXTRA_HIKE))
+            action == ACTION_START -> start(intent.getStringExtra(EXTRA_OUTING))
             state == null -> stopSelf(startId)
             action == ACTION_PAUSE -> serially { pause() }
             action == ACTION_RESUME -> serially { resume(byMotion = false) }
@@ -136,7 +136,7 @@ class RecordingService : Service() {
         if (resumeId == null) {
             val id = UUID.randomUUID().toString()
             val now = Instant.now()
-            // Reported before its row exists, so the new Hike never reads as a lost one.
+            // Reported before its row exists, so the new Outing never reads as a lost one.
             recorder.report(Recording(id, now, locationOff = off))
             serially {
                 outings.start(id, now)
@@ -171,7 +171,7 @@ class RecordingService : Service() {
         val recording = state ?: return
         if (recording.paused || !fix.hasAccuracy() || fix.accuracy > MAX_ACCURACY_METRES) return
         val point = TrackPoint(fix.time, fix.latitude, fix.longitude, if (fix.hasAltitude()) fix.altitude else null)
-        app.container.outings.addPoint(recording.hikeId, stretch, point)
+        app.container.outings.addPoint(recording.outingId, stretch, point)
         val step = last?.let { Router.metres(it.latitude, it.longitude, point.latitude, point.longitude) } ?: 0.0
         last = point
         recorder.report(recording.copy(metres = recording.metres + step, locationOff = false))
@@ -201,7 +201,7 @@ class RecordingService : Service() {
     private suspend fun stop() {
         LocationManagerCompat.removeUpdates(locations, listener)
         motionSensor()?.let { sensors.cancelTriggerSensor(motion, it) }
-        state?.let { recorder.finish(it.hikeId, Instant.now()) }
+        state?.let { recorder.finish(it.outingId, Instant.now()) }
         recorder.report(null)
         withContext(Dispatchers.Main) {
             ServiceCompat.stopForeground(this@RecordingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -329,7 +329,7 @@ class RecordingService : Service() {
         internal const val ACTION_PAUSE = "app.kozica.record.PAUSE"
         internal const val ACTION_RESUME = "app.kozica.record.RESUME"
         internal const val ACTION_STOP = "app.kozica.record.STOP"
-        private const val EXTRA_HIKE = "hike"
+        private const val EXTRA_OUTING = "outing"
         private const val CHANNEL_ID = "hike_recording"
         private const val NOTIFICATION_ID = 1
         private const val INTERVAL_MS = 5_000L
@@ -339,10 +339,10 @@ class RecordingService : Service() {
 
         internal fun start(
             context: Context,
-            hikeId: String?,
+            outingId: String?,
         ) = ContextCompat.startForegroundService(
             context,
-            Intent(context, RecordingService::class.java).setAction(ACTION_START).putExtra(EXTRA_HIKE, hikeId),
+            Intent(context, RecordingService::class.java).setAction(ACTION_START).putExtra(EXTRA_OUTING, outingId),
         )
 
         internal fun send(

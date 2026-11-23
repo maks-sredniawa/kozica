@@ -37,7 +37,7 @@ data class Gpx(
 )
 
 /** A `<trkseg>` per stretch, each point with its height by § 5's rule, and a `<wpt>` per pinned photo. */
-fun hikeGpx(
+fun outingGpx(
     name: String,
     note: String?,
     track: Track,
@@ -118,7 +118,7 @@ fun Gpx.write(out: Appendable) {
     out.append(" </trk>\n</gpx>\n")
 }
 
-/** The Hike's or Route's name and [date], with what a file system or a share target would refuse left out. */
+/** The Outing's or Route's name and [date], with what a file system or a share target would refuse left out. */
 fun gpxFileName(
     name: String,
     date: LocalDate,

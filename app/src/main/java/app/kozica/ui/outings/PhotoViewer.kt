@@ -37,7 +37,7 @@ import app.kozica.ui.map.OutingPhoto
 import coil3.compose.AsyncImage
 
 /**
- * A Hike's photos full screen, from its strip or a pin on its map (docs/phase-6.md § 6). A dialog
+ * An Outing's photos full screen, from its strip or a pin on its map (docs/phase-6.md § 6). A dialog
  * rather than a destination, so it opens over whichever of the two it came from.
  *
  * @param onShown the photo now on screen, so a recreated screen opens the viewer at it again.
@@ -46,7 +46,7 @@ import coil3.compose.AsyncImage
 internal fun PhotoViewer(
     photos: List<OutingPhoto>,
     initialIndex: Int,
-    hikeName: String,
+    outingName: String,
     onShown: (id: String) -> Unit,
     onSetCaption: (id: String, caption: String) -> Unit,
     onUnpin: (id: String) -> Unit,
@@ -67,7 +67,7 @@ internal fun PhotoViewer(
                         Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.photo_close))
                     }
                     Text(
-                        hikeName,
+                        outingName,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         modifier = Modifier.weight(1f),
@@ -91,7 +91,7 @@ internal fun PhotoViewer(
                     val photo = photos[page]
                     AsyncImage(
                         model = photo.photo,
-                        contentDescription = photo.caption ?: hikeName,
+                        contentDescription = photo.caption ?: outingName,
                         contentScale = ContentScale.Fit,
                         error = missing,
                         fallback = missing,

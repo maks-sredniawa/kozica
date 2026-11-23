@@ -20,7 +20,7 @@ import app.kozica.data.OutingEntity
 import app.kozica.data.OutingPhotoEntity
 import app.kozica.data.SavedRoute
 import app.kozica.data.gpx.Gpx
-import app.kozica.data.gpx.hikeGpx
+import app.kozica.data.gpx.outingGpx
 import app.kozica.data.gpx.trailGpx
 import app.kozica.data.hikes.Climb
 import app.kozica.data.hikes.Height
@@ -99,8 +99,8 @@ import kotlin.time.Duration
  * @param camera where a new map view opens, null until the stored camera is read.
  * @param location null until the first resume reads it.
  * @param fix the newest position, null until the first arrives or while location cannot be read.
- * @param recording the Hike being recorded, null when none is.
- * @param track the recording Hike's Track so far, drawn live (docs/phase-6.md § 2).
+ * @param recording the Outing being recorded, null when none is.
+ * @param track the recording Outing's Track so far, drawn live (docs/phase-6.md § 2).
  * @param outing the Outing the Outings tab asked the map to show, null when none is (docs/phase-6.md § 4).
  * @param trail the Trail picked on the map, or the Trails a tap offers (docs/phase-6c.md § 3).
  * @param bikeRoute the same for Bike routes, in Cycling (docs/phase-7a.md § 4); at most one of the two is selected.
@@ -135,24 +135,24 @@ data class MapUiState(
     /** The stalest ready Region's date, because the map is no fresher than its oldest part. */
     val osmDate: Instant? get() = ready.mapNotNull { it.osmDate }.minOrNull()
 
-    /** The recording's Track and the shown Hike's, each stretch its own line. */
+    /** The recording's Track and the shown Outing's, each stretch its own line. */
     val drawnTrack: Track get() = track + outing?.drawn.orEmpty()
 
     /** A selected Trail or Bike route sets a planned Route aside until it is closed. */
     val selection: Boolean get() = trail.shown != null || bikeRoute.shown != null
 
-    /** A planned Route, a shown Hike or a selection fades the rest of the map (docs/phase-5.md § 4). */
+    /** A planned Route, a shown Outing or a selection fades the rest of the map (docs/phase-5.md § 4). */
     val faded: Boolean get() = route.planned != null || outing != null || selection
 }
 
 /**
- * A Hike shown on the map, its sheet's whole content.
+ * An Outing shown on the map, its sheet's whole content.
  *
  * @param along metres along the Track to each of its points, in order.
  * @param climb null when no ascent is stored and no height could be read, so none is shown.
  * @param keep the metres Trim keeps, null while not trimming.
  * @param photos in the order they were taken (docs/phase-6.md § 6).
- * @param opening counts the times a Hike was opened, so re-opening the same one is still fitted to.
+ * @param opening counts the times an Outing was opened, so re-opening the same one is still fitted to.
  */
 data class OutingUiState(
     val id: String,
@@ -193,7 +193,7 @@ data class OutingUiState(
     val drawn: Track get() = if (keep == null) track else kept?.let { track.trim(it.first, it.last) }.orEmpty()
 }
 
-/** A photo of a Hike, its paths resolved; [pin] is null for one with no place on the Track. */
+/** A photo of an Outing, its paths resolved; [pin] is null for one with no place on the Track. */
 data class OutingPhoto(
     val id: String,
     val photo: File,
@@ -356,8 +356,8 @@ class MapViewModel(
     ) -> String = { _, _, _, _, _ -> "" },
     private val observeName: (id: String) -> Flow<String?> = { emptyFlow() },
     private val recording: Flow<Recording?> = flowOf(null),
-    private val observeTrack: (hikeId: String) -> Flow<Track> = { flowOf(emptyList()) },
-    private val hikeToShow: MutableStateFlow<String?> = MutableStateFlow(null),
+    private val observeTrack: (outingId: String) -> Flow<Track> = { flowOf(emptyList()) },
+    private val outingToShow: MutableStateFlow<String?> = MutableStateFlow(null),
     private val observeOuting: (id: String) -> Flow<OutingEntity?> = { flowOf(null) },
     private val observePhotos: (id: String) -> Flow<List<OutingPhotoEntity>> = { flowOf(emptyList()) },
     private val resolveMedia: (relativePath: String) -> File = ::File,
@@ -366,7 +366,7 @@ class MapViewModel(
     private val trimOuting: suspend (id: String, first: Int, last: Int) -> Unit = { _, _, _ -> },
     private val deleteOuting: suspend (id: String) -> Unit = {},
     private val saveNote: suspend (id: String, note: String) -> Unit = { _, _ -> },
-    private val savePhoto: suspend (hikeId: String, source: Uri) -> Unit = { _, _ -> },
+    private val savePhoto: suspend (outingId: String, source: Uri) -> Unit = { _, _ -> },
     private val saveCaption: suspend (photoId: String, caption: String) -> Unit = { _, _ -> },
     private val savePinRemoved: suspend (photoId: String) -> Unit = {},
     private val deleteStoredPhoto: suspend (photoId: String) -> Unit = {},
@@ -446,7 +446,7 @@ class MapViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     private val track: Flow<Track> =
         recording
-            .map { it?.hikeId }
+            .map { it?.outingId }
             .distinctUntilChanged()
             .flatMapLatest { id -> id?.let(observeTrack) ?: flowOf(emptyList()) }
 
@@ -462,9 +462,9 @@ class MapViewModel(
 
     private var loadingLongDistance: Job? = null
 
-    private val hikeKeep = MutableStateFlow<ClosedFloatingPointRange<Double>?>(null)
+    private val outingKeep = MutableStateFlow<ClosedFloatingPointRange<Double>?>(null)
 
-    private val hikeOpenings = MutableStateFlow(0)
+    private val outingOpenings = MutableStateFlow(0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val outing: Flow<OutingUiState?> =
@@ -474,12 +474,12 @@ class MapViewModel(
                     flowOf(null)
                 } else {
                     combine(observeOuting(id), observePhotos(id), ::Pair).mapLatest { (outing, photos) ->
-                        outing?.let { hikeState(it, photos) }
+                        outing?.let { outingState(it, photos) }
                     }
                 }
             },
-            hikeKeep,
-            hikeOpenings,
+            outingKeep,
+            outingOpenings,
         ) { outing, keep, opening -> outing?.copy(keep = keep, opening = opening) }
 
     private val mode: StateFlow<Mode> =
@@ -585,9 +585,9 @@ class MapViewModel(
             }
         }
         viewModelScope.launch {
-            hikeToShow.filterNotNull().collect { id ->
+            outingToShow.filterNotNull().collect { id ->
                 showOuting(id)
-                hikeToShow.compareAndSet(id, null)
+                outingToShow.compareAndSet(id, null)
             }
         }
         viewModelScope.launch { followSavedName() }
@@ -844,17 +844,17 @@ class MapViewModel(
             }
     }
 
-    /** Replaces whatever is on the map with a Hike from the Hikes tab. */
+    /** Replaces whatever is on the map with an Outing from the Outings tab. */
     private fun showOuting(id: String) {
         dismissOffer()
         planning?.cancel()
         routeGeneration++
         unfollow()
         route.value = RouteUiState()
-        hikeKeep.value = null
+        outingKeep.value = null
         readHeights = null
         closeSelection()
-        hikeOpenings.update { it + 1 }
+        outingOpenings.update { it + 1 }
         shownOuting.value = id
     }
 
@@ -932,7 +932,7 @@ class MapViewModel(
 
     fun dismissTrailChoices() = trail.update { it.copy(choices = emptyList()) }
 
-    /** A shown Hike gives way, a planned Route is set aside, and a recording goes on (docs/phase-6c.md § 3). */
+    /** A shown Outing gives way, a planned Route is set aside, and a recording goes on (docs/phase-6c.md § 3). */
     private fun showTrail(picked: TrailDetail) {
         if (shownOuting.value != null) closeOuting()
         dismissOffer()
@@ -1064,13 +1064,13 @@ class MapViewModel(
 
     fun closeOuting() {
         shownOuting.value = null
-        hikeKeep.value = null
+        outingKeep.value = null
     }
 
     // The last Track's heights, so a note or a photo does not read the relief again.
     private var readHeights: Pair<ByteArray, List<Height?>>? = null
 
-    private suspend fun hikeState(
+    private suspend fun outingState(
         outing: OutingEntity,
         photos: List<OutingPhotoEntity>,
     ): OutingUiState? {
@@ -1121,21 +1121,21 @@ class MapViewModel(
     /** Trim's handles start at the two ends, keeping everything. */
     fun startTrim() {
         val along = state.value.outing?.along ?: return
-        hikeKeep.value = 0.0..(along.lastOrNull() ?: 0.0)
+        outingKeep.value = 0.0..(along.lastOrNull() ?: 0.0)
     }
 
     fun trimTo(keep: ClosedFloatingPointRange<Double>) {
-        if (hikeKeep.value != null) hikeKeep.value = keep
+        if (outingKeep.value != null) outingKeep.value = keep
     }
 
     fun cancelTrim() {
-        hikeKeep.value = null
+        outingKeep.value = null
     }
 
     fun trim() {
         val outing = state.value.outing ?: return
         val kept = outing.kept ?: return
-        hikeKeep.value = null
+        outingKeep.value = null
         applicationScope.launch { trimOuting(outing.id, kept.first, kept.last) }
     }
 
@@ -1151,12 +1151,12 @@ class MapViewModel(
 
     /** One at a time, past the screen's life, each appearing in the strip as it is written. */
     fun addPhotos(
-        hikeId: String,
+        outingId: String,
         sources: List<Uri>,
     ) {
         if (sources.isEmpty()) return
         applicationScope.launch {
-            val failed = addEach(sources) { savePhoto(hikeId, it) }
+            val failed = addEach(sources) { savePhoto(outingId, it) }
             if (failed > 0) photosLeftOut.update { it + failed }
         }
     }
@@ -1179,12 +1179,12 @@ class MapViewModel(
     private val gpxExports = GpxExports(viewModelScope, writeGpx)
     val gpx: StateFlow<GpxExport> = gpxExports.state
 
-    /** The shown Hike as a GPX file for the share sheet (docs/phase-6.md § 8). */
+    /** The shown Outing as a GPX file for the share sheet (docs/phase-6.md § 8). */
     fun exportOutingGpx() {
         val outing = state.value.outing ?: return
         val pinned = outing.photos.mapNotNull { photo -> photo.pin?.let { it to photo.caption } }
         gpxExports.start(outing.startedAt.atZone(ZoneId.systemDefault()).toLocalDate()) {
-            hikeGpx(outing.name, outing.note, outing.track, outing.heights, pinned)
+            outingGpx(outing.name, outing.note, outing.track, outing.heights, pinned)
         }
     }
 
@@ -1195,7 +1195,7 @@ class MapViewModel(
     fun deleteOuting() {
         val id = shownOuting.value ?: return
         closeOuting()
-        // Past the screen's life: Back right after Delete must not leave the Hike behind.
+        // Past the screen's life: Back right after Delete must not leave the Outing behind.
         applicationScope.launch { deleteOuting(id) }
     }
 
@@ -1504,7 +1504,7 @@ class MapViewModel(
                         observeName = app.container.routes::observeName,
                         recording = app.container.recorder.recording,
                         observeTrack = app.container.outings::observeTrack,
-                        hikeToShow = app.container.hikeToShow,
+                        outingToShow = app.container.outingToShow,
                         observeOuting = app.container.outings::observe,
                         observePhotos = app.container.outings::observePhotos,
                         resolveMedia = app.container.media::resolve,

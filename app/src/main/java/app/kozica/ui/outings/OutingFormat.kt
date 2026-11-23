@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/** The day a Hike started, as the recording named it (docs/phase-6.md § 2). */
+/** The day an Outing started, as the recording named it (docs/phase-6.md § 2). */
 internal fun hikeDate(
     startedAt: Instant,
     locale: Locale,

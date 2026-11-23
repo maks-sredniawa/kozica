@@ -56,7 +56,7 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
-/** docs/phase-6.md § 4 and § 6: a Hike's totals, profile, note and photos under its Track on the map, and what can be done to it. */
+/** docs/phase-6.md § 4 and § 6: an Outing's totals, profile, note and photos under its Track on the map, and what can be done to it. */
 @Composable
 internal fun OutingSheet(
     outing: OutingUiState,

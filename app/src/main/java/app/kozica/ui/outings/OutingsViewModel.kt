@@ -39,14 +39,14 @@ data class OutingsUiState(
 )
 
 /**
- * docs/phase-6.md § 4: ended Hikes newest first. Opening the tab reads the height grid for any
- * Hike still without its ascent, which a Stop the process did not outlive leaves behind.
+ * docs/phase-6.md § 4: ended Outings newest first. Opening the tab reads the height grid for any
+ * Outing still without its ascent, which a Stop the process did not outlive leaves behind.
  */
 class OutingsViewModel(
     ended: Flow<List<OutingSummary>>,
     photosNotBackedUp: Flow<Int>,
     private val fillClimbs: suspend () -> Unit,
-    private val hikeToShow: MutableStateFlow<String?>,
+    private val outingToShow: MutableStateFlow<String?>,
     private val exportEverything: suspend () -> ExportResult,
     io: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
@@ -62,7 +62,7 @@ class OutingsViewModel(
     }
 
     fun show(id: String) {
-        hikeToShow.value = id
+        outingToShow.value = id
     }
 
     /** The banner's button: to the remembered folder if one is granted, else the share sheet. */
@@ -99,7 +99,7 @@ class OutingsViewModel(
                             container.outings::observePhotosAddedAfter,
                         ),
                         container.outings::fillClimbs,
-                        container.hikeToShow,
+                        container.outingToShow,
                         { container.backupExports.export(BackupScope.Everything, toFolder = true) },
                     )
                 }

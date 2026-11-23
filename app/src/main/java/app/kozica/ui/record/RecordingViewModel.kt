@@ -28,7 +28,7 @@ import java.time.Instant
 /**
  * @param loaded false until the first reading; before it, a null [recording] does not mean nothing
  *   records.
- * @param unfinished a Hike whose recording was lost with its process, offered to resume or finish
+ * @param unfinished an Outing whose recording was lost with its process, offered to resume or finish
  *   while nothing records and until one of the two is chosen.
  * @param photosLeftOut how many photos, taken or picked, could not be added, shown until dismissed.
  */
@@ -46,9 +46,9 @@ class RecordingViewModel(
     private val recorder: Recorder,
     unfinished: Flow<OutingEntity?>,
     private val preferences: AppPreferences,
-    private val finish: suspend (hikeId: String, now: Instant) -> Unit,
+    private val finish: suspend (outingId: String, now: Instant) -> Unit,
     private val applicationScope: CoroutineScope,
-    private val savePhoto: suspend (hikeId: String, shot: Uri, pressedAt: Instant) -> Unit = { _, _, _ -> },
+    private val savePhoto: suspend (outingId: String, shot: Uri, pressedAt: Instant) -> Unit = { _, _, _ -> },
     private val deleteShot: (shot: Uri) -> Unit = {},
     private val photosLeftOut: MutableStateFlow<Int> = MutableStateFlow(0),
 ) : ViewModel() {
@@ -72,10 +72,10 @@ class RecordingViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecordingUiState())
 
-    /** Starts a new Hike, or resumes an unfinished one unless it has already been resumed or finished. */
-    fun start(hikeId: String?) {
-        if (hikeId != null && !answer(hikeId)) return
-        recorder.start(hikeId)
+    /** Starts a new Outing, or resumes an unfinished one unless it has already been resumed or finished. */
+    fun start(outingId: String?) {
+        if (outingId != null && !answer(outingId)) return
+        recorder.start(outingId)
     }
 
     fun pause() = recorder.pause()
@@ -85,20 +85,20 @@ class RecordingViewModel(
     fun stop() = recorder.stop()
 
     /** On the application's scope, so leaving the screen cannot cut it short. */
-    fun finishUnfinished(hikeId: String) {
-        if (!answer(hikeId)) return
-        applicationScope.launch { finish(hikeId, Instant.now()) }
+    fun finishUnfinished(outingId: String) {
+        if (!answer(outingId)) return
+        applicationScope.launch { finish(outingId, Instant.now()) }
     }
 
-    /** The camera's shot, written to [hikeId]'s photos past the screen's life; the camera's own file then goes. */
+    /** The camera's shot, written to [outingId]'s photos past the screen's life; the camera's own file then goes. */
     fun addPhoto(
-        hikeId: String,
+        outingId: String,
         shot: Uri,
         pressedAt: Instant,
     ) {
         applicationScope.launch {
             try {
-                savePhoto(hikeId, shot, pressedAt)
+                savePhoto(outingId, shot, pressedAt)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -115,7 +115,7 @@ class RecordingViewModel(
         photosLeftOut.value = 0
     }
 
-    private fun answer(hikeId: String): Boolean = answered.getAndUpdate { hikeId } != hikeId
+    private fun answer(outingId: String): Boolean = answered.getAndUpdate { outingId } != outingId
 
     fun notificationsAsked() {
         viewModelScope.launch { preferences.setNotificationsAsked() }
@@ -133,7 +133,7 @@ class RecordingViewModel(
                         app.preferences,
                         container.recorder::finish,
                         container.applicationScope,
-                        { hikeId, shot, pressedAt -> container.outings.addPhoto(hikeId, shot, pressedAt) },
+                        { outingId, shot, pressedAt -> container.outings.addPhoto(outingId, shot, pressedAt) },
                         { shot -> app.contentResolver.delete(shot, null, null) },
                         container.photosLeftOut,
                     )

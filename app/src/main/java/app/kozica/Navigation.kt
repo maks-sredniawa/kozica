@@ -148,7 +148,7 @@ fun MainNavigation(
                         recording = it,
                         onPause = recordingViewModel::pause,
                         onResume = recordingViewModel::resume,
-                        onTakePhoto = { takePhoto(it.hikeId) },
+                        onTakePhoto = { takePhoto(it.outingId) },
                         onStop = { stopping = true },
                     )
                 }

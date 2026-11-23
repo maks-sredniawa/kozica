@@ -20,7 +20,7 @@ class GpxTest {
     private val start = 1_761_480_000_000L
 
     private val hike =
-        hikeGpx(
+        outingGpx(
             name = "Kuźnice & <Kasprowy> \"szczyt\" 'tam'\u0001",
             note = "Mgła < 10 m & wiatr",
             track =
