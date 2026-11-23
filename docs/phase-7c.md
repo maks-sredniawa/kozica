@@ -379,6 +379,9 @@ asked first (`DOD.md`'s Play rules).
   such Ride from moving the Pace.
 - **The no-Bike Pace and a Bike's are not merged.** Adding a first Bike after 20 Rides starts it at the
   rule's time until it has 3 Rides of its own, unless the old Rides are moved to it on their sheets.
+- **A Ride with no Bike made a Hike and back comes back on the current Bike.** A Hike with no `bikeId`
+  cannot tell "was a Ride on no Bike" from "never a Ride"; telling them apart would need a column, and
+  the Bike chip on its sheet sets it back.
 
 ## Readings
 
