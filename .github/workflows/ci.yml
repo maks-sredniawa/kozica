@@ -230,8 +230,8 @@ jobs:
   # `edge-to-edge.py` walks ~75 scenes per cell by driving uiautomator taps, and its `settle()`
   # timings are tuned to real hardware — an emulator is where they go flaky rather than fail. A
   # flaky check on every PR is a check people learn to re-run without reading, which is worse than
-  # no check. The weekly schedule (live apps only) plus the Run workflow button keeps the coverage
-  # and keeps the merge path honest. Promote it to `pull_request` after a few steady weeks.
+  # no check. The Run workflow button, plus the weekly schedule once the app is live on Play, keeps
+  # the coverage and keeps the merge path honest. Promote it to `pull_request` after steady weeks.
   #
   # The second half of the `if:` is the same reasoning as release-please's, for the same repository.
   # This job drives ~75 scenes per cell against screens the template does not have yet — its app is
@@ -249,7 +249,7 @@ jobs:
     # go. The old shape put all four configurations of API 36 in a single job that was still going
     # after 13 minutes with no cell finished, against a 240-minute ceiling it would plausibly have
     # reached. Fanning out costs an emulator boot and a build per job — minutes are free on a public
-    # repository — and buys a wall clock a nightly can actually finish in, plus a red that names the
+    # repository — and buys a wall clock a run can actually finish in, plus a red that names the
     # configuration that broke instead of the API level that contained it.
     timeout-minutes: 90
     strategy:

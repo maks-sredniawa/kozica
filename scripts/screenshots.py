@@ -13,8 +13,8 @@ sequences are imported from it rather than copied: [SCENES] is the expensive ass
 two drifting copies of it would both keep producing screenshots, just of the wrong screens.
 
 ⚠ **[SCENES] describes the template's placeholder screens.** Rewrite it against your own the day the
-placeholder domain goes — until then a run walks to screens that do not exist, and the nightly
-edge-to-edge job reports a red that means nothing. That rewrite is the one edit that makes both
+placeholder domain goes — until then a run walks to screens that do not exist, and every
+edge-to-edge run reports a red that means nothing. That rewrite is the one edit that makes both
 scripts yours; everything else here is about the phone, not the app.
 
     scripts/screenshots.py --out docs/screenshots/before --network-dir NET   # NET: see edge-to-edge.py
