@@ -96,6 +96,9 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
 
 ## After the closed test
 
+- [ ] **Turn on the weekly CI run once the app is live on Play.** Add
+      `schedule: - cron: '47 1 * * 0'` under `on:` in `.github/workflows/ci.yml`. Until then
+      edge-to-edge runs only from the Run workflow button.
 - [x] **The production-access application is in, with its answers recorded verbatim** in
       [`play-app-content.md`](play-app-content.md). Until it is granted the production track does not
       exist. The app this template was extracted from waited one day; that is one datapoint, not a

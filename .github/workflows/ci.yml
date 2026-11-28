@@ -10,17 +10,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
-  # For `edge-to-edge` alone — see the `if:` on that job. Off the hour because GitHub's scheduler
-  # queues everything cron-ed to :00 together.
-  #
-  # **The time here is a request, not a promise, and on a public repository it is a loose one.** The
-  # first two nightlies were queued at 14:11 and 15:22 UTC against a 03:17 cron — ten and twelve
-  # hours late. `schedule` is best-effort and deprioritised under load, and a run can be dropped
-  # outright rather than merely delayed, so a night with no run is *not* a green night. 01:47 buys
-  # more of that slack ahead of a European morning; it does not buy certainty. Read the run list,
-  # not the absence of a red.
-  schedule:
-    - cron: '47 1 * * *'
+  # No `schedule` until the app is live on Play: docs/DOD.md, *After the closed test*.
 
 concurrency:
   # A new push to the same branch cancels the run still in progress.
@@ -240,14 +230,14 @@ jobs:
   # `edge-to-edge.py` walks ~75 scenes per cell by driving uiautomator taps, and its `settle()`
   # timings are tuned to real hardware — an emulator is where they go flaky rather than fail. A
   # flaky check on every PR is a check people learn to re-run without reading, which is worse than
-  # no check. Nightly plus the Run workflow button keeps the coverage and keeps the merge path
-  # honest. Promote it to `pull_request` once a few weeks of nightlies have shown it steady.
+  # no check. The weekly schedule (live apps only) plus the Run workflow button keeps the coverage
+  # and keeps the merge path honest. Promote it to `pull_request` after a few steady weeks.
   #
   # The second half of the `if:` is the same reasoning as release-please's, for the same repository.
   # This job drives ~75 scenes per cell against screens the template does not have yet — its app is
-  # a placeholder, so the nightly boots ten emulators to walk a UI nobody has written and reports a
+  # a placeholder, so each run boots ten emulators to walk a UI nobody has written and reports a
   # red that means nothing. A repo *generated* from the template is not itself a template, so the
-  # condition is false there and the nightly runs normally. Nothing for repo-setup.py to rewrite,
+  # condition is false there and the job runs normally. Nothing for repo-setup.py to rewrite,
   # and no repository name hardcoded. Parentheses are load-bearing: `&&` binds tighter than `||`.
   edge-to-edge:
     name: Edge-to-edge (API ${{ matrix.api-level }}, ${{ matrix.config }})
