@@ -96,8 +96,8 @@ scripts in the last column — they are what tells you the strip is finished rat
 - `debug/…/data/SampleData.kt`, `debug/…/debug/SeedReceiver.kt`, the debug manifest's receiver, and
   the seed rows in `DebugSettings.kt` — or keep the seeding seam and point it at your own data
 - **`scripts/edge-to-edge.py`'s SCENES**, `TAB_BAR`, `HOME_TAB` and `SEED_WALK`: they walk the
-  template's screens. Rewrite them against yours the same week — until then the nightly job boots ten
-  emulators to walk screens that do not exist and reports a red everyone learns to ignore.
+  template's screens. Rewrite them against yours the same week — until then each edge-to-edge run
+  boots ten emulators to walk screens that do not exist and reports a red everyone learns to ignore.
 
 ## Around the code
 
