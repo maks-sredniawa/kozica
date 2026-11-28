@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.21.0](https://github.com/maks-sredniawa/kozica/compare/v0.20.0...v0.21.0) (2026-11-28)
+
+
+### Features
+
+* keep Bikes in schema 5 and add My bikes, behind the Cycling seam ([fd91cf0](https://github.com/maks-sredniawa/kozica/commit/fd91cf00fe3b5dc275baa19269117d014b301273))
+* make a Bike added while none is current the current one, and back up Bikes' photos ahead of thumbnails ([a375011](https://github.com/maks-sredniawa/kozica/commit/a375011f694ed22e00e4ec78d3974916deea7cff))
+
+
+### Bug Fixes
+
+* ask before removing a Bike's photo, as a Hike's Delete photo does ([fd62197](https://github.com/maks-sredniawa/kozica/commit/fd6219750d33ee986da8216e071f92f0c581886c))
+* read a current Bike id with no Bike as no Bike, and bind the Rides' mode in BikeDao ([d6bfc03](https://github.com/maks-sredniawa/kozica/commit/d6bfc03e2efed3d3c01b373090803a8944a48483))
+
 ## [0.20.0](https://github.com/maks-sredniawa/kozica/compare/v0.19.0...v0.20.0) (2026-11-13)
 
 
