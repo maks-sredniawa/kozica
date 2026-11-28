@@ -125,16 +125,10 @@ close. Whenever `APP_SCHEMA_VERSION` changes, all five hold before the release g
       the relief. § 1's verdict 3, decided with the owner on 2026-11-01: the format stays, and the
       relief, the largest pack and sent whole every time, keeps whole metres instead of tenths, 86 MB
       instead of 257 MB with no visible change (ADR-0009's 2026-11-01 amendment).
-- [ ] **Turn on the weekly CI run once the app is live on Play.** Add under `on:` in
-      `.github/workflows/ci.yml`:
-
-      ```yaml
-      schedule:
-        - cron: '47 1 * * 0'
-      ```
-
-      Until then edge-to-edge runs only from the Run workflow button. GitHub's schedule is
-      best-effort, so a week with no run is not a green week: read the run list.
+- [ ] **Turn on the weekly CI run once the app is live on Play.** Add
+      `schedule: [{cron: '47 1 * * 0'}]` under `on:` in `.github/workflows/ci.yml`. Until then
+      edge-to-edge runs only from the Run workflow button. GitHub's schedule is best-effort, so a
+      week with no run is not a green week: read the run list.
 
 ## Standing checks that never close
 
